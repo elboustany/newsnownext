@@ -107,6 +107,92 @@ a{color:inherit}
 .nav-links a[aria-current]{color:#fff;background:rgba(255,255,255,.16)}
 .nav-links svg{width:15px;height:15px;flex:none}
 
+/* ── Nav dropdowns + market clocks ─────────────────────────────────── */
+
+.menu{position:relative}
+.menu-btn{
+  font:inherit;font-size:15px;font-weight:500;color:#e5e7eb;
+  background:none;border:0;cursor:pointer;border-radius:6px;
+  padding:8px 11px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.menu-btn:hover,.menu-btn[aria-expanded="true"]{color:#fff;background:rgba(255,255,255,.10)}
+.menu-btn.cur{color:#fff;background:rgba(255,255,255,.16)}
+.caret{font-size:10px;opacity:.7}
+.menu-pop{
+  position:absolute;top:calc(100% + 6px);left:0;z-index:70;min-width:190px;
+  background:#fff;border:1px solid var(--border);border-radius:10px;
+  box-shadow:0 12px 32px rgba(16,24,40,.18);padding:6px;
+}
+.menu:last-child .menu-pop,.nav-links .menu:last-of-type .menu-pop{left:auto;right:0}
+.menu-pop a{
+  display:flex;align-items:center;gap:8px;color:var(--foreground) !important;
+  background:none !important;font-size:14px;font-weight:500;
+  padding:8px 10px;border-radius:7px;text-decoration:none;
+}
+.menu-pop a:hover{background:var(--muted) !important}
+.menu-pop a[aria-current]{color:var(--primary) !important;background:rgba(36,99,235,.07) !important}
+
+.clockbox{margin-left:6px}
+.clock-chip{font-size:13px;font-weight:600;letter-spacing:.01em}
+.clock-chip [data-clock-mini]{font-variant-numeric:tabular-nums}
+.clock-ico{font-size:13px}
+.clock-pop{min-width:220px;padding:8px}
+.clock-row{
+  display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:7px;
+  font-size:13.5px;color:var(--foreground);
+}
+.clock-row:hover{background:var(--muted)}
+.clock-row .dot{width:8px;height:8px;border-radius:50%;background:#cbd5e1;flex:none}
+.clock-row.open .dot{background:#10b981}
+.clock-row .cname{font-weight:500}
+.clock-row .ctime{
+  margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted-foreground);
+  font-weight:600;
+}
+.clock-row.open .ctime{color:var(--foreground)}
+
+@media(max-width:900px){.clockbox{display:none}}
+
+/* ── Economic calendar ─────────────────────────────────────────────── */
+
+.ev-month{
+  font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted-foreground);margin:26px 0 10px;padding-bottom:7px;
+  border-bottom:1px solid var(--border);
+}
+.evlist{max-width:820px}
+.ev{
+  display:flex;gap:16px;padding:16px;margin-bottom:10px;
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+}
+.ev-date{
+  flex:none;width:52px;text-align:center;padding-top:2px;
+  display:flex;flex-direction:column;
+}
+.ev-day{font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.ev-wd{font-size:11px;font-weight:600;text-transform:uppercase;color:var(--muted-foreground)}
+.ev-body{min-width:0;flex:1}
+.ev-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ev-line h3{font-size:15.5px;font-weight:700;margin:0}
+.ev-badge{
+  font-size:10px;font-weight:800;letter-spacing:.05em;color:#fff;
+  padding:2px 7px;border-radius:5px;
+}
+.ev-badge.high{background:#dc2626}
+.ev-badge.medium{background:#f59e0b}
+.ev-cat{
+  font-size:11px;font-weight:600;color:var(--muted-foreground);
+  border:1px solid var(--border);border-radius:5px;padding:1px 7px;
+}
+.ev-note{margin:5px 0 8px;font-size:13.5px;line-height:1.5;color:var(--muted-foreground)}
+.ev-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.ev-when{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.ev-count{
+  font-size:12px;font-weight:600;color:#9a3412;background:#ffedd5;
+  border-radius:6px;padding:2px 8px;
+}
+.ev-count:empty{display:none}
+
 /* ── Ticker — the quote-card band under the nav ────────────────────── */
 
 .ticker{background:#eceff3;border-bottom:1px solid var(--border);padding:16px 0 20px}

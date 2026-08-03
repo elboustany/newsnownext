@@ -351,15 +351,33 @@ def stamp(dt):
 
 
 NAV = [
-    ("/", "News"),
-    ("/books/", "Books"),
-    ("/forex/", "Forex"),
-    ("/world-news/", "World News"),
-    ("/podcasts/", "Podcasts"),
-    ("/contact/", "Contact"),
-    ("/preferences/", "Preferences"),
-    ("/read-later/", "Read Later"),
-    ("/portfolio/", "Portfolio"),
+    ("link", "News", "/"),
+    ("menu", "Markets", [
+        ("/forex/", "Forex"),
+        ("/events/", "Economic Calendar"),
+        ("/topics/", "Topics"),
+        ("/recap/", "Daily recap"),
+    ]),
+    ("menu", "Discover", [
+        ("/world-news/", "World News"),
+        ("/podcasts/", "Podcasts"),
+        ("/books/", "Books"),
+    ]),
+    ("menu", "More", [
+        ("/read-later/", "Read Later"),
+        ("/preferences/", "Preferences"),
+        ("/portfolio/", "Portfolio"),
+        ("/contact/", "Contact"),
+    ]),
+]
+
+# Market clocks in the navbar: label, IANA zone, open/close minutes local.
+CLOCKS = [
+    ("New York", "America/New_York", 570, 960),
+    ("London", "Europe/London", 480, 990),
+    ("Frankfurt", "Europe/Berlin", 540, 1050),
+    ("Tokyo", "Asia/Tokyo", 540, 900),
+    ("Hong Kong", "Asia/Hong_Kong", 570, 960),
 ]
 
 BOOKMARK_SVG = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
@@ -460,12 +478,39 @@ def ticker_strip(mkt):
 
 def shell(cfg, *, title, description, canonical, body, noindex=False,
           current="/", extra_head="", body_attrs="", scripts="", ticker=""):
-    links = "".join(
-        '<a href="{}"{}>{}{}</a>'.format(
+    def nav_link(href, label):
+        return '<a href="{}"{}>{}{}</a>'.format(
             href, ' aria-current="page"' if href == current else "",
             BOOKMARK_SVG if label == "Read Later" else "", esc(label))
-        for href, label in NAV
-    )
+
+    parts = []
+    for kind, label, target in NAV:
+        if kind == "link":
+            parts.append(nav_link(target, label))
+        else:
+            inside = any(href == current for href, _ in target)
+            items = "".join(nav_link(h, l) for h, l in target)
+            parts.append(
+                f'<div class="menu" data-menu>'
+                f'<button class="menu-btn{" cur" if inside else ""}" type="button" '
+                f'aria-expanded="false" aria-haspopup="true">{esc(label)}'
+                f'<span class="caret" aria-hidden="true">&#9662;</span></button>'
+                f'<div class="menu-pop" hidden>{items}</div></div>')
+    links = "".join(parts)
+
+    clock_rows = "".join(
+        f'<div class="clock-row" data-tz="{tz}" data-open="{o}" data-close="{c}">'
+        f'<i class="dot"></i><span class="cname">{esc(name)}</span>'
+        f'<span class="ctime">--:--</span></div>'
+        for name, tz, o, c in CLOCKS)
+    clocks = (
+        '<div class="clockbox" data-menu data-clocks>'
+        '<button class="menu-btn clock-chip" type="button" aria-expanded="false" '
+        'aria-haspopup="true" title="Market hours">'
+        '<span class="clock-ico" aria-hidden="true">&#128340;</span>'
+        '<span data-clock-mini>NY --:--</span>'
+        '<span class="caret" aria-hidden="true">&#9662;</span></button>'
+        f'<div class="menu-pop clock-pop" hidden>{clock_rows}</div></div>')
     robots = '<meta name="robots" content="noindex,follow">' if noindex else ""
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -499,6 +544,7 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
     <a class="logo" href="/" aria-label="{esc(cfg['site_name'])} home">
       <span class="l1">NEWS</span><span class="l2">NOW</span><span class="l3">NEXT</span>
     </a>
+    {clocks}
     <div class="nav-links">{links}</div>
   </div>
 </nav>
@@ -772,6 +818,105 @@ def books_page(cfg, mkt, base, out):
 
 
 
+
+def events_page(cfg, mkt, base, out):
+    """US economic calendar: the scheduled releases that move markets.
+
+    Data lives in data/events.json and is maintained by hand — these dates
+    are published well in advance but do occasionally shift. The page only
+    renders future events, and the build warns when the file runs low.
+    """
+    from zoneinfo import ZoneInfo
+    data = json.loads((HERE / "data" / "events.json").read_text(encoding="utf-8"))
+    tz = ZoneInfo(data.get("timezone", "America/New_York"))
+    today = datetime.now(timezone.utc).date()
+
+    CATS = {"fed": "Fed", "inflation": "Inflation", "jobs": "Jobs",
+            "growth": "Growth", "other": "Other"}
+
+    future = []
+    for e in data["events"]:
+        d = datetime.strptime(f'{e["date"]} {e["time"]}', "%Y-%m-%d %H:%M")
+        local = d.replace(tzinfo=tz)
+        if local.date() < today:
+            continue
+        future.append((local, e))
+    future.sort(key=lambda x: x[0])
+    if len(future) < 5:
+        print(f"  NOTE: only {len(future)} future events left in data/events.json "
+              f"— time to update it")
+
+    rows, seen_month, ld_items = [], None, []
+    for local, e in future:
+        utc = local.astimezone(timezone.utc)
+        month = local.strftime("%B %Y")
+        if month != seen_month:
+            rows.append(f'<h2 class="ev-month">{esc(month)}</h2>')
+            seen_month = month
+        cat = CATS.get(e["category"], "Other")
+        hour = local.hour % 12 or 12
+        when = f'{hour}:{local.strftime("%M")} {"AM" if local.hour < 12 else "PM"} ET'
+        rows.append(
+            f'<article class="ev" data-ev data-cat="{esc(e["category"])}" '
+            f'data-utc="{utc.strftime("%Y%m%dT%H%M%SZ")}">'
+            f'<div class="ev-date"><span class="ev-day">{local.day}</span>'
+            f'<span class="ev-wd">{local.strftime("%a")}</span></div>'
+            f'<div class="ev-body">'
+            f'<div class="ev-line"><h3>{esc(e["name"])}</h3>'
+            f'<span class="ev-badge {esc(e["impact"])}">'
+            f'{"HIGH" if e["impact"] == "high" else "MED"}</span>'
+            f'<span class="ev-cat">{esc(cat)}</span></div>'
+            f'<p class="ev-note">{esc(e["note"])}</p>'
+            f'<div class="ev-foot"><span class="ev-when">{esc(when)}</span>'
+            f'<span class="ev-count" data-count></span>'
+            f'<button class="linkbtn ev-cal" type="button" data-ics '
+            f'data-name="{esc(e["name"])}" data-note="{esc(e["note"])}">'
+            f'+ Add to calendar</button></div>'
+            f'</div></article>')
+        ld_items.append({
+            "@type": "Event", "name": e["name"],
+            "startDate": local.isoformat(),
+            "eventStatus": "https://schema.org/EventScheduled",
+            "location": {"@type": "VirtualLocation", "url": f"{base}/events/"},
+            "description": e["note"],
+        })
+
+    chips = ['<button class="chip" type="button" data-ev-chip="all" '
+             'aria-pressed="true">All</button>'] + [
+        f'<button class="chip" type="button" data-ev-chip="{k}" '
+        f'aria-pressed="false">{esc(v)}</button>'
+        for k, v in CATS.items()
+        if any(e["category"] == k for _, e in future)]
+
+    ld = json.dumps({"@context": "https://schema.org", "@type": "ItemList",
+                     "name": "US economic calendar",
+                     "itemListElement": [
+                         {"@type": "ListItem", "position": i + 1, "item": it}
+                         for i, it in enumerate(ld_items)]})
+
+    body = (
+        '<div class="page-head"><h1>Economic Calendar</h1>'
+        '<p class="standfirst">The US releases that move markets, in order. '
+        'All times Eastern.</p></div>'
+        f'<div class="filters" data-ev-filters>{"".join(chips)}'
+        '<p class="fcount"><span id="ev-count-all"></span></p></div>'
+        f'<div class="prose evlist">{"".join(rows)}</div>'
+        '<p class="intro"><p>Dates follow the official release calendars and are '
+        'maintained by hand; the occasional reschedule is possible. '
+        'Add-to-calendar files are generated in your browser.</p></p>')
+
+    write(out / "events" / "index.html", shell(
+        cfg, title=f"US economic calendar — Fed, CPI, jobs — {cfg['site_name']}",
+        description=("Upcoming US market-moving events: FOMC decisions, CPI, "
+                     "jobs reports and GDP, with times and calendar files."),
+        canonical=f"{base}/events/", body=body, current="/events/",
+        ticker=ticker_strip(mkt),
+        extra_head=(f'<script type="application/ld+json">{ld}</script>'
+                    + breadcrumbs(base, [("Economic Calendar", "/events/")])),
+    ))
+    return f"{base}/events/"
+
+
 def podcasts_page(cfg, mkt, base, out):
     """Curated episode summaries — the only wholly original text on the site,
     and therefore the page most worth indexing."""
@@ -1023,6 +1168,7 @@ def build(cfg, items, out: Path, mkt=None):
         urls.append((forex_page(cfg, mkt, base, out), now))
     urls.append((books_page(cfg, mkt, base, out), now))
     urls.append((podcasts_page(cfg, mkt, base, out), now))
+    urls.append((events_page(cfg, mkt, base, out), now))
 
     world_items = {}
     for it in items:

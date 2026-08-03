@@ -43,6 +43,139 @@ PAGES_JS = r"""
     });
   }
 
+  /* ── Nav dropdowns (also the clock chip) ─────────────────────────── */
+  var menus = [].slice.call(document.querySelectorAll('[data-menu]'));
+  function closeMenus(except) {
+    menus.forEach(function (m) {
+      if (m === except) return;
+      var b = m.querySelector('.menu-btn'), pop = m.querySelector('.menu-pop');
+      if (b && pop) { b.setAttribute('aria-expanded', 'false'); pop.hidden = true; }
+    });
+  }
+  menus.forEach(function (m) {
+    var b = m.querySelector('.menu-btn'), pop = m.querySelector('.menu-pop');
+    if (!b || !pop) return;
+    b.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = pop.hidden;
+      closeMenus(m);
+      pop.hidden = !open;
+      b.setAttribute('aria-expanded', String(open));
+    });
+  });
+  document.addEventListener('click', function () { closeMenus(null); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeMenus(null);
+  });
+
+  /* ── Market clocks ───────────────────────────────────────────────── */
+  var clockbox = document.querySelector('[data-clocks]');
+  if (clockbox) {
+    var rows = [].slice.call(clockbox.querySelectorAll('.clock-row'));
+    var mini = clockbox.querySelector('[data-clock-mini]');
+    function fmt(tz) {
+      return new Intl.DateTimeFormat('en-GB', {
+        timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
+      }).format(new Date());
+    }
+    function marketOpen(tz, o, c) {
+      var parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, hour: '2-digit', minute: '2-digit',
+        hour12: false, weekday: 'short'
+      }).formatToParts(new Date()).reduce(function (a, p) {
+        a[p.type] = p.value; return a;
+      }, {});
+      if (parts.weekday === 'Sat' || parts.weekday === 'Sun') return false;
+      var mins = (+parts.hour % 24) * 60 + (+parts.minute);
+      return mins >= o && mins < c;
+    }
+    function tick() {
+      rows.forEach(function (r) {
+        var tz = r.getAttribute('data-tz');
+        r.querySelector('.ctime').textContent = fmt(tz);
+        r.classList.toggle('open',
+          marketOpen(tz, +r.getAttribute('data-open'), +r.getAttribute('data-close')));
+      });
+      if (mini && rows[0]) mini.textContent = 'NY ' + fmt(rows[0].getAttribute('data-tz'));
+    }
+    tick();
+    setInterval(tick, 30000);
+  }
+
+  /* ── Economic calendar ───────────────────────────────────────────── */
+  var evRoot = document.querySelector('[data-ev-filters]');
+  if (evRoot) {
+    var evs = [].slice.call(document.querySelectorAll('[data-ev]'));
+    var months = [].slice.call(document.querySelectorAll('.ev-month'));
+    var evChips = [].slice.call(evRoot.querySelectorAll('[data-ev-chip]'));
+    var evCount = document.getElementById('ev-count-all');
+
+    // Countdown chips, computed from the UTC instant baked into each row.
+    evs.forEach(function (e) {
+      var t = e.getAttribute('data-utc');
+      var when = new Date(Date.UTC(+t.slice(0, 4), +t.slice(4, 6) - 1, +t.slice(6, 8),
+                                   +t.slice(9, 11), +t.slice(11, 13)));
+      var days = Math.floor((when - Date.now()) / 86400000);
+      var label = days < 0 ? '' : days === 0 ? 'Today'
+                : days === 1 ? 'Tomorrow' : 'In ' + days + ' days';
+      e.querySelector('[data-count]').textContent = label;
+    });
+
+    function evApply(cat) {
+      var shown = 0;
+      evs.forEach(function (e) {
+        var ok = cat === 'all' || e.getAttribute('data-cat') === cat;
+        e.hidden = !ok;
+        if (ok) shown++;
+      });
+      // hide month headings with nothing under them
+      months.forEach(function (m) {
+        var any = false, n = m.nextElementSibling;
+        while (n && !n.classList.contains('ev-month')) {
+          if (n.hasAttribute('data-ev') && !n.hidden) { any = true; break; }
+          n = n.nextElementSibling;
+        }
+        m.hidden = !any;
+      });
+      evCount.textContent = shown + ' upcoming event' + (shown === 1 ? '' : 's');
+    }
+    evChips.forEach(function (c) {
+      c.addEventListener('click', function () {
+        evChips.forEach(function (o) { o.setAttribute('aria-pressed', String(o === c)); });
+        evApply(c.getAttribute('data-ev-chip'));
+      });
+    });
+    evApply('all');
+
+    // Add-to-calendar: build a one-event .ics in the browser.
+    [].slice.call(document.querySelectorAll('[data-ics]')).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var row = b.closest('[data-ev]');
+        var t = row.getAttribute('data-utc');
+        var end = new Date(Date.UTC(+t.slice(0, 4), +t.slice(4, 6) - 1, +t.slice(6, 8),
+                                    +t.slice(9, 11), +t.slice(11, 13)) + 3600000);
+        var pad = function (n) { return String(n).padStart(2, '0'); };
+        var dtend = end.getUTCFullYear() + pad(end.getUTCMonth() + 1) +
+                    pad(end.getUTCDate()) + 'T' + pad(end.getUTCHours()) +
+                    pad(end.getUTCMinutes()) + '00Z';
+        var name = b.getAttribute('data-name');
+        var ics = ['BEGIN:VCALENDAR', 'VERSION:2.0',
+                   'PRODID:-//NewsNowNext//Economic Calendar//EN', 'BEGIN:VEVENT',
+                   'UID:' + t + '-' + name.replace(/\W+/g, '') + '@newsnownext.org',
+                   'DTSTAMP:' + t, 'DTSTART:' + t, 'DTEND:' + dtend,
+                   'SUMMARY:' + name.replace(/,/g, '\\,'),
+                   'DESCRIPTION:' + b.getAttribute('data-note').replace(/,/g, '\\,'),
+                   'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+        a.download = name.toLowerCase().replace(/\W+/g, '-') + '.ics';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+      });
+    });
+  }
+
   /* ── Promo banner ────────────────────────────────────────────────── */
   var promo = document.getElementById('promo');
   var x = document.getElementById('promo-x');
