@@ -33,9 +33,22 @@ UA = "Mozilla/5.0 (compatible; NewsNowNextDev/1.0)"
 
 # Only these hosts may be proxied — a dev box should not be an open relay.
 ALLOWED = {
-    "news.google.com", "search.cnbc.com", "feeds.content.dowjones.io",
-    "finance.yahoo.com", "feeds.feedburner.com", "www.investing.com",
+    "feeds.bbci.co.uk",
+    "feeds.content.dowjones.io",
+    "feeds.feedburner.com",
+    "finance.yahoo.com",
+    "news.google.com",
+    "search.cnbc.com",
+    "seekingalpha.com",
+    "www.al-monitor.com",
+    "www.aljazeera.com",
+    "www.france24.com",
     "www.ft.com",
+    "www.haaretz.com",
+    "www.investing.com",
+    "www.lemonde.fr",
+    "www.project-syndicate.org",
+    "www.scmp.com",
 }
 
 SHIM = b"""

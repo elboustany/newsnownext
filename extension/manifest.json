@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "NewsNowNext \u2014 Market Wire",
+  "name": "NewsNowNext — Market Wire",
   "short_name": "NewsNowNext",
-  "version": "1.1.0",
-  "description": "Every new tab becomes a live financial wire. Bloomberg, Reuters, CNBC, MarketWatch and more, on one timeline.",
+  "version": "2.0.0",
+  "description": "Every new tab becomes your NewsNowNext feed: US, UK, China, France, Switzerland and Middle East desks on one page, with search and filters.",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -16,14 +16,22 @@
     "storage"
   ],
   "host_permissions": [
+    "https://feeds.bbci.co.uk/*",
+    "https://feeds.content.dowjones.io/*",
+    "https://feeds.feedburner.com/*",
+    "https://finance.yahoo.com/*",
     "https://news.google.com/*",
     "https://search.cnbc.com/*",
-    "https://feeds.content.dowjones.io/*",
-    "https://finance.yahoo.com/*",
-    "https://feeds.feedburner.com/*",
-    "https://www.investing.com/*",
+    "https://seekingalpha.com/*",
+    "https://www.al-monitor.com/*",
+    "https://www.aljazeera.com/*",
+    "https://www.france24.com/*",
     "https://www.ft.com/*",
-    "https://www.newsnownext.org/*"
+    "https://www.haaretz.com/*",
+    "https://www.investing.com/*",
+    "https://www.lemonde.fr/*",
+    "https://www.project-syndicate.org/*",
+    "https://www.scmp.com/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"

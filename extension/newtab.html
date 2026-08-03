@@ -7,76 +7,75 @@
 <link rel="stylesheet" href="newtab.css">
 </head>
 <body>
-<div class="frame">
 
-  <header class="masthead">
-    <a class="wordmark" href="https://www.newsnownext.org/" title="Open newsnownext.org">
-      <span class="wordmark-a">NEWS</span><span class="wordmark-b">NOW</span><span class="wordmark-a">NEXT</span>
+<nav class="nav">
+  <div class="nav-in">
+    <a class="logo" href="https://www.newsnownext.org/" title="Open newsnownext.org">
+      <span class="l1">NEWS</span><span class="l2">NOW</span><span class="l3">NEXT</span>
     </a>
-
-    <div class="clockset">
-      <div class="clock" id="clock" aria-live="off">--:--:--</div>
-      <div class="clock-zone" id="clockZone">UTC</div>
+    <div class="nav-links">
+      <span id="status">—</span>
+      <button class="refresh" id="refresh" type="button">Refresh</button>
     </div>
+  </div>
+</nav>
 
-    <div class="sessions" id="sessionState" aria-label="Market sessions"></div>
-  </header>
+<div class="wrap">
 
-  <div class="controls">
-
-    <div class="controls-row controls-primary">
-      <div class="search">
-        <label class="sr-only" for="q">Filter headlines</label>
-        <input id="q" type="search" autocomplete="off" spellcheck="false"
-               placeholder="Filter headlines…">
-        <kbd class="hint" id="searchHint">/</kbd>
+  <div class="filters" data-filters>
+    <div class="frow">
+      <div class="fsearch">
+        <label class="sr-only" for="f-q">Filter headlines</label>
+        <input id="f-q" type="search" autocomplete="off" spellcheck="false"
+               placeholder="Filter headlines…  (press / )">
       </div>
-
-      <label class="sr-only" for="sort">Order</label>
-      <select id="sort" class="select" title="How the wire is ordered">
-        <option value="balanced">Balanced across sources</option>
+      <label class="sr-only" for="f-sort">Order</label>
+      <select id="f-sort" class="fsel">
         <option value="newest">Newest first</option>
         <option value="oldest">Oldest first</option>
-        <option value="source">Grouped by source</option>
-      </select>
-
-      <label class="sr-only" for="window">Time window</label>
-      <select id="window" class="select" title="How far back to show">
-        <option value="6">Last 6 hours</option>
-        <option value="12">Last 12 hours</option>
-        <option value="24">Last 24 hours</option>
-        <option value="72">Last 72 hours</option>
       </select>
     </div>
 
-    <div class="controls-row">
-      <span class="rowlabel">Topic</span>
-      <nav class="chips" id="topics" aria-label="Filter by topic"></nav>
+    <div class="frow">
+      <span class="flabel">Region</span>
+      <nav class="chips" id="f-regions" aria-label="Filter by region"></nav>
     </div>
 
-    <div class="controls-row">
-      <span class="rowlabel">Source</span>
-      <nav class="chips" id="sources" aria-label="Filter by source"></nav>
-    </div>
+    <details class="more">
+      <summary>More filters</summary>
+      <div class="frow">
+        <span class="flabel">Topic</span>
+        <nav class="chips" id="f-topics" aria-label="Filter by topic"></nav>
+      </div>
+      <div class="frow">
+        <span class="flabel">Since</span>
+        <label class="sr-only" for="f-window">Time window</label>
+        <select id="f-window" class="fsel">
+          <option value="0">Any time</option>
+          <option value="6">Last 6 hours</option>
+          <option value="12">Last 12 hours</option>
+          <option value="24">Last 24 hours</option>
+        </select>
+      </div>
+    </details>
 
-    <p class="resultline">
-      <span id="count">—</span>
-      <button class="linkbtn" id="clearAll" type="button" hidden>Clear filters</button>
+    <p class="fcount">
+      <span id="f-count">Loading…</span>
+      <button class="linkbtn" id="f-clear" type="button" hidden>Clear filters</button>
     </p>
-
   </div>
 
-  <main class="wire" id="wire" aria-live="polite" aria-busy="true">
-    <p class="state" id="state">Loading the wire…</p>
-  </main>
+  <p class="empty" id="f-empty" hidden>Nothing matches those filters.</p>
 
-  <footer class="footrule">
-    <span id="status">—</span>
-    <span class="keyhelp"><kbd>/</kbd>&nbsp;filter <kbd>r</kbd>&nbsp;refresh <kbd>esc</kbd>&nbsp;clear</span>
-    <button class="refresh" id="refresh" type="button">Refresh</button>
+  <div class="grid" id="grid" aria-live="polite" aria-busy="true"></div>
+
+  <footer class="foot">
+    Headlines link out to their publishers. NewsNowNext does not host or
+    reproduce article text.
   </footer>
 
 </div>
+
 <script type="module" src="newtab.js"></script>
 </body>
 </html>

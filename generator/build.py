@@ -1,37 +1,45 @@
 #!/usr/bin/env python3
 """
-NewsNowNext static page builder.
+NewsNowNext static site builder.
 
-Turns the live feeds into pages a search engine can actually index:
-topic pages, a dated daily recap, an index, a sitemap and an RSS feed.
+Renders the whole site as plain HTML: a home page of region cards (US, UK,
+China, France, Switzerland, Middle East, Blogs, Markets) exactly as the live
+site lays them out, plus topic pages and dated recaps.
+
+Everything is server-rendered. That is the point — the live site is a
+client-rendered SPA, so crawlers currently receive an empty shell and none of
+this content is indexable. Here the headlines are in the HTML.
 
 Standard library only. Python 3.9+.
 
     python3 build.py                 # build everything
     python3 build.py --no-fetch      # rebuild pages from the last cached pull
-    python3 build.py --config other.json
+    python3 build.py --config config.test.json
 
 A recap page is only marked indexable once a human synopsis exists at
-synopsis/YYYY-MM-DD.txt. Without one the page is generated but carries
-noindex, because a page of other people's headlines with no original
-writing on it is the exact thing search engines demote.
+synopsis/YYYY-MM-DD.txt, and a topic page once notes/<slug>.txt exists.
+Without one the page is generated but carries noindex, because a page of other
+people's headlines with no original writing on it is the exact thing search
+engines demote.
 """
 
 import argparse
 import html
 import json
-import os
 import re
 import sys
-import time
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime, format_datetime
 from pathlib import Path
 
+from theme import CSS
+from filterjs import FILTER_JS
+
 HERE = Path(__file__).resolve().parent
-UA = "NewsNowNextBuilder/1.0 (+https://www.newsnownext.org)"
+UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+      "(KHTML, like Gecko) Chrome/124.0 Safari/537.36 NewsNowNextBuilder/2.0")
 CACHE = HERE / ".cache" / "items.json"
 
 NS = {
@@ -42,7 +50,7 @@ NS = {
 
 # ── Fetch and parse ──────────────────────────────────────────────────────
 
-def fetch(url, timeout=20):
+def fetch(url, timeout=25):
     # A url with no scheme is a path relative to this file, so config.test.json
     # can point at fixtures/ and the self-test runs anywhere without network.
     if "://" not in url:
@@ -74,31 +82,39 @@ def parse_date(raw):
     return d.astimezone(timezone.utc)
 
 
-def clean_title(title, label):
+def clean_title(title, src):
+    """Strip the ' - Publisher' suffix Google News appends to every headline.
+
+    For a site-restricted query the publisher is the source label, but a broad
+    query ("switzerland economy") returns whatever outlet ran it — so a Swiss
+    rates story comes back as "… - Bitcoin World" and then matches the crypto
+    topic. Strip the suffix for anything routed through Google News; leave
+    native feeds alone, where a trailing dash is usually part of the headline.
+    """
     t = re.sub(r"\s+", " ", title).strip()
-    # Google News suffixes every headline with " - Publisher".
-    head = label.split()[0]
-    t = re.sub(rf"\s+[-–—]\s+{re.escape(head)}[^-–—]*$", "", t, flags=re.I)
+    if src.get("via") == "Google News":
+        t = re.sub(r"\s+[-–—]\s+[^-–—]{2,40}$", "", t)
+    else:
+        head = src["label"].split()[0]
+        t = re.sub(rf"\s+[-–—]\s+{re.escape(head)}[^-–—]*$", "", t, flags=re.I)
     return t.strip()
 
 
-def parse_feed(raw, feed):
+def parse_feed(raw, src, region):
     try:
         root = ET.fromstring(raw)
     except ET.ParseError as e:
-        raise ValueError(f"{feed['label']}: malformed XML ({e})")
+        raise ValueError(f"malformed XML ({e})")
 
     out = []
-    nodes = root.iter("item")
-    entries = list(root.iter(f"{{{NS['atom']}}}entry"))
+    nodes = list(root.iter("item")) + list(root.iter(f"{{{NS['atom']}}}entry"))
 
-    for n in list(nodes) + entries:
+    for n in nodes:
         title = text_of(n.find("title")) or text_of(n.find(f"{{{NS['atom']}}}title"))
         if not title:
             continue
 
-        link_node = n.find("link")
-        link = text_of(link_node)
+        link = text_of(n.find("link"))
         if not link:
             for ln in n.findall(f"{{{NS['atom']}}}link"):
                 if ln.get("rel", "alternate") == "alternate" and ln.get("href"):
@@ -116,277 +132,121 @@ def parse_feed(raw, feed):
         when = parse_date(raw_date) or datetime.now(timezone.utc)
 
         out.append({
-            "title": clean_title(title, feed["label"]),
+            "title": clean_title(title, src),
             "link": link,
             "ts": when.isoformat(),
-            "source": feed["label"],
-            "source_id": feed["id"],
-            "via": feed.get("via"),
+            "source": src["label"],
+            "source_id": src["id"],
+            "region_id": region["id"],
+            "region": region["title"],
+            "via": src.get("via"),
         })
     return out
 
 
 def collect(cfg):
     items, failures = [], []
-    for feed in cfg["feeds"]:
-        try:
-            items.extend(parse_feed(fetch(feed["url"]), feed))
-            print(f"  ok    {feed['label']}")
-        except Exception as e:                      # noqa: BLE001 - report and continue
-            failures.append(feed["label"])
-            print(f"  FAIL  {feed['label']}: {e}", file=sys.stderr)
+    for region in cfg["regions"]:
+        for src in region["sources"]:
+            try:
+                got = parse_feed(fetch(src["url"]), src, region)
+                if not got:
+                    raise ValueError("no items in feed")
+                items.extend(got)
+                print(f"  ok    {region['title']:<18} {src['label']} ({len(got)})")
+            except Exception as e:                  # noqa: BLE001 - report and continue
+                failures.append(f"{region['title']}/{src['label']}")
+                print(f"  FAIL  {region['title']:<18} {src['label']}: {e}",
+                      file=sys.stderr)
     return items, failures
 
 
-def dedupe(items, window_hours):
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=window_hours)
-    seen = {}
+def within(items, hours):
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    out = []
     for it in items:
         when = parse_date(it["ts"])
-        if not when or when < cutoff:
+        if when and when >= cutoff:
+            out.append(it)
+    return out
+
+
+def key_of(title):
+    return re.sub(r"[^a-z0-9]+", "", title.lower())[:60]
+
+
+def by_source(items, cfg):
+    """Group into {source_id: [items]}, newest first, deduped within a source.
+
+    Deliberately not deduped across sources: the home page shows each desk's
+    own column, and two desks covering the same story is information, not noise.
+    """
+    buckets = {}
+    for it in items:
+        buckets.setdefault(it["source_id"], []).append(it)
+
+    for sid, lst in buckets.items():
+        seen, keep = set(), []
+        for it in sorted(lst, key=lambda i: i["ts"], reverse=True):
+            k = key_of(it["title"])
+            if not k or k in seen:
+                continue
+            seen.add(k)
+            keep.append(it)
+        buckets[sid] = keep[: cfg["max_per_source"]]
+    return buckets
+
+
+def merged(items):
+    """One deduped chronological wire, for the topic and recap pages."""
+    seen = {}
+    for it in items:
+        k = key_of(it["title"])
+        if not k:
             continue
-        key = re.sub(r"[^a-z0-9]+", "", it["title"].lower())[:60]
-        if not key:
-            continue
-        if key not in seen or when > parse_date(seen[key]["ts"]):
-            seen[key] = it
+        if k not in seen or it["ts"] > seen[k]["ts"]:
+            seen[k] = it
     return sorted(seen.values(), key=lambda i: i["ts"], reverse=True)
 
 
 # ── Topic matching ───────────────────────────────────────────────────────
 
+def topic_pattern(topic):
+    return "(?<![a-z0-9])(" + "|".join(
+        re.escape(k.lower()) for k in topic["keywords"]) + ")(?![a-z0-9])"
+
+
 def matches(item, topic):
-    hay = item["title"].lower()
-    for kw in topic["keywords"]:
-        if re.search(rf"(?<![a-z0-9]){re.escape(kw.lower())}(?![a-z0-9])", hay):
-            return True
-    return False
+    return re.search(topic_pattern(topic), item["title"], flags=re.I) is not None
 
 
 # ── HTML ─────────────────────────────────────────────────────────────────
 
-CSS = """
-:root{--paper:#E9EBE4;--raised:#F3F5EE;--ink:#16191A;--soft:#5C6259;--faint:#8B9086;
---rule:#C9CDC0;--signal:#B23A2E;
---display:"Helvetica Neue Condensed","Arial Narrow","Roboto Condensed",Helvetica,Arial,sans-serif;
---body:ui-sans-serif,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
---data:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-@media(prefers-color-scheme:dark){:root{--paper:#14171A;--raised:#1B1F22;--ink:#E7E9E3;
---soft:#9AA096;--faint:#6B7168;--rule:#2C3136;--signal:#D9614F}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55}
-.wrap{max-width:760px;margin:0 auto;padding:0 24px 72px}
-header.top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
-padding:32px 0 14px;border-bottom:2px solid var(--ink);flex-wrap:wrap}
-.brand{font-family:var(--display);font-size:24px;font-weight:700;letter-spacing:.02em;
-text-decoration:none;color:var(--ink)}
-.brand em{font-style:normal;color:var(--signal)}
-nav.topics{display:flex;flex-wrap:wrap;gap:14px;padding:12px 0;border-bottom:1px solid var(--rule);
-font-family:var(--data);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
-nav.topics a{color:var(--soft);text-decoration:none}
-nav.topics a:hover,nav.topics a[aria-current]{color:var(--signal)}
-h1{font-family:var(--display);font-size:38px;line-height:1.1;letter-spacing:-.01em;margin:34px 0 10px}
-.standfirst{font-size:18px;color:var(--soft);margin:0 0 8px}
-.synopsis{background:var(--raised);border-left:3px solid var(--signal);padding:18px 20px;margin:26px 0}
-.synopsis p{margin:0 0 12px}.synopsis p:last-child{margin:0}
-.daymark{font-family:var(--data);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-color:var(--signal);margin:34px 0 6px;padding-bottom:6px;border-bottom:1px solid var(--rule)}
-ol.wire{list-style:none;margin:0;padding:0}
-ol.wire li{display:grid;grid-template-columns:66px 1fr;padding:11px 0;border-bottom:1px solid var(--rule)}
-ol.wire time{font-family:var(--data);font-size:12px;color:var(--faint);padding-top:4px;
-border-right:1px solid var(--rule);padding-right:14px;text-align:right}
-ol.wire .b{padding-left:16px;min-width:0}
-ol.wire a{font-family:var(--display);font-size:19px;font-weight:600;line-height:1.28;
-color:var(--ink);text-decoration:none;display:block}
-ol.wire a:hover{text-decoration:underline;text-underline-offset:3px}
-ol.wire .src{margin-top:4px;font-family:var(--data);font-size:10px;letter-spacing:.12em;
-text-transform:uppercase;color:var(--faint)}
-footer.bot{margin-top:44px;padding-top:14px;border-top:1px solid var(--rule);
-font-family:var(--data);font-size:11px;letter-spacing:.08em;color:var(--faint)}
-footer.bot a{color:var(--soft)}
-.cards{display:grid;gap:2px;margin:26px 0 0;padding:0;list-style:none}
-.cards li{border-bottom:1px solid var(--rule);padding:16px 0}
-.cards h2{font-family:var(--display);font-size:22px;margin:0 0 4px}
-.cards h2 a{color:var(--ink);text-decoration:none}
-.cards h2 a:hover{color:var(--signal)}
-.cards p{margin:0;color:var(--soft);font-size:15px}
-@media(max-width:640px){h1{font-size:29px}ol.wire li{grid-template-columns:52px 1fr}
-ol.wire a{font-size:17px}}
-.wirefilter{margin:26px 0 0;padding:14px 0 0;border-top:1px solid var(--rule)}
-.wfrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
-.wfsr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-#wf-q{flex:1 1 220px;font-family:var(--body);font-size:15px;color:var(--ink);
-background:var(--raised);border:1px solid var(--rule);border-radius:2px;padding:8px 11px}
-#wf-q:focus{outline:none;border-color:var(--signal);box-shadow:0 0 0 1px var(--signal)}
-.wfchip,.wforder,.wfall{font-family:var(--data);font-size:10px;letter-spacing:.12em;
-text-transform:uppercase;padding:5px 10px;border:1px solid var(--rule);background:transparent;
-color:var(--soft);cursor:pointer;border-radius:2px}
-.wfchip:hover,.wforder:hover,.wfall:hover{border-color:var(--ink);color:var(--ink)}
-.wfchip[aria-pressed=false]{opacity:.45;text-decoration:line-through}
-.wfcount{font-family:var(--data);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
-color:var(--faint);margin:0}
-ol.wire li[hidden],p.daymark[hidden]{display:none}
-ol.wire mark{background:rgba(178,58,46,.22);color:inherit;border-radius:1px;padding:0 1px}
-"""
-
-# Client-side filtering for the wire lists. Kept out of the page HTML so pages
-# stay diffable, and gated on `data-wirefilter` so it is a no-op where the bar
-# was not rendered. The list is server-rendered either way — this only hides
-# rows that are already in the document, so nothing here affects what a crawler
-# sees.
-FILTER_JS = r"""
-(function () {
-  var bar = document.querySelector('[data-wirefilter]');
-  if (!bar) return;
-  bar.hidden = false;
-
-  var q      = bar.querySelector('#wf-q');
-  var order  = bar.querySelector('.wforder');
-  var allBtn = bar.querySelector('.wfall');
-  var count  = bar.querySelector('.wfcount');
-  var chips  = [].slice.call(bar.querySelectorAll('.wfchip'));
-  var rows   = [].slice.call(document.querySelectorAll('ol.wire li'));
-  var lists  = [].slice.call(document.querySelectorAll('[data-day-list]'));
-  var off    = Object.create(null);
-  // Whatever follows the last day block (the footer). Day blocks are re-inserted
-  // before it so reordering never moves them out of the article.
-  var anchor = lists.length ? lists[lists.length - 1].nextSibling : null;
-
-  rows.forEach(function (li) {
-    var a = li.querySelector('a');
-    li._text = (a.textContent + ' ' + li.getAttribute('data-src')).toLowerCase();
-    li._raw = a.textContent;          // headline is plain text, no markup
-    li._a = a;
-  });
-
-  function escHtml(s) {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  // Rebuild from the raw headline each time so highlights never nest, and
-  // escape every slice so a headline containing < or & cannot inject markup.
-  function markUp(text, re) {
-    if (!re) return escHtml(text);
-    var out = '', last = 0, m;
-    re.lastIndex = 0;
-    while ((m = re.exec(text)) !== null) {
-      out += escHtml(text.slice(last, m.index)) + '<mark>' + escHtml(m[0]) + '</mark>';
-      last = m.index + m[0].length;
-      if (m.index === re.lastIndex) re.lastIndex++;   // guard zero-length match
-    }
-    return out + escHtml(text.slice(last));
-  }
-
-  function terms() {
-    return (q.value.toLowerCase().match(/"[^"]+"|\S+/g) || [])
-      .map(function (t) { return t.replace(/^"|"$/g, '').trim(); })
-      .filter(Boolean);
-  }
-
-  function esc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
-
-  function apply() {
-    var t = terms(), shown = 0;
-    var re = t.length ? new RegExp('(' + t.map(esc).join('|') + ')', 'ig') : null;
-
-    rows.forEach(function (li) {
-      var ok = !off[li.getAttribute('data-src')] &&
-               t.every(function (x) { return li._text.indexOf(x) > -1; });
-      li.hidden = !ok;
-      if (ok) shown++;
-      li._a.innerHTML = markUp(li._raw, ok ? re : null);
-    });
-
-    // A day heading with nothing left under it is noise.
-    lists.forEach(function (ol) {
-      var any = [].slice.call(ol.children).some(function (li) { return !li.hidden; });
-      ol.hidden = !any;
-      var head = ol.previousElementSibling;
-      if (head && head.hasAttribute('data-day')) head.hidden = !any;
-    });
-
-    count.textContent = shown === rows.length
-      ? rows.length + ' headlines'
-      : shown + ' of ' + rows.length + ' headlines';
-    allBtn.hidden = shown === rows.length;
-  }
-
-  function reorder() {
-    var desc = order.getAttribute('data-order') === 'desc';
-    desc = !desc;
-    order.setAttribute('data-order', desc ? 'desc' : 'asc');
-    order.textContent = desc ? 'Newest first' : 'Oldest first';
-
-    // Rows within each day…
-    lists.forEach(function (ol) {
-      [].slice.call(ol.children)
-        .sort(function (a, b) {
-          var x = +a.getAttribute('data-ts'), y = +b.getAttribute('data-ts');
-          return desc ? y - x : x - y;
-        })
-        .forEach(function (li) { ol.appendChild(li); });
-    });
-
-    // …and the day blocks themselves, or "oldest first" still shows the most
-    // recent day at the top and reads as broken. Re-insert before `anchor`
-    // (the footer) rather than appending, which would move them past it.
-    if (lists.length < 2) return;
-    var parent = lists[0].parentNode;
-    var blocks = lists.map(function (ol) {
-      var first = ol.querySelector('li');
-      return {
-        head: ol.previousElementSibling,
-        list: ol,
-        ts: first ? +first.getAttribute('data-ts') : 0
-      };
-    });
-    blocks.sort(function (a, b) { return desc ? b.ts - a.ts : a.ts - b.ts; });
-    blocks.forEach(function (b) {
-      if (b.head && b.head.hasAttribute('data-day')) parent.insertBefore(b.head, anchor);
-      parent.insertBefore(b.list, anchor);
-    });
-  }
-
-  q.addEventListener('input', apply);
-  q.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { q.value = ''; apply(); }
-  });
-  order.addEventListener('click', reorder);
-  chips.forEach(function (c) {
-    c.addEventListener('click', function () {
-      var s = c.getAttribute('data-src');
-      off[s] = !off[s];
-      c.setAttribute('aria-pressed', String(!off[s]));
-      apply();
-    });
-  });
-  allBtn.addEventListener('click', function () {
-    q.value = '';
-    off = Object.create(null);
-    chips.forEach(function (c) { c.setAttribute('aria-pressed', 'true'); });
-    apply();
-  });
-
-  document.addEventListener('keydown', function (e) {
-    if (e.key === '/' && e.target !== q) { e.preventDefault(); q.focus(); }
-  });
-
-  apply();
-})();
-"""
-
 def esc(s):
-    return html.escape(s, quote=True)
+    return html.escape(str(s), quote=True)
 
 
-def page(cfg, *, title, description, canonical, body, noindex=False,
-         topic_slug=None, extra_head=""):
-    def nav_link(t):
-        current = ' aria-current="page"' if t["slug"] == topic_slug else ""
-        return '<a href="/topics/{}.html"{}>{}</a>'.format(
-            t["slug"], current, esc(t["title"]))
+def stamp(dt):
+    """'Aug 3 12:23 PM' — the format the live site uses."""
+    hour = dt.hour % 12 or 12
+    ampm = "AM" if dt.hour < 12 else "PM"
+    return f"{dt.strftime('%b')} {dt.day} {hour}:{dt.strftime('%M')} {ampm}"
 
-    nav = "".join(nav_link(t) for t in cfg["topics"])
+
+NAV = [
+    ("/", "News"),
+    ("/topics/", "Topics"),
+    ("/recap/", "Daily recap"),
+]
+
+
+def shell(cfg, *, title, description, canonical, body, noindex=False,
+          current="/", extra_head="", body_attrs="", scripts=""):
+    links = "".join(
+        '<a href="{}"{}>{}</a>'.format(
+            href, ' aria-current="page"' if href == current else "", esc(label))
+        for href, label in NAV
+    )
     robots = '<meta name="robots" content="noindex,follow">' if noindex else ""
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -402,80 +262,156 @@ def page(cfg, *, title, description, canonical, body, noindex=False,
 <meta property="og:url" content="{esc(canonical)}">
 <meta property="og:type" content="website">
 <link rel="alternate" type="application/rss+xml" title="{esc(cfg['site_name'])} recaps" href="/feed.xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap">
 <link rel="stylesheet" href="/assets/site.css">
 {extra_head}
 </head>
-<body>
+<body{body_attrs}>
+<nav class="nav">
+  <div class="nav-in">
+    <a class="logo" href="/" aria-label="{esc(cfg['site_name'])} home">
+      <span class="l1">NEWS</span><span class="l2">NOW</span><span class="l3">NEXT</span>
+    </a>
+    <div class="nav-links">{links}</div>
+  </div>
+</nav>
 <div class="wrap">
-<header class="top">
-  <a class="brand" href="/">NEWS<em>NOW</em>NEXT</a>
-  <a href="/" style="font-family:var(--data);font-size:11px;letter-spacing:.12em;
-     text-transform:uppercase;color:var(--soft);text-decoration:none">Live feed &rarr;</a>
-</header>
-<nav class="topics">{nav}<a href="/recap/">Daily recap</a></nav>
 {body}
-<footer class="bot">
-  Headlines link out to their publishers. {esc(cfg['site_name'])} does not host article text.
-  &nbsp;·&nbsp; <a href="/feed.xml">RSS</a>
+<footer class="foot">
+  Headlines link out to their publishers. {esc(cfg['site_name'])} does not host or
+  reproduce article text. &nbsp;·&nbsp; <a href="/feed.xml">RSS</a>
 </footer>
 </div>
-<script src="/assets/filter.js" defer></script>
+{scripts}
 </body>
 </html>
 """
 
 
-def filter_bar(items):
-    """Search box and source toggles for a wire list.
-
-    Progressive enhancement: it is inert without JavaScript and the full list is
-    already in the HTML, so a crawler sees every headline either way.
-    """
-    if not items:
-        return ""
-    sources = sorted({i["source"] for i in items})
-    chips = "".join(
-        f'<button class="wfchip" type="button" aria-pressed="true" '
-        f'data-src="{esc(s)}">{esc(s)}</button>'
-        for s in sources
+def filter_bar(cfg, regions_present):
+    region_chips = "".join(
+        f'<button class="chip" type="button" data-region-btn="{esc(r["id"])}" '
+        f'aria-pressed="false">{esc(r["title"])}</button>'
+        for r in cfg["regions"] if r["id"] in regions_present
     )
+    topic_chips = "".join(
+        f'<button class="chip" type="button" data-topic-btn="{esc(t["slug"])}" '
+        f'aria-pressed="false">{esc(t["title"])}</button>'
+        for t in cfg["topics"]
+    )
+    topic_links = " · ".join(
+        f'<a href="/topics/{esc(t["slug"])}.html">{esc(t["title"])}</a>'
+        for t in cfg["topics"]
+    )
+    return f"""
+<div class="filters" data-filters hidden>
+  <div class="frow">
+    <div class="fsearch">
+      <label class="sr-only" for="f-q">Filter headlines</label>
+      <input id="f-q" type="search" autocomplete="off" spellcheck="false"
+             placeholder="Filter headlines…  (press / )">
+    </div>
+    <label class="sr-only" for="f-sort">Order</label>
+    <select id="f-sort" class="fsel">
+      <option value="newest">Newest first</option>
+      <option value="oldest">Oldest first</option>
+    </select>
+  </div>
+
+  <div class="frow">
+    <span class="flabel">Region</span>
+    {region_chips}
+  </div>
+
+  <details class="more">
+    <summary>More filters</summary>
+    <div class="frow">
+      <span class="flabel">Topic</span>
+      {topic_chips}
+    </div>
+    <div class="frow">
+      <span class="flabel">Since</span>
+      <label class="sr-only" for="f-window">Time window</label>
+      <select id="f-window" class="fsel">
+        <option value="0">Any time</option>
+        <option value="6">Last 6 hours</option>
+        <option value="12">Last 12 hours</option>
+        <option value="24">Last 24 hours</option>
+      </select>
+    </div>
+    <p class="fcount" style="margin-top:10px">Full pages: {topic_links} · <a href="/recap/">Daily recap</a></p>
+  </details>
+
+  <p class="fcount">
+    <span id="f-count">—</span>
+    <button class="linkbtn" id="f-clear" type="button" hidden>Clear filters</button>
+  </p>
+</div>
+"""
+
+
+def region_card(region, buckets):
+    blocks, total = [], 0
+    for src in region["sources"]:
+        rows = buckets.get(src["id"], [])
+        if not rows:
+            continue
+        total += len(rows)
+        lis = []
+        for it in rows:
+            when = parse_date(it["ts"])
+            lis.append(
+                f'<li data-item data-src="{esc(it["source"])}" '
+                f'data-region="{esc(region["id"])}" '
+                f'data-ts="{when.timestamp():.0f}">'
+                f'<a href="{esc(it["link"])}" rel="nofollow noopener" target="_blank">'
+                f'{esc(it["title"])}</a>'
+                f'<time datetime="{when.isoformat()}">{esc(stamp(when))}</time>'
+                f'</li>'
+            )
+        via = f' <span class="via">via {esc(src["via"])}</span>' if src.get("via") else ""
+        blocks.append(
+            f'<div class="src" data-source="{esc(src["id"])}">'
+            f'<h3>{esc(src["label"])}{via}</h3>'
+            f'<ul class="items">{"".join(lis)}</ul>'
+            f'</div>'
+        )
+
+    if not blocks:
+        return "", 0
+
     return (
-        '<div class="wirefilter" data-wirefilter hidden>'
-        '<div class="wfrow">'
-        '<label class="wfsr" for="wf-q">Filter these headlines</label>'
-        '<input id="wf-q" type="search" autocomplete="off" placeholder="Filter these headlines…">'
-        '<button class="wforder" type="button" data-order="desc">Newest first</button>'
-        '</div>'
-        f'<div class="wfrow wfchips">{chips}'
-        '<button class="wfall" type="button" hidden>Show all</button></div>'
-        '<p class="wfcount" role="status"></p>'
-        '</div>'
-    )
+        f'<section class="card" data-region="{esc(region["id"])}">'
+        f'<div class="card-head"><h2>{esc(region["title"])}</h2>'
+        f'<span class="card-count" data-card-count>{total}</span></div>'
+        f'{"".join(blocks)}'
+        f'</section>'
+    ), total
 
 
-def wire_list(items, tz_label="UTC"):
-    out = []
-    current_day = None
+def wire_list(items, mark_sessions=False):
+    """Merged chronological list, used on topic and recap pages."""
+    out, current_day = [], None
     for it in items:
         when = parse_date(it["ts"])
         day = when.strftime("%A %d %B %Y")
         if day != current_day:
             if current_day is not None:
                 out.append("</ol>")
-            out.append(f'<p class="daymark" data-day>{esc(day)}</p>'
-                       f'<ol class="wire" data-day-list>')
+            out.append(f'<p class="daymark">{esc(day)}</p><ol class="wire">')
             current_day = day
-        via = f' <span>via {esc(it["via"])}</span>' if it.get("via") else ""
+        via = f' via {esc(it["via"])}' if it.get("via") else ""
         out.append(
-            f'<li data-src="{esc(it["source"])}" data-ts="{when.timestamp():.0f}">'
-            f'<time datetime="{when.isoformat()}">{when.strftime("%H:%M")}</time>'
-            f'<div class="b"><a href="{esc(it["link"])}" rel="nofollow noopener" target="_blank">'
+            f'<li><time datetime="{when.isoformat()}">{esc(stamp(when))}</time>'
+            f'<div><a href="{esc(it["link"])}" rel="nofollow noopener" target="_blank">'
             f'{esc(it["title"])}</a>'
-            f'<div class="src">{esc(it["source"])}{via}</div></div></li>'
+            f'<span class="src-tag">{esc(it["source"])}{via}</span></div></li>'
         )
     if current_day is not None:
         out.append("</ol>")
-    return "\n".join(out) or "<p>Nothing on the wire in this window.</p>"
+    return "\n".join(out) or '<p class="empty">Nothing on the wire in this window.</p>'
 
 
 # ── Build ────────────────────────────────────────────────────────────────
@@ -483,7 +419,7 @@ def wire_list(items, tz_label="UTC"):
 def write(path: Path, content: str):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
-    print(f"  wrote {path}")
+    print(f"  wrote {path.name}")
 
 
 def build(cfg, items, out: Path):
@@ -493,100 +429,133 @@ def build(cfg, items, out: Path):
     write(out / "assets" / "site.css", CSS.strip())
     write(out / "assets" / "filter.js", FILTER_JS.strip())
 
-    # Topic pages
+    buckets = by_source(items, cfg)
+    wire = merged(items)
+
+    # ── Home ─────────────────────────────────────────────────────────
+    cards, present, total = [], set(), 0
+    for region in cfg["regions"]:
+        markup, n = region_card(region, buckets)
+        if markup:
+            cards.append(markup)
+            present.add(region["id"])
+            total += n
+
+    topic_json = json.dumps({t["slug"]: topic_pattern(t) for t in cfg["topics"]})
+    home_body = (
+        '<div class="page-head">'
+        f'<h1>{esc(cfg["site_name"])} — {esc(cfg.get("tagline", "financial news"))}</h1>'
+        '<p class="standfirst">Every desk on one page, newest first. '
+        'Headlines link straight to the publisher.</p>'
+        '</div>'
+        + filter_bar(cfg, present)
+        + '<p class="empty" id="f-empty" hidden>Nothing matches those filters.</p>'
+        + f'<div class="grid">{"".join(cards)}</div>'
+    )
+    write(out / "index.html", shell(
+        cfg,
+        title=f"{cfg['site_name']} — {cfg.get('tagline', 'Global Financial News Feed')}",
+        description=("Financial and world news from every major desk on one page: "
+                     "US, UK, China, France, Switzerland and the Middle East."),
+        canonical=f"{base}/", body=home_body, current="/",
+        extra_head=f"<script>window.__TOPICS__={topic_json};</script>",
+        scripts='<script src="/assets/filter.js" defer></script>',
+    ))
+    urls.append((f"{base}/", datetime.now(timezone.utc)))
+
+    # ── Topic pages ──────────────────────────────────────────────────
     for topic in cfg["topics"]:
-        hits = [i for i in items if matches(i, topic)][: cfg["max_per_topic"]]
+        hits = [i for i in wire if matches(i, topic)][: cfg["max_per_topic"]]
         note_path = HERE / "notes" / f"{topic['slug']}.txt"
         note = note_path.read_text(encoding="utf-8").strip() if note_path.exists() else ""
         note_html = ""
         if note:
-            paras = "".join(f"<p>{esc(p.strip())}</p>" for p in note.split("\n\n") if p.strip())
-            note_html = f'<div class="synopsis">{paras}</div>'
+            paras = "".join(f"<p>{esc(p.strip())}</p>"
+                            for p in note.split("\n\n") if p.strip())
+            note_html = f'<div class="note">{paras}</div>'
 
         canonical = f"{base}/topics/{topic['slug']}.html"
-        body = (
-            f"<h1>{esc(topic['title'])}</h1>"
-            f'<p class="standfirst">{esc(topic["description"])}</p>'
-            f"{note_html}{filter_bar(hits)}{wire_list(hits)}"
-        )
-        write(
-            out / "topics" / f"{topic['slug']}.html",
-            page(cfg, title=f"{topic['title']} news — {cfg['site_name']}",
-                 description=topic["description"], canonical=canonical,
-                 body=body, topic_slug=topic["slug"],
-                 noindex=not note),        # thin until someone writes the intro
-        )
+        write(out / "topics" / f"{topic['slug']}.html", shell(
+            cfg,
+            title=f"{topic['title']} news — {cfg['site_name']}",
+            description=topic["description"], canonical=canonical,
+            body=('<div class="prose"><div class="page-head">'
+                  f'<h1>{esc(topic["title"])}</h1>'
+                  f'<p class="standfirst">{esc(topic["description"])}</p></div>'
+                  f'{note_html}{wire_list(hits)}</div>'),
+            current="/topics/", noindex=not note,
+        ))
         if note:
             urls.append((canonical, datetime.now(timezone.utc)))
 
-    # Topic index
-    cards = "".join(
-        f'<li><h2><a href="/topics/{t["slug"]}.html">{esc(t["title"])}</a></h2>'
+    cards_html = "".join(
+        f'<li><h2><a href="/topics/{esc(t["slug"])}.html">{esc(t["title"])}</a></h2>'
         f'<p>{esc(t["description"])}</p></li>'
         for t in cfg["topics"]
     )
-    write(out / "topics" / "index.html",
-          page(cfg, title=f"Topics — {cfg['site_name']}",
-               description="Financial news by topic: oil, crypto, rates, equities, China and tech.",
-               canonical=f"{base}/topics/",
-               body=f"<h1>Topics</h1><ul class=\"cards\">{cards}</ul>"))
+    write(out / "topics" / "index.html", shell(
+        cfg, title=f"Topics — {cfg['site_name']}",
+        description="Financial news by topic: oil, crypto, rates, equities, China and tech.",
+        canonical=f"{base}/topics/", current="/topics/",
+        body=('<div class="prose"><div class="page-head"><h1>Topics</h1>'
+              '<p class="standfirst">The wire, filtered to one subject and kept for 72 hours.</p>'
+              f'</div><ul class="cards">{cards_html}</ul></div>'),
+    ))
     urls.append((f"{base}/topics/", datetime.now(timezone.utc)))
 
-    # Daily recap
+    # ── Daily recap ──────────────────────────────────────────────────
     today = datetime.now(timezone.utc).date()
     syn_path = HERE / "synopsis" / f"{today.isoformat()}.txt"
     synopsis = syn_path.read_text(encoding="utf-8").strip() if syn_path.exists() else ""
-    day_items = [i for i in items if parse_date(i["ts"]).date() == today]
+    day_items = [i for i in wire if parse_date(i["ts"]).date() == today]
 
     syn_html = ""
     if synopsis:
-        paras = "".join(f"<p>{esc(p.strip())}</p>" for p in synopsis.split("\n\n") if p.strip())
-        syn_html = f'<div class="synopsis">{paras}</div>'
+        paras = "".join(f"<p>{esc(p.strip())}</p>"
+                        for p in synopsis.split("\n\n") if p.strip())
+        syn_html = f'<div class="note">{paras}</div>'
 
     pretty = today.strftime("%d %B %Y")
     canonical = f"{base}/recap/{today.isoformat()}.html"
     ld = json.dumps({
-        "@context": "https://schema.org",
-        "@type": "NewsArticle",
+        "@context": "https://schema.org", "@type": "NewsArticle",
         "headline": f"Market recap, {pretty}",
         "datePublished": datetime.now(timezone.utc).isoformat(),
         "publisher": {"@type": "Organization", "name": cfg["site_name"]},
         "url": canonical,
     })
-    recap_body = (
-        f"<h1>Market recap, {esc(pretty)}</h1>"
-        f'<p class="standfirst">What crossed the wire today, in order.</p>'
-        f"{syn_html}{filter_bar(day_items)}{wire_list(day_items)}"
-    )
-    recap_html = page(
+    write(out / "recap" / f"{today.isoformat()}.html", shell(
         cfg, title=f"Market recap, {pretty} — {cfg['site_name']}",
         description=(synopsis[:155] if synopsis
-                     else f"Every financial headline that crossed the wire on {pretty}."),
-        canonical=canonical, body=recap_body, noindex=not synopsis,
+                     else f"Every headline that crossed the wire on {pretty}."),
+        canonical=canonical, current="/recap/", noindex=not synopsis,
+        body=('<div class="prose"><div class="page-head">'
+              f'<h1>Market recap, {esc(pretty)}</h1>'
+              '<p class="standfirst">What crossed the wire today, in order.</p></div>'
+              f'{syn_html}{wire_list(day_items)}</div>'),
         extra_head=f'<script type="application/ld+json">{ld}</script>',
-    )
-    write(out / "recap" / f"{today.isoformat()}.html", recap_html)
+    ))
     if synopsis:
         urls.append((canonical, datetime.now(timezone.utc)))
 
-    # Recap archive index
     archive = sorted(
-        (p for p in (out / "recap").glob("*.html") if p.stem != "index"),
-        reverse=True,
-    )
+        (p for p in (out / "recap").glob("*.html")
+         if re.fullmatch(r"\d{4}-\d{2}-\d{2}", p.stem)), reverse=True)
     links = "".join(
         f'<li><h2><a href="/recap/{p.name}">'
         f'{esc(datetime.fromisoformat(p.stem).strftime("%d %B %Y"))}</a></h2></li>'
-        for p in archive if re.fullmatch(r"\d{4}-\d{2}-\d{2}", p.stem)
-    )
-    write(out / "recap" / "index.html",
-          page(cfg, title=f"Daily market recaps — {cfg['site_name']}",
-               description="An archive of daily financial market recaps.",
-               canonical=f"{base}/recap/",
-               body=f"<h1>Daily recaps</h1><ul class=\"cards\">{links}</ul>"))
+        for p in archive)
+    write(out / "recap" / "index.html", shell(
+        cfg, title=f"Daily market recaps — {cfg['site_name']}",
+        description="An archive of daily financial market recaps.",
+        canonical=f"{base}/recap/", current="/recap/",
+        body=('<div class="prose"><div class="page-head"><h1>Daily recaps</h1>'
+              '<p class="standfirst">A short written summary of each trading day.</p>'
+              f'</div><ul class="cards">{links}</ul></div>'),
+    ))
     urls.append((f"{base}/recap/", datetime.now(timezone.utc)))
 
-    # Sitemap
+    # ── Sitemap, RSS, robots ─────────────────────────────────────────
     sm = ["<?xml version='1.0' encoding='UTF-8'?>",
           "<urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>"]
     for loc, when in urls:
@@ -595,7 +564,6 @@ def build(cfg, items, out: Path):
     sm.append("</urlset>")
     write(out / "sitemap.xml", "\n".join(sm))
 
-    # Own RSS feed of recaps
     now = datetime.now(timezone.utc)
     rss = ["<?xml version='1.0' encoding='UTF-8'?>", "<rss version='2.0'><channel>",
            f"<title>{esc(cfg['site_name'])} — daily market recap</title>",
@@ -603,8 +571,6 @@ def build(cfg, items, out: Path):
            "<description>A short written summary of each trading day.</description>",
            f"<lastBuildDate>{format_datetime(now)}</lastBuildDate>"]
     for p in archive[:30]:
-        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", p.stem):
-            continue
         d = datetime.fromisoformat(p.stem).replace(tzinfo=timezone.utc)
         rss.append(f"<item><title>Market recap, {d.strftime('%d %B %Y')}</title>"
                    f"<link>{esc(base)}/recap/{p.name}</link>"
@@ -615,7 +581,7 @@ def build(cfg, items, out: Path):
 
     write(out / "robots.txt", f"User-agent: *\nAllow: /\nSitemap: {base}/sitemap.xml\n")
 
-    return len(urls), (bool(synopsis), today.isoformat())
+    return len(urls), total, (bool(synopsis), today.isoformat())
 
 
 def main():
@@ -633,34 +599,33 @@ def main():
     if args.no_fetch:
         if not CACHE.exists():
             sys.exit("No cache yet — run once without --no-fetch.")
-        items = json.loads(CACHE.read_text(encoding="utf-8"))
-        print(f"Using cached pull: {len(items)} items")
+        raw = json.loads(CACHE.read_text(encoding="utf-8"))
+        print(f"Using cached pull: {len(raw)} items")
     else:
         print("Fetching feeds…")
         raw, failed = collect(cfg)
         if not raw:
             sys.exit("Every feed failed. Nothing to build.")
-        items = raw
         CACHE.parent.mkdir(parents=True, exist_ok=True)
-        CACHE.write_text(json.dumps(items), encoding="utf-8")
+        CACHE.write_text(json.dumps(raw), encoding="utf-8")
         if failed:
-            print(f"Note: {len(failed)} feed(s) unavailable: {', '.join(failed)}")
+            print(f"\nNote: {len(failed)} source(s) unavailable: {', '.join(failed)}")
 
-    items = dedupe(items, cfg["window_hours"])
-    print(f"{len(items)} unique headlines in the last {cfg['window_hours']}h")
+    items = within(raw, cfg["window_hours"])
+    print(f"\n{len(items)} headlines in the last {cfg['window_hours']}h")
 
     print("Building…")
-    count, (has_syn, day) = build(cfg, items, out)
+    count, shown, (has_syn, day) = build(cfg, items, out)
 
-    print(f"\nDone. {count} indexable URL(s) in {out}")
+    print(f"\nDone. {shown} headlines on the home page, "
+          f"{count} indexable URL(s) in {out}")
     if not has_syn:
-        print(f"Today's recap is noindex — write generator/synopsis/{day}.txt "
+        print(f"Today's recap is noindex — write synopsis/{day}.txt "
               f"(200–300 words) and rerun to publish it.")
     missing = [t["slug"] for t in cfg["topics"]
                if not (HERE / "notes" / f"{t['slug']}.txt").exists()]
     if missing:
         print(f"Topic pages still noindex (no intro written): {', '.join(missing)}")
-        print("Add generator/notes/<slug>.txt with 100–200 words to publish each one.")
 
 
 if __name__ == "__main__":

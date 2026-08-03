@@ -1,15 +1,31 @@
 {
-  "_comment": "Offline self-test. Feeds are local fixture files (no scheme = path relative to build.py). One is deliberately malformed: the build must report it and carry on. Writes to site-test/ so it never clobbers a real build.",
+  "_comment": "Offline self-test. Sources are local fixture files (no scheme = path relative to build.py). One is deliberately malformed: the build must report it and carry on. Writes to site-test/ so it never clobbers a real build.",
   "site_name": "NewsNowNext",
+  "tagline": "Global Financial News Feed",
   "base_url": "https://www.newsnownext.org",
   "output_dir": "site-test",
   "window_hours": 876000,
+  "max_per_source": 12,
   "max_per_topic": 60,
-  "feeds": [
-    { "id": "fixture-a", "label": "Fixture Wire A", "url": "fixtures/good-a.xml" },
-    { "id": "fixture-b", "label": "Fixture Wire B", "url": "fixtures/good-b.xml" },
-    { "id": "fixture-broken", "label": "Fixture Broken", "url": "fixtures/broken.xml" }
+
+  "regions": [
+    {
+      "id": "us",
+      "title": "US News",
+      "sources": [
+        { "id": "fixture-a", "label": "Fixture Wire A", "url": "fixtures/good-a.xml" },
+        { "id": "fixture-broken", "label": "Fixture Broken", "url": "fixtures/broken.xml" }
+      ]
+    },
+    {
+      "id": "uk",
+      "title": "UK News",
+      "sources": [
+        { "id": "fixture-b", "label": "Fixture Wire B", "via": "Google News", "url": "fixtures/good-b.xml" }
+      ]
+    }
   ],
+
   "topics": [
     {
       "slug": "oil",

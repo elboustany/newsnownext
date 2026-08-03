@@ -1,201 +1,189 @@
-# NewsNowNext growth package
+# NewsNowNext
 
-Three deliverables, all built and working:
+A rebuild of newsnownext.org as a static site, plus a Chrome new-tab extension
+that looks like the same product. Same layout, same palette, same region cards —
+with search, filters and sorting added, and everything server-rendered so search
+engines can actually read it.
 
 ```
-extension/           Chrome MV3 new-tab extension — the acquisition and retention piece
-generator/           Python static site builder — the indexable-content piece
-launch/              Store copy, Show HN, Product Hunt, Reddit, X posts, 12-week sequence
-pack-extension.sh    Builds the store upload into dist/
+generator/           Python static site builder — the site
+extension/           Chrome MV3 new-tab extension — same look, same sources
+launch/              Store copy, Show HN, Product Hunt, Reddit, X posts, sequence
+dev/                 Local preview server and the two file generators
+dist/                Store upload zips (generated)
+pack-extension.sh    Builds the store upload
 ```
-
-See `CLAUDE.md` for the working rules — the constraints that must not be
-"simplified" away in a later edit.
 
 ---
 
-## 1. Extension
-
-**See it in one command — no install**
+## See it, in one command
 
 ```bash
 python3 dev/devserver.py
 ```
 
-Then open <http://localhost:8787>. That runs the real extension code as an
-ordinary web page (storage shimmed to localStorage, feeds proxied past CORS) and
-serves the generated site at <http://localhost:8787/site/topics/oil.html>. This
-is the version to put in front of a client on a laptop — nothing to install and
-nothing to approve.
+- **Site** — <http://localhost:8787/site/>
+- **Extension** — <http://localhost:8787>
 
-**Try it as a real extension**
+The extension preview runs the real extension code as an ordinary web page
+(`chrome.storage` shimmed to localStorage, feeds proxied past CORS), so there is
+nothing to install and nothing to approve. A red bar marks it as a preview.
 
-1. Chrome → `chrome://extensions` → turn on Developer mode
-2. Load unpacked → select the `extension/` folder
-3. Open a new tab
-
-Do this before shipping: the dev harness fakes `chrome.storage` and the network,
-so it cannot catch a permissions or manifest problem.
-
-**Sorting and filtering**
-
-Live text filter (`/` to focus, `esc` to clear, quoted `"exact phrase"`
-supported, multiple words are AND), six topic filters sharing the generator's
-keyword lists, a time window (6/12/24/72h), source toggles with double-click to
-solo, and four orderings:
-
-| Order | What it does |
-|---|---|
-| **Balanced** (default) | One headline per desk per pass |
-| Newest / Oldest | Strict time order, with the session rules drawn in |
-| Grouped by source | All of one desk, then the next |
-
-Balanced is the default because strict newest-first let Yahoo Finance take 13 of
-the top 15 slots and buried Reuters and Bloomberg. Publication frequency isn't
-editorial importance, and the merge is the whole product.
-
-Every setting persists. The generated topic and recap pages carry their own
-filter bar — search, source toggles and a newest/oldest flip — which is
-progressive enhancement over the server-rendered list, so crawlers still see
-every headline.
-
-**What it does**
-
-Replaces the new tab with a single merged wire from eight finance sources,
-newest first. Tokyo, London and New York opens are drawn as labelled rules across
-the feed — that session timeline is the thing that makes it not just another RSS
-reader, and it's what the launch copy leads on. Source filters persist. Headlines
-cache in `chrome.storage.local`, so the tab paints instantly and refreshes in the
-background when the cache is over five minutes old. Light and dark, responsive,
-keyboard-focusable, respects reduced motion.
-
-**Feeds — verified 2026-08-03**
-
-All eight sources were tested live and all eight returned usable RSS. A full
-build produced 306 unique headlines over 72 hours. The earlier "unverified feed
-URLs" caveat is closed.
-
-One URL changed: the FT's `/rss/home` 301-redirects to `/rss/home/international`,
-so both configs now request the destination directly.
-
-If a source breaks later, the extension footer reports how many failed and
-hovering shows which; the generator prints `FAIL <source>` and carries on. Fix
-the URL in **both** `extension/feeds.js` and `generator/config.json` — the two
-lists are deliberately identical in shape.
-
-**Publishing**
-
-```bash
-./pack-extension.sh          # writes dist/newsnownext-extension-<version>.zip
-```
-
-The script zips the *contents* of `extension/` (which is what the store requires)
-and strips macOS metadata (which the store rejects).
-
-- Chrome Web Store developer account: one-off $5
-- Review usually takes 1–3 days; new-tab overrides get looked at more closely, so
-  the privacy justifications in the launch kit matter
-- Bump `version` in `extension/manifest.json` on every resubmission, or the
-  upload is rejected
-
-Same package works in Edge (separate store, free, worth doing) and needs only
-minor changes for Firefox.
+To check it as a real extension — do this before shipping, since the harness
+fakes storage and the network — `chrome://extensions` → Developer mode → Load
+unpacked → pick `extension/`.
 
 ---
 
-## 2. Static page generator
+## Matching the existing design
+
+The palette, type, grid and card structure were sampled off the running site,
+not eyeballed:
+
+| | |
+|---|---|
+| Type | Inter, 400/500/600/800/900 |
+| Body / cards | `#ffffff`, border `#e1e7ef`, radius `8px` |
+| Card header | `#f1f5f9` |
+| Nav bar | `#374151`, links `#e5e7eb` |
+| Logo | NEWS `#f97316`, NOW `#10b981`, NEXT `#ef4444` |
+| Source names | `#dc2626` |
+| Headlines | `#2463eb`, 14px/500 |
+| Timestamps | `#65758b`, 12px, `Aug 3 12:23 PM` |
+| Grid | 1 col → 2 at 768px → 3 at 1280px, gap 16/24px |
+
+All of it lives in `generator/theme.py`. Nothing else defines a colour, so the
+whole thing re-skins from one file.
+
+**There is deliberately no dark mode.** The live site is light-only, and a page
+that flips to dark on a dark-mode machine is exactly the mismatch this build
+avoids. `theme.py` says where to add one if it's ever wanted.
+
+---
+
+## The regions
+
+The eight cards mirror the live site: **US News, UK News, Blogs, China News,
+France News, Switzerland News, Middle East News**, plus **Markets** — the three
+finance desks that had no home in the country cards. Delete that one block in
+`config.json` to match the live site exactly.
+
+22 sources, all verified live. Two notes worth keeping:
+
+- Several desks have no open RSS any more (Reuters, Bloomberg, SwissInfo,
+  Global Times), so those route through Google News site-restricted search. They
+  are labelled *via Google News* in the UI. It works and it is headline-plus-link
+  only, but it depends on a Google endpoint with no stability guarantee.
+- Google News appends the real publisher to every headline. For a broad query
+  that publisher is whoever ran the story, so a Swiss rates headline arrived as
+  "… - Bitcoin World" and matched the crypto topic. `clean_title` strips that
+  suffix for Google-routed sources only.
+
+---
+
+## Filtering and sorting
+
+Primary controls, always visible:
+
+- **Search** — live, `/` to focus, `esc` to clear, multiple words are AND,
+  `"quoted phrases"` supported, matches highlighted
+- **Region** — one click to a single country card
+- **Order** — newest or oldest first, within every source block
+
+Behind **More filters**, closed by default: six topic filters, and a time window
+(6/12/24h). They were kept out of the main bar on purpose — the default view
+should look like the site people already know.
+
+Every setting persists. Preferences are validated on load, so an option removed
+in a later version can't silently apply a filter nobody chose.
+
+On the site this is progressive enhancement over server-rendered HTML: the full
+wire is in the page, and the script only hides and reorders rows that are
+already there. No JavaScript still gets every headline.
+
+---
+
+## Build
 
 ```bash
 cd generator
-python3 build.py                      # fetch feeds, build pages into ./site
-python3 build.py --no-fetch           # rebuild from cache, no network
+python3 build.py                             # fetch live feeds, build ./site
+python3 build.py --no-fetch                  # rebuild from cache, no network
 python3 build.py --config config.test.json   # offline self-test on fixtures
 ```
 
-Standard library only, no dependencies. Outputs:
+Standard library only, no dependencies. Outputs `index.html`, six topic pages,
+a dated recap, `sitemap.xml`, `feed.xml`, `robots.txt` and the assets.
 
-```
-site/topics/<slug>.html    six topic pages, rolling 72 hours
-site/topics/index.html
-site/recap/YYYY-MM-DD.html dated daily recap with NewsArticle JSON-LD
-site/recap/index.html      archive
-site/sitemap.xml           indexable pages only
-site/feed.xml              your own RSS of recaps
-site/robots.txt
-site/assets/site.css
-```
+Run the self-test after any change to `build.py`. It uses local fixtures
+including a deliberately malformed feed, writes to `site-test/`, and must exit 0
+with `oil` indexable and `equities` noindex.
 
-**The thin-content guard — this is the important bit**
-
-A topic page with no original writing on it is published with `noindex`. Same for
-a daily recap with no synopsis. To make a page indexable you write:
-
-- `generator/notes/<slug>.txt` — 100–200 words on what the page covers
-  (`notes/oil.txt` is written as a working example)
-- `generator/synopsis/YYYY-MM-DD.txt` — 200–300 words on the day
-  (`synopsis/TEMPLATE.txt` has the structure and the rules)
-
-The offline self-test asserts this still works: `oil` has a note and comes out
-indexable and in the sitemap, `equities` has none and comes out `noindex`. Run it
-after any change to `build.py`.
-
-Right now only `oil` is written. The other five topics and every recap are
-noindex until someone writes them — that is the work the build cannot do for you.
-
-The sitemap only ever contains pages that cleared this bar. It's deliberately
-annoying: submitting fifty pages of other people's headlines to Google is how a
-site like this gets classified as scraped content, and that's very hard to undo.
-
-**Deploying on the Hetzner box**
+**Deploying**
 
 ```cron
 */30 6-22 * * 1-5  cd /srv/nnn/generator && /usr/bin/python3 build.py >> /var/log/nnn.log 2>&1
 ```
 
-Then serve `generator/site/` under `/topics/` and `/recap/` on the domain, or
-rsync it to wherever the site is hosted. Point `base_url` in `config.json` at the
-canonical host — note the live site canonicalises to `www.`, so keep that.
+Then serve `generator/site/`. Point `base_url` in `config.json` at the real host.
 
 ---
 
-## 3. Launch kit
+## The thin-content guard
 
-`launch/launch-kit.md` — Chrome Web Store copy with the exact privacy
-justifications the reviewer asks for, a Show HN post, Product Hunt listing and
-maker comment, three Reddit drafts with the risk on each flagged, ten X posts, an
-outreach template, and a 12-week posting sequence.
+A topic page with no original writing is published with `noindex`, and so is a
+recap with no synopsis. To make one indexable, write:
 
-Read section 8 before anything goes out.
+- `generator/notes/<slug>.txt` — 100–200 words (`notes/oil.txt` is the example)
+- `generator/synopsis/YYYY-MM-DD.txt` — 200–300 words (`synopsis/TEMPLATE.txt`)
+
+The sitemap only ever contains pages that cleared that bar. It is deliberately
+annoying: submitting fifty pages of other people's headlines is how a domain
+gets classified as scraped content, and that is very hard to undo.
+
+Right now only `oil` is written, so the home page plus three URLs are indexable
+and the other five topics are not. That is the work the build cannot do for you.
+
+---
+
+## Generated files
+
+`extension/feeds.js`, `extension/newtab.css` and the manifest's
+`host_permissions` are generated — never edit them by hand:
+
+```bash
+python3 dev/gen-feeds.py     # feeds.js + host_permissions, from config.json
+python3 dev/gen-css.py       # newtab.css, from theme.py
+python3 dev/gen-feeds.py --check && python3 dev/gen-css.py --check
+```
+
+One source of truth each: sources and topics in `generator/config.json`, the
+palette in `generator/theme.py`. Two hand-edited copies never stay in step.
+
+---
+
+## Publishing the extension
+
+```bash
+./pack-extension.sh          # dist/newsnownext-extension-<version>.zip
+```
+
+- Chrome Web Store developer account: one-off $5
+- Review usually takes 1–3 days; new-tab overrides get looked at more closely,
+  so the privacy justifications in `launch/launch-kit.md` matter
+- Bump `version` in `extension/manifest.json` on every resubmission
 
 ---
 
 ## Honest caveats
 
-- **Bloomberg and Reuters come via Google News site queries.** That's a common
-  approach and it's headline-plus-link only, but it depends on a Google endpoint
-  with no stability guarantee. If either matters commercially, licence a real feed.
-- **Check the terms on every source before this goes commercial.** Headlines plus
+- **Not everything on the live site is rebuilt.** The market ticker strip
+  (S&P/NASDAQ/DOW/VIX), Trending Now, Books, Forex, Podcasts, Preferences and
+  Read Later are not here. The ticker needs a market-data feed, which is a
+  separate decision; the rest were never in scope. Nav links only to pages that
+  exist.
+- **Check the terms on every source before this goes commercial.** Headline plus
   a link out is the defensible position; snippets and full text are not, and
   aggregators have been sued over exactly this.
-- **The build is the cheap half.** Weeks 5–12 of the sequence decide the outcome.
-
----
-
-## Scope, for the client conversation
-
-**Delivered, one-off**
-Chrome extension, static page generator, launch kit. Fixed fee.
-
-**Not included unless separately agreed**
-Site redesign or front-end work on newsnownext.org · email digest setup ·
-paid advertising · daily writing of the recap synopsis · logo or brand work ·
-Firefox and Safari ports.
-
-**Ongoing, monthly**
-Running the pipeline, publishing the sequence, monthly reporting.
-Three-month minimum, because organic search shows nothing meaningful in four
-weeks and you don't want to be judged on an unfair sample.
-
-**One number to agree before starting**
-Traffic, email subscribers, or extension installs. Pick one, write it down, and
-review against it monthly.
+- **The build is the cheap half.** Weeks 5–12 of the launch sequence decide the
+  outcome.

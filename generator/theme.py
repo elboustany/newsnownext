@@ -1,9 +1,15 @@
-/* GENERATED FILE — do not edit by hand.
-   Source of truth: generator/theme.py
-   Regenerate:      python3 dev/gen-css.py
+"""
+Design tokens and stylesheet, matched to the live newsnownext.org.
 
-   Tokens and layout are the site's, kept identical on purpose. */
+Every value here was sampled off the running site rather than eyeballed:
+the palette is its shadcn/Tailwind token set, the grid is its
+`grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6`, the logo colours
+are the three computed span colours, and the type is Inter throughout.
 
+Change a value here and the whole site follows. Nothing else defines colour.
+"""
+
+CSS = """
 :root{
   /* sampled from the live site's :root token set */
   --background:#ffffff;
@@ -219,25 +225,4 @@ ol.wire mark{background:rgba(36,99,235,.16);color:inherit;border-radius:2px;padd
 .foot a{color:var(--primary)}
 
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-
-/* ── Extension only ────────────────────────────────────────────────── */
-
-.nav-links{font-size:13px;color:#cbd5e1;align-items:center}
-.refresh{
-  font:inherit;font-size:13px;font-weight:500;
-  background:transparent;border:1px solid #4b5563;color:var(--navbar-fg);
-  border-radius:var(--radius);padding:6px 12px;cursor:pointer;
-}
-.refresh:hover{border-color:var(--logo-news);color:#fff}
-.refresh:disabled{opacity:.5;cursor:default}
-.refresh:focus-visible{outline:2px solid var(--logo-news);outline-offset:2px}
-.wrap{padding-top:16px}
-.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.skeleton{
-  border:1px solid var(--border);border-radius:var(--radius);
-  height:170px;background:var(--muted);opacity:.55;
-}
-@media (prefers-reduced-motion:no-preference){
-  .skeleton{animation:pulse 1.4s ease-in-out infinite}
-  @keyframes pulse{0%,100%{opacity:.55}50%{opacity:.3}}
-}
+"""
