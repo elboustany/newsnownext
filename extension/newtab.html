@@ -22,7 +22,49 @@
     <div class="sessions" id="sessionState" aria-label="Market sessions"></div>
   </header>
 
-  <nav class="sources" id="sources" aria-label="Filter by source"></nav>
+  <div class="controls">
+
+    <div class="controls-row controls-primary">
+      <div class="search">
+        <label class="sr-only" for="q">Filter headlines</label>
+        <input id="q" type="search" autocomplete="off" spellcheck="false"
+               placeholder="Filter headlines…">
+        <kbd class="hint" id="searchHint">/</kbd>
+      </div>
+
+      <label class="sr-only" for="sort">Order</label>
+      <select id="sort" class="select" title="How the wire is ordered">
+        <option value="balanced">Balanced across sources</option>
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+        <option value="source">Grouped by source</option>
+      </select>
+
+      <label class="sr-only" for="window">Time window</label>
+      <select id="window" class="select" title="How far back to show">
+        <option value="6">Last 6 hours</option>
+        <option value="12">Last 12 hours</option>
+        <option value="24">Last 24 hours</option>
+        <option value="72">Last 72 hours</option>
+      </select>
+    </div>
+
+    <div class="controls-row">
+      <span class="rowlabel">Topic</span>
+      <nav class="chips" id="topics" aria-label="Filter by topic"></nav>
+    </div>
+
+    <div class="controls-row">
+      <span class="rowlabel">Source</span>
+      <nav class="chips" id="sources" aria-label="Filter by source"></nav>
+    </div>
+
+    <p class="resultline">
+      <span id="count">—</span>
+      <button class="linkbtn" id="clearAll" type="button" hidden>Clear filters</button>
+    </p>
+
+  </div>
 
   <main class="wire" id="wire" aria-live="polite" aria-busy="true">
     <p class="state" id="state">Loading the wire…</p>
@@ -30,6 +72,7 @@
 
   <footer class="footrule">
     <span id="status">—</span>
+    <span class="keyhelp"><kbd>/</kbd>&nbsp;filter <kbd>r</kbd>&nbsp;refresh <kbd>esc</kbd>&nbsp;clear</span>
     <button class="refresh" id="refresh" type="button">Refresh</button>
   </footer>
 

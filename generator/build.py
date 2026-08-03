@@ -212,6 +212,167 @@ footer.bot a{color:var(--soft)}
 .cards p{margin:0;color:var(--soft);font-size:15px}
 @media(max-width:640px){h1{font-size:29px}ol.wire li{grid-template-columns:52px 1fr}
 ol.wire a{font-size:17px}}
+.wirefilter{margin:26px 0 0;padding:14px 0 0;border-top:1px solid var(--rule)}
+.wfrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+.wfsr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+#wf-q{flex:1 1 220px;font-family:var(--body);font-size:15px;color:var(--ink);
+background:var(--raised);border:1px solid var(--rule);border-radius:2px;padding:8px 11px}
+#wf-q:focus{outline:none;border-color:var(--signal);box-shadow:0 0 0 1px var(--signal)}
+.wfchip,.wforder,.wfall{font-family:var(--data);font-size:10px;letter-spacing:.12em;
+text-transform:uppercase;padding:5px 10px;border:1px solid var(--rule);background:transparent;
+color:var(--soft);cursor:pointer;border-radius:2px}
+.wfchip:hover,.wforder:hover,.wfall:hover{border-color:var(--ink);color:var(--ink)}
+.wfchip[aria-pressed=false]{opacity:.45;text-decoration:line-through}
+.wfcount{font-family:var(--data);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+color:var(--faint);margin:0}
+ol.wire li[hidden],p.daymark[hidden]{display:none}
+ol.wire mark{background:rgba(178,58,46,.22);color:inherit;border-radius:1px;padding:0 1px}
+"""
+
+# Client-side filtering for the wire lists. Kept out of the page HTML so pages
+# stay diffable, and gated on `data-wirefilter` so it is a no-op where the bar
+# was not rendered. The list is server-rendered either way — this only hides
+# rows that are already in the document, so nothing here affects what a crawler
+# sees.
+FILTER_JS = r"""
+(function () {
+  var bar = document.querySelector('[data-wirefilter]');
+  if (!bar) return;
+  bar.hidden = false;
+
+  var q      = bar.querySelector('#wf-q');
+  var order  = bar.querySelector('.wforder');
+  var allBtn = bar.querySelector('.wfall');
+  var count  = bar.querySelector('.wfcount');
+  var chips  = [].slice.call(bar.querySelectorAll('.wfchip'));
+  var rows   = [].slice.call(document.querySelectorAll('ol.wire li'));
+  var lists  = [].slice.call(document.querySelectorAll('[data-day-list]'));
+  var off    = Object.create(null);
+  // Whatever follows the last day block (the footer). Day blocks are re-inserted
+  // before it so reordering never moves them out of the article.
+  var anchor = lists.length ? lists[lists.length - 1].nextSibling : null;
+
+  rows.forEach(function (li) {
+    var a = li.querySelector('a');
+    li._text = (a.textContent + ' ' + li.getAttribute('data-src')).toLowerCase();
+    li._raw = a.textContent;          // headline is plain text, no markup
+    li._a = a;
+  });
+
+  function escHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Rebuild from the raw headline each time so highlights never nest, and
+  // escape every slice so a headline containing < or & cannot inject markup.
+  function markUp(text, re) {
+    if (!re) return escHtml(text);
+    var out = '', last = 0, m;
+    re.lastIndex = 0;
+    while ((m = re.exec(text)) !== null) {
+      out += escHtml(text.slice(last, m.index)) + '<mark>' + escHtml(m[0]) + '</mark>';
+      last = m.index + m[0].length;
+      if (m.index === re.lastIndex) re.lastIndex++;   // guard zero-length match
+    }
+    return out + escHtml(text.slice(last));
+  }
+
+  function terms() {
+    return (q.value.toLowerCase().match(/"[^"]+"|\S+/g) || [])
+      .map(function (t) { return t.replace(/^"|"$/g, '').trim(); })
+      .filter(Boolean);
+  }
+
+  function esc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+  function apply() {
+    var t = terms(), shown = 0;
+    var re = t.length ? new RegExp('(' + t.map(esc).join('|') + ')', 'ig') : null;
+
+    rows.forEach(function (li) {
+      var ok = !off[li.getAttribute('data-src')] &&
+               t.every(function (x) { return li._text.indexOf(x) > -1; });
+      li.hidden = !ok;
+      if (ok) shown++;
+      li._a.innerHTML = markUp(li._raw, ok ? re : null);
+    });
+
+    // A day heading with nothing left under it is noise.
+    lists.forEach(function (ol) {
+      var any = [].slice.call(ol.children).some(function (li) { return !li.hidden; });
+      ol.hidden = !any;
+      var head = ol.previousElementSibling;
+      if (head && head.hasAttribute('data-day')) head.hidden = !any;
+    });
+
+    count.textContent = shown === rows.length
+      ? rows.length + ' headlines'
+      : shown + ' of ' + rows.length + ' headlines';
+    allBtn.hidden = shown === rows.length;
+  }
+
+  function reorder() {
+    var desc = order.getAttribute('data-order') === 'desc';
+    desc = !desc;
+    order.setAttribute('data-order', desc ? 'desc' : 'asc');
+    order.textContent = desc ? 'Newest first' : 'Oldest first';
+
+    // Rows within each day…
+    lists.forEach(function (ol) {
+      [].slice.call(ol.children)
+        .sort(function (a, b) {
+          var x = +a.getAttribute('data-ts'), y = +b.getAttribute('data-ts');
+          return desc ? y - x : x - y;
+        })
+        .forEach(function (li) { ol.appendChild(li); });
+    });
+
+    // …and the day blocks themselves, or "oldest first" still shows the most
+    // recent day at the top and reads as broken. Re-insert before `anchor`
+    // (the footer) rather than appending, which would move them past it.
+    if (lists.length < 2) return;
+    var parent = lists[0].parentNode;
+    var blocks = lists.map(function (ol) {
+      var first = ol.querySelector('li');
+      return {
+        head: ol.previousElementSibling,
+        list: ol,
+        ts: first ? +first.getAttribute('data-ts') : 0
+      };
+    });
+    blocks.sort(function (a, b) { return desc ? b.ts - a.ts : a.ts - b.ts; });
+    blocks.forEach(function (b) {
+      if (b.head && b.head.hasAttribute('data-day')) parent.insertBefore(b.head, anchor);
+      parent.insertBefore(b.list, anchor);
+    });
+  }
+
+  q.addEventListener('input', apply);
+  q.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { q.value = ''; apply(); }
+  });
+  order.addEventListener('click', reorder);
+  chips.forEach(function (c) {
+    c.addEventListener('click', function () {
+      var s = c.getAttribute('data-src');
+      off[s] = !off[s];
+      c.setAttribute('aria-pressed', String(!off[s]));
+      apply();
+    });
+  });
+  allBtn.addEventListener('click', function () {
+    q.value = '';
+    off = Object.create(null);
+    chips.forEach(function (c) { c.setAttribute('aria-pressed', 'true'); });
+    apply();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === '/' && e.target !== q) { e.preventDefault(); q.focus(); }
+  });
+
+  apply();
+})();
 """
 
 def esc(s):
@@ -258,9 +419,38 @@ def page(cfg, *, title, description, canonical, body, noindex=False,
   &nbsp;·&nbsp; <a href="/feed.xml">RSS</a>
 </footer>
 </div>
+<script src="/assets/filter.js" defer></script>
 </body>
 </html>
 """
+
+
+def filter_bar(items):
+    """Search box and source toggles for a wire list.
+
+    Progressive enhancement: it is inert without JavaScript and the full list is
+    already in the HTML, so a crawler sees every headline either way.
+    """
+    if not items:
+        return ""
+    sources = sorted({i["source"] for i in items})
+    chips = "".join(
+        f'<button class="wfchip" type="button" aria-pressed="true" '
+        f'data-src="{esc(s)}">{esc(s)}</button>'
+        for s in sources
+    )
+    return (
+        '<div class="wirefilter" data-wirefilter hidden>'
+        '<div class="wfrow">'
+        '<label class="wfsr" for="wf-q">Filter these headlines</label>'
+        '<input id="wf-q" type="search" autocomplete="off" placeholder="Filter these headlines…">'
+        '<button class="wforder" type="button" data-order="desc">Newest first</button>'
+        '</div>'
+        f'<div class="wfrow wfchips">{chips}'
+        '<button class="wfall" type="button" hidden>Show all</button></div>'
+        '<p class="wfcount" role="status"></p>'
+        '</div>'
+    )
 
 
 def wire_list(items, tz_label="UTC"):
@@ -272,11 +462,13 @@ def wire_list(items, tz_label="UTC"):
         if day != current_day:
             if current_day is not None:
                 out.append("</ol>")
-            out.append(f'<p class="daymark">{esc(day)}</p><ol class="wire">')
+            out.append(f'<p class="daymark" data-day>{esc(day)}</p>'
+                       f'<ol class="wire" data-day-list>')
             current_day = day
         via = f' <span>via {esc(it["via"])}</span>' if it.get("via") else ""
         out.append(
-            f'<li><time datetime="{when.isoformat()}">{when.strftime("%H:%M")}</time>'
+            f'<li data-src="{esc(it["source"])}" data-ts="{when.timestamp():.0f}">'
+            f'<time datetime="{when.isoformat()}">{when.strftime("%H:%M")}</time>'
             f'<div class="b"><a href="{esc(it["link"])}" rel="nofollow noopener" target="_blank">'
             f'{esc(it["title"])}</a>'
             f'<div class="src">{esc(it["source"])}{via}</div></div></li>'
@@ -299,6 +491,7 @@ def build(cfg, items, out: Path):
     urls = []
 
     write(out / "assets" / "site.css", CSS.strip())
+    write(out / "assets" / "filter.js", FILTER_JS.strip())
 
     # Topic pages
     for topic in cfg["topics"]:
@@ -314,7 +507,7 @@ def build(cfg, items, out: Path):
         body = (
             f"<h1>{esc(topic['title'])}</h1>"
             f'<p class="standfirst">{esc(topic["description"])}</p>'
-            f"{note_html}{wire_list(hits)}"
+            f"{note_html}{filter_bar(hits)}{wire_list(hits)}"
         )
         write(
             out / "topics" / f"{topic['slug']}.html",
@@ -363,7 +556,7 @@ def build(cfg, items, out: Path):
     recap_body = (
         f"<h1>Market recap, {esc(pretty)}</h1>"
         f'<p class="standfirst">What crossed the wire today, in order.</p>'
-        f"{syn_html}{wire_list(day_items)}"
+        f"{syn_html}{filter_bar(day_items)}{wire_list(day_items)}"
     )
     recap_html = page(
         cfg, title=f"Market recap, {pretty} — {cfg['site_name']}",

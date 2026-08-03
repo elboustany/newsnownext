@@ -7,6 +7,7 @@ owner). Three independent deliverables, no shared build system, no dependencies.
 extension/    Chrome MV3 new-tab extension  — acquisition + retention
 generator/    Python static site builder    — indexable content
 launch/       Copy for every launch channel — distribution
+dev/          Local preview server + sync checker (never shipped)
 dist/         Store upload zips (generated)
 ```
 
@@ -20,6 +21,8 @@ distribution channel that doesn't depend on ranking at all.
 ## Commands
 
 ```bash
+python3 dev/devserver.py                     # preview at http://localhost:8787
+python3 dev/check-sync.py                    # feeds/topics must match across halves
 ./pack-extension.sh                          # build dist/ zip for the store
 
 cd generator
@@ -32,6 +35,13 @@ Run the offline self-test after any change to `build.py`. It uses local fixtures
 (including a deliberately malformed feed), writes to `site-test/`, and must exit
 0 with `oil` indexable and `equities` noindex — that asserts the thin-content
 guard still works.
+
+`dev/devserver.py` runs the extension as an ordinary web page by shimming
+`chrome.storage` onto localStorage and proxying the feeds past CORS. Nothing in
+`extension/` knows it exists, so what you see is the shipping code. It also
+serves the generated site at `/site/` and `/assets/`. Use it to iterate on UI
+without reloading an unpacked extension every time — but verify anything
+storage- or permission-related in real Chrome before shipping.
 
 ## Rules that are load-bearing
 
@@ -46,9 +56,17 @@ very hard to undo.
 long snippets from any source, anywhere in this repo. Aggregators — NewsNow
 included — have been sued over exactly this. It is the whole legal position.
 
-**Keep the two feed lists in sync.** `extension/feeds.js` and
-`generator/config.json` hold the same eight sources in deliberately identical
-shape. Change one, change the other.
+**Keep the two definitions in sync.** `extension/feeds.js` and
+`generator/config.json` hold the same eight sources *and* the same six topic
+keyword lists. A reader who filters the extension to "Oil" and then opens
+`/topics/oil.html` must see the same selection. Change one, change the other,
+and run `python3 dev/check-sync.py` — it fails on any drift.
+
+**Balanced is the default sort for a reason.** Sorted strictly newest-first,
+Yahoo Finance took 13 of the top 15 slots and pushed Reuters and Bloomberg off
+the first screen, because publication frequency is not editorial importance.
+`balance()` in `newtab.js` round-robins one headline per desk per pass. Don't
+change the default back to `newest` without re-checking that distribution.
 
 **Bump `version` in `extension/manifest.json` on every store resubmission.**
 Chrome rejects a re-upload at the same version.

@@ -16,11 +16,48 @@ See `CLAUDE.md` for the working rules — the constraints that must not be
 
 ## 1. Extension
 
-**Try it in two minutes**
+**See it in one command — no install**
+
+```bash
+python3 dev/devserver.py
+```
+
+Then open <http://localhost:8787>. That runs the real extension code as an
+ordinary web page (storage shimmed to localStorage, feeds proxied past CORS) and
+serves the generated site at <http://localhost:8787/site/topics/oil.html>. This
+is the version to put in front of a client on a laptop — nothing to install and
+nothing to approve.
+
+**Try it as a real extension**
 
 1. Chrome → `chrome://extensions` → turn on Developer mode
 2. Load unpacked → select the `extension/` folder
 3. Open a new tab
+
+Do this before shipping: the dev harness fakes `chrome.storage` and the network,
+so it cannot catch a permissions or manifest problem.
+
+**Sorting and filtering**
+
+Live text filter (`/` to focus, `esc` to clear, quoted `"exact phrase"`
+supported, multiple words are AND), six topic filters sharing the generator's
+keyword lists, a time window (6/12/24/72h), source toggles with double-click to
+solo, and four orderings:
+
+| Order | What it does |
+|---|---|
+| **Balanced** (default) | One headline per desk per pass |
+| Newest / Oldest | Strict time order, with the session rules drawn in |
+| Grouped by source | All of one desk, then the next |
+
+Balanced is the default because strict newest-first let Yahoo Finance take 13 of
+the top 15 slots and buried Reuters and Bloomberg. Publication frequency isn't
+editorial importance, and the merge is the whole product.
+
+Every setting persists. The generated topic and recap pages carry their own
+filter bar — search, source toggles and a newest/oldest flip — which is
+progressive enhancement over the server-rendered list, so crawlers still see
+every headline.
 
 **What it does**
 

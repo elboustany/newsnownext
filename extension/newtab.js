@@ -1,16 +1,26 @@
-import { FEEDS, SESSIONS } from "./feeds.js";
+import { FEEDS, TOPICS, SESSIONS } from "./feeds.js";
 
 const CACHE_KEY = "wire:v1";
 const FILTER_KEY = "wire:muted";
+const PREFS_KEY = "wire:prefs";
 const FRESH_MS = 30 * 60 * 1000;   // headlines under 30m get the signal colour
 const STALE_MS = 5 * 60 * 1000;    // refetch if the cache is older than this
-const WINDOW_MS = 36 * 60 * 60 * 1000;
-const MAX_ITEMS = 120;
+// Hold the widest window the UI offers, then narrow at render time, so
+// changing the window control is instant and never needs the network.
+const WINDOW_MS = 72 * 60 * 60 * 1000;
+const MAX_ITEMS = 500;             // cache ceiling
+const MAX_RENDER = 200;            // painted ceiling
 
 const el = {
   wire: document.getElementById("wire"),
   state: document.getElementById("state"),
   sources: document.getElementById("sources"),
+  topics: document.getElementById("topics"),
+  q: document.getElementById("q"),
+  sort: document.getElementById("sort"),
+  window: document.getElementById("window"),
+  count: document.getElementById("count"),
+  clearAll: document.getElementById("clearAll"),
   clock: document.getElementById("clock"),
   clockZone: document.getElementById("clockZone"),
   sessionState: document.getElementById("sessionState"),
@@ -20,6 +30,7 @@ const el = {
 
 let items = [];
 let muted = new Set();
+let prefs = { sort: "balanced", window: 24, topic: null, q: "" };
 
 /* ── Clock and session state ─────────────────────────────────────────── */
 
@@ -158,7 +169,7 @@ async function loadWire({ force = false } = {}) {
   const cached = (await chrome.storage.local.get(CACHE_KEY))[CACHE_KEY];
   if (cached?.items?.length) {
     items = cached.items;
-    render();
+    render({ animate: true });
     setStatus(cached.ts, cached.failed);
   }
 
@@ -188,7 +199,7 @@ async function loadWire({ force = false } = {}) {
   items = merge(lists);
   const ts = Date.now();
   await chrome.storage.local.set({ [CACHE_KEY]: { ts, items, failed } });
-  render();
+  render({ animate: true });
   setStatus(ts, failed);
 }
 
@@ -199,6 +210,80 @@ function setStatus(ts, failed = []) {
   const miss = failed.length ? ` · ${failed.length} source${failed.length > 1 ? "s" : ""} unavailable` : "";
   el.status.textContent = `Updated ${when}${miss}`;
   el.status.title = failed.length ? `Not responding: ${failed.join(", ")}` : "";
+}
+
+/* ── Filtering and ordering ──────────────────────────────────────────── */
+
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// Same word-boundary matching the generator uses, so "Oil" in the extension and
+// /topics/oil.html select the same headlines.
+const TOPIC_RE = new Map(
+  TOPICS.map(t => [
+    t.slug,
+    new RegExp(`(?<![a-z0-9])(${t.keywords.map(esc).join("|")})(?![a-z0-9])`, "i")
+  ])
+);
+
+function searchTerms(q) {
+  // Quoted runs stay together; everything else is an AND term.
+  return (q.toLowerCase().match(/"[^"]+"|\S+/g) || [])
+    .map(t => t.replace(/^"|"$/g, "").trim())
+    .filter(Boolean);
+}
+
+function passes(it, terms) {
+  if (muted.has(it.sourceId)) return false;
+  if (Date.now() - it.ts > prefs.window * 3600 * 1000) return false;
+  if (prefs.topic && !TOPIC_RE.get(prefs.topic).test(it.title)) return false;
+  if (terms.length) {
+    const hay = `${it.title} ${it.source}`.toLowerCase();
+    if (!terms.every(t => hay.includes(t))) return false;
+  }
+  return true;
+}
+
+// Round-robin one headline per source per pass. Without this the wire is
+// whichever desk publishes most often — Yahoo pushes Reuters and Bloomberg off
+// the first screen entirely, which defeats the point of merging eight sources.
+function balance(list) {
+  const buckets = new Map();
+  for (const it of list) {
+    if (!buckets.has(it.sourceId)) buckets.set(it.sourceId, []);
+    buckets.get(it.sourceId).push(it);
+  }
+  const active = [...buckets.values()];
+  for (const b of active) b.sort((a, z) => z.ts - a.ts);
+
+  const out = [];
+  while (active.length) {
+    active.sort((a, z) => z[0].ts - a[0].ts);        // freshest desk leads each pass
+    for (const b of active) out.push(b.shift());
+    for (let i = active.length - 1; i >= 0; i--) {
+      if (!active[i].length) active.splice(i, 1);
+    }
+  }
+  return out;
+}
+
+function order(list) {
+  switch (prefs.sort) {
+    case "oldest":
+      return [...list].sort((a, z) => a.ts - z.ts);
+    case "source":
+      return [...list].sort((a, z) =>
+        a.source.localeCompare(z.source) || z.ts - a.ts);
+    case "balanced":
+      return balance(list);
+    default:
+      return [...list].sort((a, z) => z.ts - a.ts);
+  }
+}
+
+function selection() {
+  const terms = searchTerms(prefs.q);
+  const kept = items.filter(it => passes(it, terms));
+  return { rows: order(kept).slice(0, MAX_RENDER), matched: kept.length, terms };
 }
 
 /* ── Rendering ───────────────────────────────────────────────────────── */
@@ -227,36 +312,105 @@ function sessionRulesFor(range) {
   return rules.sort((a, b) => b.ms - a.ms);
 }
 
-function render() {
-  const visible = items.filter(it => !muted.has(it.sourceId));
+function render({ animate = false } = {}) {
+  const { rows, matched, terms } = selection();
   el.wire.setAttribute("aria-busy", "false");
+  el.wire.dataset.animate = animate ? "1" : "0";
   el.wire.innerHTML = "";
+  updateCount(rows.length, matched);
 
-  if (!visible.length) {
-    const p = document.createElement("p");
-    p.className = "state";
-    p.textContent = items.length
-      ? "Every source is switched off. Turn one back on above."
-      : "Nothing on the wire yet.";
-    el.wire.appendChild(p);
+  if (!rows.length) {
+    el.wire.appendChild(emptyState());
     return;
   }
 
-  const rules = sessionRulesFor({
-    newest: visible[0].ts,
-    oldest: visible[visible.length - 1].ts
-  });
-  let r = 0;
   const frag = document.createDocumentFragment();
 
-  for (const it of visible) {
-    while (r < rules.length && rules[r].ms > it.ts) {
-      frag.appendChild(ruleNode(rules[r]));
-      r++;
+  if (prefs.sort === "source") {
+    // Grouped: a source heading instead of session rules, which mean nothing
+    // once the wire is no longer in time order.
+    let current = null;
+    for (const it of rows) {
+      if (it.source !== current) {
+        current = it.source;
+        frag.appendChild(groupNode(current));
+      }
+      frag.appendChild(itemNode(it, terms));
     }
-    frag.appendChild(itemNode(it));
+  } else if (prefs.sort === "balanced") {
+    for (const it of rows) frag.appendChild(itemNode(it, terms));
+  } else {
+    // Time-ordered: drop the session rules in where the stream crosses them.
+    const asc = prefs.sort === "oldest";
+    const stamps = rows.map(i => i.ts);
+    const rules = sessionRulesFor({
+      newest: Math.max(...stamps),
+      oldest: Math.min(...stamps)
+    });
+    if (asc) rules.reverse();
+
+    let r = 0;
+    for (const it of rows) {
+      while (r < rules.length &&
+             (asc ? rules[r].ms < it.ts : rules[r].ms > it.ts)) {
+        frag.appendChild(ruleNode(rules[r]));
+        r++;
+      }
+      frag.appendChild(itemNode(it, terms));
+    }
   }
+
   el.wire.appendChild(frag);
+}
+
+function groupNode(label) {
+  const div = document.createElement("div");
+  div.className = "group-rule";
+  div.textContent = label;
+  return div;
+}
+
+function emptyState() {
+  const p = document.createElement("p");
+  p.className = "state";
+  if (!items.length) {
+    p.textContent = "Nothing on the wire yet.";
+  } else if (muted.size >= FEEDS.length) {
+    p.textContent = "Every source is switched off. Turn one back on above.";
+  } else {
+    const bits = [];
+    if (prefs.q) bits.push(`“${prefs.q}”`);
+    if (prefs.topic) bits.push(TOPICS.find(t => t.slug === prefs.topic).title);
+    bits.push(`the last ${prefs.window}h`);
+    p.textContent = `Nothing matching ${bits.join(" in ")}.`;
+  }
+  return p;
+}
+
+function updateCount(shown, matched) {
+  const filtered = prefs.q || prefs.topic || muted.size || prefs.window !== 24;
+  const capped = matched > shown ? ` (showing ${shown})` : "";
+  el.count.textContent = items.length
+    ? `${matched} of ${items.length} headlines${capped}`
+    : "—";
+  el.clearAll.hidden = !filtered;
+}
+
+// Wrap search hits so the reader can see why a headline matched.
+function highlight(text, terms) {
+  if (!terms.length) return document.createTextNode(text);
+  const frag = document.createDocumentFragment();
+  const re = new RegExp(`(${terms.map(esc).join("|")})`, "ig");
+  let last = 0;
+  for (const m of text.matchAll(re)) {
+    if (m.index > last) frag.append(text.slice(last, m.index));
+    const mark = document.createElement("mark");
+    mark.textContent = m[0];
+    frag.append(mark);
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) frag.append(text.slice(last));
+  return frag;
 }
 
 function ruleNode(rule) {
@@ -273,7 +427,7 @@ function ruleNode(rule) {
   return div;
 }
 
-function itemNode(it) {
+function itemNode(it, terms = []) {
   const div = document.createElement("article");
   div.className = "item" + (Date.now() - it.ts < FRESH_MS ? " fresh" : "");
 
@@ -290,7 +444,7 @@ function itemNode(it) {
   a.className = "h";
   a.href = it.link;
   a.rel = "noreferrer";
-  a.textContent = it.title;
+  a.append(highlight(it.title, terms));
 
   const meta = document.createElement("div");
   meta.className = "meta";
@@ -310,31 +464,140 @@ function itemNode(it) {
   return div;
 }
 
-/* ── Source filter ───────────────────────────────────────────────────── */
+/* ── Controls ────────────────────────────────────────────────────────── */
 
-function renderChips() {
+function chip(label, pressed, title) {
+  const b = document.createElement("button");
+  b.className = "chip";
+  b.type = "button";
+  b.textContent = label;
+  b.setAttribute("aria-pressed", String(pressed));
+  if (title) b.title = title;
+  return b;
+}
+
+async function saveMuted() {
+  await chrome.storage.local.set({ [FILTER_KEY]: [...muted] });
+}
+
+async function savePrefs() {
+  await chrome.storage.local.set({ [PREFS_KEY]: prefs });
+}
+
+function renderSourceChips() {
   el.sources.innerHTML = "";
   for (const f of FEEDS) {
-    const b = document.createElement("button");
-    b.className = "chip";
-    b.type = "button";
-    b.textContent = f.label;
-    b.setAttribute("aria-pressed", String(!muted.has(f.id)));
-    b.addEventListener("click", async () => {
+    const on = !muted.has(f.id);
+    const b = chip(f.label, on, `Click to ${on ? "hide" : "show"} ${f.label}. ` +
+                                `Double-click to show only ${f.label}.`);
+    b.addEventListener("click", async (ev) => {
+      if (ev.detail > 1) return;                 // let dblclick own the solo
       muted.has(f.id) ? muted.delete(f.id) : muted.add(f.id);
-      b.setAttribute("aria-pressed", String(!muted.has(f.id)));
-      await chrome.storage.local.set({ [FILTER_KEY]: [...muted] });
+      await saveMuted();
+      renderSourceChips();
+      render();
+    });
+    b.addEventListener("dblclick", async () => {
+      const soloed = muted.size === FEEDS.length - 1 && !muted.has(f.id);
+      muted = soloed ? new Set()                 // second double-click restores
+                     : new Set(FEEDS.filter(x => x.id !== f.id).map(x => x.id));
+      await saveMuted();
+      renderSourceChips();
       render();
     });
     el.sources.appendChild(b);
   }
+
+  if (muted.size) {
+    const all = document.createElement("button");
+    all.className = "linkbtn";
+    all.type = "button";
+    all.textContent = "all";
+    all.addEventListener("click", async () => {
+      muted = new Set();
+      await saveMuted();
+      renderSourceChips();
+      render();
+    });
+    el.sources.appendChild(all);
+  }
 }
+
+function renderTopicChips() {
+  el.topics.innerHTML = "";
+  const opts = [{ slug: null, title: "All" }, ...TOPICS];
+  for (const t of opts) {
+    const b = chip(t.title, prefs.topic === t.slug);
+    b.addEventListener("click", async () => {
+      prefs.topic = prefs.topic === t.slug ? null : t.slug;
+      await savePrefs();
+      renderTopicChips();
+      render();
+    });
+    el.topics.appendChild(b);
+  }
+}
+
+function syncControls() {
+  el.q.value = prefs.q;
+  el.sort.value = prefs.sort;
+  el.window.value = String(prefs.window);
+  renderTopicChips();
+  renderSourceChips();
+}
+
+let searchTimer;
+el.q.addEventListener("input", () => {
+  prefs.q = el.q.value;
+  render();                                      // instant
+  clearTimeout(searchTimer);                     // persist once typing settles
+  searchTimer = setTimeout(savePrefs, 400);
+});
+
+el.sort.addEventListener("change", async () => {
+  prefs.sort = el.sort.value;
+  await savePrefs();
+  render();
+});
+
+el.window.addEventListener("change", async () => {
+  prefs.window = Number(el.window.value);
+  await savePrefs();
+  render();
+});
+
+el.clearAll.addEventListener("click", async () => {
+  prefs = { ...prefs, q: "", topic: null, window: 24 };
+  muted = new Set();
+  await Promise.all([savePrefs(), saveMuted()]);
+  syncControls();
+  render();
+});
 
 el.refresh.addEventListener("click", () => loadWire({ force: true }));
 
+document.addEventListener("keydown", (ev) => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName);
+  if (ev.key === "Escape" && prefs.q) {
+    prefs.q = "";
+    el.q.value = "";
+    el.q.blur();
+    savePrefs();
+    render();
+    return;
+  }
+  if (typing || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  if (ev.key === "/") { ev.preventDefault(); el.q.focus(); el.q.select(); }
+  if (ev.key === "r") { ev.preventDefault(); loadWire({ force: true }); }
+});
+
+/* ── Start ───────────────────────────────────────────────────────────── */
+
 (async function start() {
-  const stored = (await chrome.storage.local.get(FILTER_KEY))[FILTER_KEY];
-  muted = new Set(Array.isArray(stored) ? stored : []);
-  renderChips();
+  const stored = await chrome.storage.local.get(FILTER_KEY);
+  muted = new Set(Array.isArray(stored[FILTER_KEY]) ? stored[FILTER_KEY] : []);
+  const saved = (await chrome.storage.local.get(PREFS_KEY))[PREFS_KEY];
+  if (saved && typeof saved === "object") prefs = { ...prefs, ...saved };
+  syncControls();
   await loadWire();
 })();

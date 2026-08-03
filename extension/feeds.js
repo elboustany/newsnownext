@@ -51,6 +51,53 @@ export const FEEDS = [
   }
 ];
 
+// Topic filters. These must stay identical to `topics` in
+// generator/config.json — same slugs, same keywords — so a reader filtering the
+// extension to "Oil" sees the same selection as /topics/oil.html.
+// `dev/check-sync.py` fails if the two drift apart.
+export const TOPICS = [
+  {
+    slug: "oil",
+    title: "Oil",
+    keywords: ["oil", "crude", "brent", "wti", "opec", "natural gas", "lng",
+               "refinery", "barrel", "pipeline", "energy prices"]
+  },
+  {
+    slug: "crypto",
+    title: "Crypto",
+    keywords: ["bitcoin", "btc", "ethereum", "ether", "crypto", "stablecoin",
+               "binance", "coinbase", "defi", "digital asset", "tokenised",
+               "tokenized"]
+  },
+  {
+    slug: "rates",
+    title: "Rates",
+    keywords: ["fed", "federal reserve", "fomc", "ecb", "bank of england",
+               "bank of japan", "boj", "interest rate", "rate cut", "rate hike",
+               "inflation", "cpi", "yield", "treasury", "bond"]
+  },
+  {
+    slug: "equities",
+    title: "Equities",
+    keywords: ["stocks", "shares", "equities", "s&p", "nasdaq", "dow", "ftse",
+               "dax", "nikkei", "earnings", "ipo", "buyback", "index",
+               "wall street"]
+  },
+  {
+    slug: "china",
+    title: "China & Asia",
+    keywords: ["china", "chinese", "beijing", "pboc", "yuan", "renminbi",
+               "hong kong", "japan", "yen", "korea", "india", "asia"]
+  },
+  {
+    slug: "ai-and-tech",
+    title: "AI & tech",
+    keywords: ["ai", "artificial intelligence", "chip", "semiconductor",
+               "nvidia", "openai", "data centre", "data center", "cloud",
+               "apple", "microsoft", "meta", "alphabet", "tesla"]
+  }
+];
+
 // Trading sessions, drawn as rules across the timeline.
 // Times are local to the exchange; the UI converts them for the reader.
 export const SESSIONS = [
