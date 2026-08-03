@@ -36,7 +36,7 @@ CSS = """
 /* No dark scheme on purpose. The live site is light-only, and a page that
    flips to dark on a dark-mode machine is exactly the "different colours"
    this build is meant to avoid. To offer one later, add a
-   `@media (prefers-color-scheme:dark)` block overriding the tokens above —
+   `@media (prefers-color-scheme:dark)` block overriding the tokens above -
    nothing else in the stylesheet hard-codes a colour. */
 
 *{box-sizing:border-box}
@@ -195,7 +195,7 @@ a{color:inherit}
 }
 .ev-count:empty{display:none}
 
-/* ── Ticker — the quote-card band under the nav ────────────────────── */
+/* ── Ticker - the quote-card band under the nav ────────────────────── */
 
 .ticker{background:#eceff3;border-bottom:1px solid var(--border);padding:16px 0 20px}
 .ticker-in{max-width:1320px;margin:0 auto;padding:0 20px}
@@ -239,6 +239,22 @@ a{color:inherit}
 .up{color:#059669}.down{color:#dc2626}.flat{color:var(--muted-foreground)}
 .qmissing{font-size:13px;color:var(--muted-foreground);margin-top:8px}
 
+.evq{
+  display:flex;align-items:center;gap:10px;text-decoration:none;
+  color:var(--foreground);min-width:0;
+}
+.evq:hover .evq-name{color:var(--primary)}
+.evq-date{
+  flex:none;font-size:11px;font-weight:800;letter-spacing:.03em;
+  background:#1f2937;color:#fff;border-radius:6px;padding:5px 8px;
+  font-variant-numeric:tabular-nums;
+}
+.evq-name{
+  font-size:12.5px;font-weight:600;line-height:1.25;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;
+}
+.evq-when{flex:none;font-size:11.5px;font-weight:600;color:#9a3412}
+
 @media(max-width:640px){
   .quotes{grid-template-columns:repeat(2,1fr)}
   .logo{font-size:20px}
@@ -247,13 +263,22 @@ a{color:inherit}
 /* ── Today's Brief + For You ───────────────────────────────────────── */
 
 .brief{
-  background:var(--card);border:1px solid var(--border);border-left:4px solid var(--primary);
-  border-radius:var(--radius);padding:16px 20px;margin:14px 0 4px;max-width:900px;
+  background:linear-gradient(180deg,#eff6ff,#fdfefe);
+  border:1px solid #bfdbfe;border-radius:12px;
+  padding:16px 20px;margin:16px 0 4px;
 }
-.brief-head{display:flex;align-items:baseline;gap:12px}
-.brief-head h2{font-size:16px;font-weight:800;margin:0;letter-spacing:-.01em}
-.brief-date{font-size:12px;color:var(--muted-foreground);font-weight:600}
-.brief p{margin:8px 0 0;font-size:14.5px;line-height:1.6}
+.brief-head{display:flex;align-items:center;gap:10px}
+.brief-mark{
+  width:30px;height:30px;border-radius:8px;background:var(--primary);color:#fff;
+  display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none;
+}
+.brief-head h2{font-size:17px;font-weight:800;margin:0;letter-spacing:-.01em;color:#1e3a8a}
+.brief-date{font-size:12px;color:var(--muted-foreground);font-weight:600;margin-left:2px}
+.brief-head .tcollapse{margin-left:auto;color:#1e3a8a}
+.brief-body{margin-top:10px;max-width:860px}
+.brief p{margin:0 0 10px;font-size:14.5px;line-height:1.65}
+.brief-more p:last-child{margin-bottom:0}
+#brief-expand{margin:2px 0 10px}
 .brief-links{display:flex;gap:18px;flex-wrap:wrap}
 .brief-links a{color:var(--primary);text-decoration:none;font-size:13.5px;font-weight:600}
 .brief-links a:hover{text-decoration:underline}
@@ -418,7 +443,7 @@ h1{font-size:26px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
 
 /* ── Filter bar ────────────────────────────────────────────────────── */
 
-/* One line. Search, a region menu and an order menu — that is the whole
+/* One line. Search, a region menu and an order menu - that is the whole
    primary surface. Anything more lived in a block that ate half the screen
    before the reader saw a single headline. */
 .filters{
@@ -616,6 +641,60 @@ ol.wire mark{background:rgba(36,99,235,.16);color:inherit;border-radius:2px;padd
 }
 #ai-q:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(36,99,235,.13)}
 .ai-sugg{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+
+/* ── Contact ───────────────────────────────────────────────────────── */
+
+.contact-grid{display:grid;gap:12px;grid-template-columns:1fr;margin:16px 0 6px}
+@media(min-width:800px){.contact-grid{grid-template-columns:repeat(3,1fr)}}
+.ccard{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:16px 18px;
+}
+.ccard-ico{
+  display:inline-flex;width:34px;height:34px;border-radius:9px;background:var(--muted);
+  align-items:center;justify-content:center;font-size:16px;margin-bottom:8px;
+}
+.ccard h2{font-size:15px;font-weight:700;margin:0 0 4px}
+.ccard p{margin:0 0 6px;font-size:13.5px;line-height:1.5;color:var(--muted-foreground)}
+.ccard a{color:var(--primary);font-size:13.5px;font-weight:600;text-decoration:none}
+.ccard a:hover{text-decoration:underline}
+.contact-form-h{font-size:17px;font-weight:800;margin:26px 0 4px}
+.cform{max-width:640px;display:flex;flex-direction:column;gap:12px;margin-top:10px}
+.cform-row{display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:640px){.cform-row{grid-template-columns:1fr 1fr}}
+.cform label{
+  display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600;
+  color:var(--muted-foreground);
+}
+.cform input,.cform select,.cform textarea{
+  font:inherit;font-size:14.5px;color:var(--foreground);background:var(--input);
+  border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;
+}
+.cform input:focus,.cform select:focus,.cform textarea:focus{
+  outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(36,99,235,.13);
+}
+.cform textarea{resize:vertical}
+.cform .nl-btn{align-self:flex-start}
+
+/* ── Read later ────────────────────────────────────────────────────── */
+
+.rl-day{
+  font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted-foreground);margin:22px 0 6px;padding-bottom:6px;
+  border-bottom:1px solid var(--border);
+}
+.rl-item{
+  display:flex;gap:12px;align-items:baseline;padding:9px 0;
+  border-bottom:1px solid var(--border);
+}
+.rl-item a{color:var(--primary);text-decoration:none;font-size:14.5px;font-weight:500}
+.rl-item a:hover{text-decoration:underline}
+.rl-src{font-size:12px;color:var(--muted-foreground);flex:none}
+.rl-x{
+  margin-left:auto;flex:none;background:none;border:0;cursor:pointer;
+  color:var(--muted-foreground);font-size:15px;padding:2px 6px;border-radius:6px;
+}
+.rl-x:hover{color:#dc2626;background:var(--muted)}
 
 /* ── Foot ──────────────────────────────────────────────────────────── */
 

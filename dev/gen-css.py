@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 THEME = ROOT / "generator" / "theme.py"
 OUT = ROOT / "extension" / "newtab.css"
 
-HEADER = """/* GENERATED FILE — do not edit by hand.
+HEADER = """/* GENERATED FILE - do not edit by hand.
    Source of truth: generator/theme.py
    Regenerate:      python3 dev/gen-css.py
 
@@ -71,7 +71,7 @@ def main():
 
     if args.check:
         if current != want:
-            print("extension/newtab.css is out of date — run python3 dev/gen-css.py",
+            print("extension/newtab.css is out of date - run python3 dev/gen-css.py",
                   file=sys.stderr)
             return 1
         print(f"Up to date: {len(want)} bytes.")

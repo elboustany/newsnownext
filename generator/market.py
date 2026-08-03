@@ -3,10 +3,10 @@ Market and FX data, from free keyless sources.
 
 Two providers, chosen because neither needs an account:
 
-  * Indices, commodities and treasury yields — Yahoo Finance's chart endpoint.
+  * Indices, commodities and treasury yields - Yahoo Finance's chart endpoint.
     Same symbols the live site's own /api/market returns (GSPC, IXIC, GDAXI,
     STOXX50E …), because its backend proxies Yahoo too.
-  * FX — the ECB's daily reference rates via Frankfurter, which also serves
+  * FX - the ECB's daily reference rates via Frankfurter, which also serves
     historical dates. That is what makes the six timeframe columns on the
     forex table possible without a paid plan.
 
@@ -20,7 +20,7 @@ Honest limits, both surfaced in the UI rather than hidden:
   * Yahoo rate-limits aggressively per IP. It returns 429 from some hosts
     (including sandboxes and shared CI runners) while working fine from an
     ordinary VPS. If the deploy host is throttled, set FMP_API_KEY and the
-    fetcher uses Financial Modeling Prep instead — the provider the live site
+    fetcher uses Financial Modeling Prep instead - the provider the live site
     was already coded against.
 """
 
@@ -176,7 +176,7 @@ def _yahoo_quote(symbol):
 
 
 def _fmp_quotes(symbols, key):
-    """One batched call — the free plan counts calls, not symbols."""
+    """One batched call - the free plan counts calls, not symbols."""
     out = {}
     data = _get(FMP.format(",".join(symbols), key))
     for row in data:
@@ -246,7 +246,7 @@ def _ecb(day):
 
     Returns (rates, effective_date). Frankfurter answers a non-business day
     with the previous publication, so the date it echoes back is the one that
-    actually applies — which matters for the daily column below.
+    actually applies - which matters for the daily column below.
     """
     d = _get(FRANKFURTER.format(day, ",".join(CURRENCIES)))
     return d["rates"], d["date"]
@@ -356,7 +356,7 @@ def collect(offline=False):
     quotes = fetch_quotes(cache, offline=offline)
     fx = fetch_fx(cache, offline=offline)
     if offline:
-        print("  market: offline — quotes and fx rebuilt from cache")
+        print("  market: offline - quotes and fx rebuilt from cache")
     else:
         cache["fetched"] = datetime.now(timezone.utc).isoformat()
         save_cache(cache)

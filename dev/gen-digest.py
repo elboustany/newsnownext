@@ -4,8 +4,8 @@ Render today's Morning Brief as a ready-to-send email.
 
     python3 dev/gen-digest.py            # writes generator/out/digest-YYYY-MM-DD.html
 
-Pulls the three pieces the newsletter promises — the written brief, the top
-consensus story across the desks, and the next calendar event — and lays them
+Pulls the three pieces the newsletter promises - the written brief, the top
+consensus story across the desks, and the next calendar event - and lays them
 out with inline styles that survive email clients. Paste the HTML into
 Buttondown/Resend/Mailchimp, or wire it into their API later; this script is
 deliberately sender-agnostic.
@@ -39,7 +39,7 @@ def main():
 
     syn_path = GEN / "synopsis" / f"{today.isoformat()}.txt"
     if not syn_path.exists():
-        sys.exit(f"No brief written for {today} — create generator/synopsis/"
+        sys.exit(f"No brief written for {today} - create generator/synopsis/"
                  f"{today.isoformat()}.txt first. The email IS the brief.")
     paras = [p.strip() for p in
              syn_path.read_text(encoding="utf-8").split("\n\n") if p.strip()]

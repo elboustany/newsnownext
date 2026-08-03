@@ -4,7 +4,7 @@ Generate extension/feeds.js from generator/config.json.
 
 The extension and the site show the same regions, the same sources and the same
 topic keywords. Keeping two hand-edited copies in step never lasts, so there is
-exactly one source of truth — config.json — and this writes the other one.
+exactly one source of truth - config.json - and this writes the other one.
 
     python3 dev/gen-feeds.py           # write extension/feeds.js
     python3 dev/gen-feeds.py --check   # exit 1 if it is out of date (no write)
@@ -24,7 +24,7 @@ CONFIG = ROOT / "generator" / "config.json"
 FEEDS_JS = ROOT / "extension" / "feeds.js"
 MANIFEST = ROOT / "extension" / "manifest.json"
 
-HEADER = """// GENERATED FILE — do not edit by hand.
+HEADER = """// GENERATED FILE - do not edit by hand.
 // Source of truth: generator/config.json
 // Regenerate:      python3 dev/gen-feeds.py
 //
@@ -35,7 +35,7 @@ HEADER = """// GENERATED FILE — do not edit by hand.
 
 
 def js(value, indent=0):
-    """Minimal JS literal writer — json is a valid subset, but keep keys bare."""
+    """Minimal JS literal writer - json is a valid subset, but keep keys bare."""
     pad = "  " * indent
     if isinstance(value, dict):
         inner = ",\n".join(
@@ -107,7 +107,7 @@ def main():
 
     if args.check:
         if stale:
-            print("Out of date — run python3 dev/gen-feeds.py:", file=sys.stderr)
+            print("Out of date - run python3 dev/gen-feeds.py:", file=sys.stderr)
             for s in stale:
                 print(f"  · {s}", file=sys.stderr)
             return 1
@@ -119,7 +119,7 @@ def main():
     FEEDS_JS.write_text(want_js, encoding="utf-8")
     MANIFEST.write_text(want_manifest, encoding="utf-8")
     n = sum(len(r["sources"]) for r in cfg["regions"])
-    print(f"Wrote extension/feeds.js — {len(cfg['regions'])} regions, {n} sources, "
+    print(f"Wrote extension/feeds.js - {len(cfg['regions'])} regions, {n} sources, "
           f"{len(cfg['topics'])} topics.")
     print(f"Wrote {len(want_hosts)} host_permissions into extension/manifest.json.")
     return 0

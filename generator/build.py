@@ -6,7 +6,7 @@ Renders the whole site as plain HTML: a home page of region cards (US, UK,
 China, France, Switzerland, Middle East, Blogs, Markets) exactly as the live
 site lays them out, plus topic pages and dated recaps.
 
-Everything is server-rendered. That is the point — the live site is a
+Everything is server-rendered. That is the point - the live site is a
 client-rendered SPA, so crawlers currently receive an empty shell and none of
 this content is indexable. Here the headlines are in the HTML.
 
@@ -93,17 +93,21 @@ def clean_title(title, src):
     """Strip the ' - Publisher' suffix Google News appends to every headline.
 
     For a site-restricted query the publisher is the source label, but a broad
-    query ("switzerland economy") returns whatever outlet ran it — so a Swiss
+    query ("switzerland economy") returns whatever outlet ran it - so a Swiss
     rates story comes back as "… - Bitcoin World" and then matches the crypto
     topic. Strip the suffix for anything routed through Google News; leave
     native feeds alone, where a trailing dash is usually part of the headline.
     """
     t = re.sub(r"\s+", " ", title).strip()
+    # House style: no em or en dashes anywhere, including publishers' own
+    # headlines.
+    t = t.replace(" \u2014 ", " - ").replace("\u2014", "-")
+    t = t.replace(" \u2013 ", " - ").replace("\u2013", "-")
     if src.get("via") == "Google News":
-        t = re.sub(r"\s+[-–—]\s+[^-–—]{2,40}$", "", t)
+        t = re.sub(r"\s+[---]\s+[^---]{2,40}$", "", t)
     else:
         head = src["label"].split()[0]
-        t = re.sub(rf"\s+[-–—]\s+{re.escape(head)}[^-–—]*$", "", t, flags=re.I)
+        t = re.sub(rf"\s+[---]\s+{re.escape(head)}[^---]*$", "", t, flags=re.I)
     return t.strip()
 
 
@@ -327,7 +331,7 @@ def trending_section(cfg, items):
     def card(rank, c):
         it = c["rep"]
         n = len(c["sources"])
-        # The signal, stated plainly — and its first derivative when the
+        # The signal, stated plainly - and its first derivative when the
         # cross-build history shows the story accelerating.
         bits = []
         if n >= 3:
@@ -338,14 +342,14 @@ def trending_section(cfg, items):
             bits.append(f"Only {esc(it['source'])} has this")
         if c.get("prev_desks") and n > c["prev_desks"]:
             bits.append(f"&#8599; up from {c['prev_desks']}")
-        try:
-            first = parse_date(c.get("first_seen"))
-            age_h = (datetime.now(timezone.utc) - first).total_seconds() / 3600
-            if age_h < 6:
-                bits.append(f"broke {max(1, int(age_h))}h ago" if age_h >= 1
-                            else "just broke")
-        except Exception:                           # noqa: BLE001 - cosmetic
-            pass
+        mins = int((datetime.now(timezone.utc)
+                    - parse_date(it["ts"])).total_seconds() // 60)
+        if mins < 60:
+            bits.append(f"{max(mins, 1)}m ago")
+        elif mins < 48 * 60:
+            bits.append(f"{mins // 60}h ago")
+        else:
+            bits.append(f"{mins // 1440}d ago")
         desks = f'<p class="tmeta">{" &middot; ".join(bits)}</p>'
         return (
             f'<article class="tcard">'
@@ -369,7 +373,7 @@ def trending_section(cfg, items):
              'aria-pressed="true">All</button>']
 
     # Consensus: what every desk agrees matters. Exclusives: what exactly one
-    # desk is reporting right now — the closest thing a wire has to a scoop.
+    # desk is reporting right now - the closest thing a wire has to a scoop.
     consensus = [c for c in clusters if len(c["sources"]) >= 3]
     if len(consensus) >= 2:
         groups.append(group("consensus", consensus, True))
@@ -415,7 +419,7 @@ def esc(s):
 
 
 def stamp(dt):
-    """'Aug 3 12:23 PM' — the format the live site uses."""
+    """'Aug 3 12:23 PM' - the format the live site uses."""
     hour = dt.hour % 12 or 12
     ampm = "AM" if dt.hour < 12 else "PM"
     return f"{dt.strftime('%b')} {dt.day} {hour}:{dt.strftime('%M')} {ampm}"
@@ -456,12 +460,12 @@ BOOKMARK_SVG = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
                 'aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10'
                 'a2 2 0 0 1 2 2z"/></svg>')
 
-# A house ad, not a fake one: the banner sells the site's own asset — the
-# daily brief and its mailing list — until the slot is sold to a real sponsor.
+# A house ad, not a fake one: the banner sells the site's own asset - the
+# daily brief and its mailing list - until the slot is sold to a real sponsor.
 PROMO = ("""<div class="promo" id="promo"><div class="promo-in">"""
          """<span class="tag">NEW</span>"""
          """<strong>The Morning Brief</strong>"""
-         """<span class="muted">The trading day in one written paragraph &mdash; in your inbox before the open</span>"""
+         """<span class="muted">The trading day in one written paragraph - in your inbox before the open</span>"""
          """<a href="/newsletter/">Subscribe free &rarr;</a>"""
          """<button class="close" id="promo-x" type="button" """
          """aria-label="Dismiss">&times;</button>"""
@@ -543,6 +547,45 @@ def ticker_strip(mkt):
         panels.append(
             f'<div class="quotes" role="tabpanel" id="panel-{tid}" '
             f'aria-labelledby="tab-{tid}"{"" if first else " hidden"}>{"".join(cards)}</div>')
+
+    # Fifth tab: the next market-moving events, so the calendar is one glance
+    # away on every page.
+    try:
+        from zoneinfo import ZoneInfo
+        ev_data = json.loads((HERE / "data" / "events.json").read_text(encoding="utf-8"))
+        tz = ZoneInfo(ev_data.get("timezone", "America/New_York"))
+        today_d = datetime.now(timezone.utc).date()
+        upcoming = []
+        for e in sorted(ev_data["events"], key=lambda x: (x["date"], x["time"])):
+            local = datetime.strptime(f'{e["date"]} {e["time"]}',
+                                      "%Y-%m-%d %H:%M").replace(tzinfo=tz)
+            if local.date() >= today_d:
+                upcoming.append((local, e))
+            if len(upcoming) == 4:
+                break
+        if upcoming:
+            cards = []
+            for local, e in upcoming:
+                days = (local.date() - today_d).days
+                when = ("Today" if days == 0 else "Tomorrow" if days == 1
+                        else f"in {days} days")
+                cards.append(
+                    f'<a class="quote evq" href="/events/" title="{esc(e["note"])}">'
+                    f'<span class="evq-date">{local.strftime("%b").upper()} '
+                    f'{local.day}</span>'
+                    f'<span class="evq-name">{esc(e["name"])}</span>'
+                    f'<span class="evq-when">{esc(when)}</span>'
+                    f'<span class="ev-badge {esc(e["impact"])}">'
+                    f'{"HIGH" if e["impact"] == "high" else "MED"}</span></a>')
+            tabs.append(
+                '<button class="tab" type="button" role="tab" id="tab-events" '
+                'aria-controls="panel-events" aria-selected="false" '
+                'data-tab="events">Events</button>')
+            panels.append(
+                '<div class="quotes" role="tabpanel" id="panel-events" '
+                f'aria-labelledby="tab-events" hidden>{"".join(cards)}</div>')
+    except Exception:                               # noqa: BLE001 - tab is optional
+        pass
 
     return (f'<div class="ticker"><div class="ticker-in">'
             f'<div class="tabs" role="tablist" data-ticker>{"".join(tabs)}</div>'
@@ -638,7 +681,7 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
 <div class="ai-panel" id="ai-panel" hidden>
   <div class="ai-head"><strong>Ask AI about News</strong>
     <button class="ai-x" id="ai-x" type="button" aria-label="Close">&times;</button></div>
-  <p class="ai-sub">Preview &mdash; answers search the live wire directly.</p>
+  <p class="ai-sub">Preview - answers search the live wire directly.</p>
   <form id="ai-form">
     <label class="sr-only" for="ai-q">Ask about the news</label>
     <input id="ai-q" type="text" autocomplete="off"
@@ -653,13 +696,13 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
   </div>
 </div>
 <footer class="foot">
-  <p class="foot-tag">Never refresh, never miss &mdash; real-time news feed</p>
+  <p class="foot-tag">Never refresh, never miss - real-time news feed</p>
   <p class="foot-links"><a href="/topics/">Topics</a> &middot;
      <a href="/recap/">Daily recap</a> &middot;
      <a href="/feed.xml">RSS</a> &middot;
      <a href="/contact/">Contact</a></p>
-  <p>&copy; 2025 {esc(cfg['site_name'])}. All Rights Reserved.
-     Headlines link out to their publishers &mdash; article text is never
+  <p>&copy; 2026 {esc(cfg['site_name'])}. All Rights Reserved.
+     Headlines link out to their publishers - article text is never
      reproduced here.</p>
 </footer>
 </div>
@@ -710,7 +753,7 @@ def filter_bar(cfg, regions_present):
     <option value="oldest">Oldest</option>
   </select>
   <p class="fcount">
-    <span id="f-count">—</span>
+    <span id="f-count">-</span>
     <button class="linkbtn" id="f-clear" type="button" hidden>Clear</button>
   </p>
 </div>
@@ -805,7 +848,7 @@ def forex_page(cfg, mkt, base, out):
            '<p class="empty">Rates are temporarily unavailable. '
            'The next build will restore them.</p>'))
     write(out / "forex" / "index.html", shell(
-        cfg, title=f"Forex — major currency pairs — {cfg['site_name']}",
+        cfg, title=f"Forex - major currency pairs - {cfg['site_name']}",
         description=("Live major forex pairs with daily, weekly, monthly, "
                      "year-to-date, one-year and three-year moves."),
         canonical=f"{base}/forex/", body=body, current="/forex/",
@@ -865,14 +908,14 @@ def books_page(cfg, mkt, base, out):
     body = (
         '<div class="page-head"><h1>Best Finance &amp; Business Books</h1>'
         f'<p class="standfirst">{len(books)} titles, curated by {esc(cfg["site_name"])}. '
-        'Affiliate links — we may earn a commission.</p></div>'
+        'Affiliate links - we may earn a commission.</p></div>'
         '<div class="filters" data-book-filters hidden>'
         '<div class="frow"><div class="fsearch">'
         '<label class="sr-only" for="b-q">Filter books</label>'
         '<input id="b-q" type="search" autocomplete="off" placeholder="Filter by title or author…">'
         '</div><label class="sr-only" for="b-sort">Order</label>'
         '<select id="b-sort" class="fsel">'
-        '<option value="az">A–Z</option><option value="new">Newest first</option>'
+        '<option value="az">A-Z</option><option value="new">Newest first</option>'
         '<option value="old">Oldest first</option></select></div>'
         f'<div class="frow"><span class="flabel">Category</span>'
         f'<nav class="chips">{chips}</nav></div>'
@@ -884,7 +927,7 @@ def books_page(cfg, mkt, base, out):
     )
 
     write(out / "books" / "index.html", shell(
-        cfg, title=f"{len(books)} best finance and business books — {cfg['site_name']}",
+        cfg, title=f"{len(books)} best finance and business books - {cfg['site_name']}",
         description=("A curated reading list of finance, investing, economics and "
                      "business books, filterable by category and sortable by year."),
         canonical=f"{base}/books/", body=body, current="/books/",
@@ -901,7 +944,7 @@ def books_page(cfg, mkt, base, out):
 def events_page(cfg, mkt, base, out):
     """US economic calendar: the scheduled releases that move markets.
 
-    Data lives in data/events.json and is maintained by hand — these dates
+    Data lives in data/events.json and is maintained by hand - these dates
     are published well in advance but do occasionally shift. The page only
     renders future events, and the build warns when the file runs low.
     """
@@ -923,7 +966,7 @@ def events_page(cfg, mkt, base, out):
     future.sort(key=lambda x: x[0])
     if len(future) < 5:
         print(f"  NOTE: only {len(future)} future events left in data/events.json "
-              f"— time to update it")
+              f"- time to update it")
 
     rows, seen_month, ld_items = [], None, []
     for local, e in future:
@@ -948,9 +991,13 @@ def events_page(cfg, mkt, base, out):
             f'<p class="ev-note">{esc(e["note"])}</p>'
             f'<div class="ev-foot"><span class="ev-when">{esc(when)}</span>'
             f'<span class="ev-count" data-count></span>'
-            f'<button class="linkbtn ev-cal" type="button" data-ics '
-            f'data-name="{esc(e["name"])}" data-note="{esc(e["note"])}">'
-            f'+ Add to calendar</button></div>'
+            f'<a class="linkbtn ev-cal" target="_blank" rel="noopener" '
+            f'href="https://calendar.google.com/calendar/render?action=TEMPLATE'
+            f'&text={urllib.parse.quote(e["name"])}'
+            f'&dates={utc.strftime("%Y%m%dT%H%M%SZ")}/'
+            f'{(utc + timedelta(hours=1)).strftime("%Y%m%dT%H%M%SZ")}'
+            f'&details={urllib.parse.quote(e["note"])}&ctz=America/New_York">'
+            f'+ Add to calendar</a></div>'
             f'</div></article>')
         ld_items.append({
             "@type": "Event", "name": e["name"],
@@ -1007,7 +1054,7 @@ def events_page(cfg, mkt, base, out):
         'Add-to-calendar files are generated in your browser.</p></p>')
 
     write(out / "events" / "index.html", shell(
-        cfg, title=f"US economic calendar — Fed, CPI, jobs — {cfg['site_name']}",
+        cfg, title=f"US economic calendar - Fed, CPI, jobs - {cfg['site_name']}",
         description=("Upcoming US market-moving events: FOMC decisions, CPI, "
                      "jobs reports and GDP, with times and calendar files."),
         canonical=f"{base}/events/", body=body, current="/events/",
@@ -1019,7 +1066,7 @@ def events_page(cfg, mkt, base, out):
 
 
 def podcasts_page(cfg, mkt, base, out):
-    """Curated episode summaries — the only wholly original text on the site,
+    """Curated episode summaries - the only wholly original text on the site,
     and therefore the page most worth indexing."""
     data = json.loads((HERE / "data" / "podcasts.json").read_text(encoding="utf-8"))
     eps = data["episodes"]
@@ -1054,7 +1101,7 @@ def podcasts_page(cfg, mkt, base, out):
     body = (
         '<div class="page-head"><h1>Podcast summaries</h1>'
         f'<p class="standfirst">{len(eps)} curated insights from top business and '
-        'technology podcasts — what was actually said, in a paragraph.</p></div>'
+        'technology podcasts - what was actually said, in a paragraph.</p></div>'
         '<div class="filters" data-pod-filters hidden>'
         '<div class="fsearch"><label class="sr-only" for="p-q">Filter episodes</label>'
         '<input id="p-q" type="search" autocomplete="off" '
@@ -1068,7 +1115,7 @@ def podcasts_page(cfg, mkt, base, out):
         f'<div class="pods" id="pod-list">{"".join(cards)}</div>')
 
     write(out / "podcasts" / "index.html", shell(
-        cfg, title=f"Podcast summaries — business and tech insights — {cfg['site_name']}",
+        cfg, title=f"Podcast summaries - business and tech insights - {cfg['site_name']}",
         description=("Curated summaries of the best business, macro and technology "
                      "podcasts: guest, host and the argument in one paragraph."),
         canonical=f"{base}/podcasts/", body=body, current="/podcasts/",
@@ -1130,7 +1177,7 @@ def world_page(cfg, mkt, base, out, world_items):
            '<p class="empty">Country feeds are temporarily unavailable.</p>'))
 
     write(out / "world-news" / "index.html", shell(
-        cfg, title=f"World News — local reporting by country — {cfg['site_name']}",
+        cfg, title=f"World News - local reporting by country - {cfg['site_name']}",
         description=("Local English-language news by country: the United States, "
                      "China, France, Germany, Japan, India, Brazil and more."),
         canonical=f"{base}/world-news/", body=body, current="/world-news/",
@@ -1245,12 +1292,15 @@ self.addEventListener('fetch', function (e) {
   var url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
   if (url.pathname.startsWith('/assets/')) {
+    // Stale-while-revalidate: paint from cache instantly, refresh it in the
+    // background so the next load is never more than one build behind.
     e.respondWith(caches.match(e.request).then(function (hit) {
-      return hit || fetch(e.request).then(function (res) {
+      var refresh = fetch(e.request).then(function (res) {
         var copy = res.clone();
         caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
         return res;
-      });
+      }).catch(function () { return hit; });
+      return hit || refresh;
     }));
     return;
   }
@@ -1272,7 +1322,7 @@ self.addEventListener('fetch', function (e) {
             (out / "assets" / icon).write_bytes(src.read_bytes())
 
     write(out / "offline.html", shell(
-        cfg, title=f"Offline — {cfg['site_name']}",
+        cfg, title=f"Offline - {cfg['site_name']}",
         description="You are offline.", canonical=f"{base}/offline.html",
         noindex=True,
         body=('<div class="prose"><div class="page-head"><h1>You&rsquo;re offline</h1>'
@@ -1324,33 +1374,44 @@ self.addEventListener('fetch', function (e) {
     brief_html = ""
     if syn_path.exists():
         syn = syn_path.read_text(encoding="utf-8").strip()
-        first_para = syn.split("\n\n")[0].strip()
+        paras = [x.strip() for x in syn.split("\n\n") if x.strip()]
+        first = f"<p>{esc(paras[0])}</p>"
+        rest = "".join(f"<p>{esc(x)}</p>" for x in paras[1:])
+        more = (f'<div class="brief-more" id="brief-more" hidden>{rest}</div>'
+                '<button class="linkbtn" id="brief-expand" type="button" '
+                'aria-expanded="false">Read the full brief &darr;</button>'
+                if rest else "")
         brief_html = (
-            '<section class="brief">'
-            '<div class="brief-head"><h2>Today&rsquo;s Brief</h2>'
-            f'<span class="brief-date">{today.strftime("%d %B %Y")}</span></div>'
-            f'<p>{esc(first_para)}</p>'
-            f'<p class="brief-links"><a href="/recap/{today.isoformat()}.html">'
-            'Read the full brief &rarr;</a>'
+            '<section class="brief" data-brief>'
+            '<div class="brief-head">'
+            '<span class="brief-mark" aria-hidden="true">&#9998;</span>'
+            '<h2>Today&rsquo;s Brief</h2>'
+            f'<span class="brief-date">{today.strftime("%A %d %B %Y")}</span>'
+            '<button class="tcollapse" id="brief-collapse" type="button" '
+            'aria-expanded="true" aria-label="Collapse brief">&#9650;</button>'
+            '</div>'
+            f'<div class="brief-body" id="brief-body">{first}{more}'
+            f'<p class="brief-links">'
+            f'<a href="/recap/{today.isoformat()}.html">Open as a page &rarr;</a>'
             '<a href="/newsletter/">Get it by email &rarr;</a></p>'
-            '</section>')
+            '</div></section>')
 
     home_body = (
         '<div class="page-head">'
-        f'<h1>{esc(cfg["site_name"])} — {esc(cfg.get("tagline", "financial news"))}</h1>'
+        f'<h1>{esc(cfg["site_name"])} - {esc(cfg.get("tagline", "financial news"))}</h1>'
         '<p class="standfirst">Every desk on one page, newest first. '
         'Headlines link straight to the publisher.</p>'
         '</div>'
-        + brief_html
         + '<section class="foryou" id="foryou" hidden></section>'
         + trending_section(cfg, wire)
+        + brief_html
         + filter_bar(cfg, present)
         + '<p class="empty" id="f-empty" hidden>Nothing matches those filters.</p>'
         + f'<div class="grid">{"".join(cards)}</div>'
     )
     write(out / "index.html", shell(
         cfg,
-        title=f"{cfg['site_name']} — {cfg.get('tagline', 'Global Financial News Feed')}",
+        title=f"{cfg['site_name']} - {cfg.get('tagline', 'Global Financial News Feed')}",
         description=("Financial and world news from every major desk on one page: "
                      "US, UK, China, France, Switzerland and the Middle East."),
         canonical=f"{base}/", body=home_body, current="/",
@@ -1393,12 +1454,12 @@ self.addEventListener('fetch', function (e) {
                 'placeholder="you@example.com">'
                 '<button class="nl-btn" type="submit">Subscribe free</button></form>'
                 '<p class="intro"><p>Sending starts once the list provider is '
-                'connected &mdash; set <code>newsletter_signup_url</code> in '
+                'connected - set <code>newsletter_signup_url</code> in '
                 'config.json. Addresses entered now are kept in this browser '
                 'only.</p></p>')
     urls.append((simple_page(
         cfg, mkt, base, out, path="/newsletter/", current="/newsletter/",
-        title=f"The Morning Brief — {cfg['site_name']}",
+        title=f"The Morning Brief - {cfg['site_name']}",
         heading="The Morning Brief",
         description=("The trading day in one written paragraph, in your inbox "
                      "before the open. Free."),
@@ -1406,7 +1467,7 @@ self.addEventListener('fetch', function (e) {
             '<div class="note"><p><strong>One paragraph. Every trading day. '
             'Before the open.</strong></p>'
             '<p>What actually moved, why the desks disagreed about it, and the '
-            'one number to watch &mdash; written by a person, not scraped. The '
+            'one number to watch - written by a person, not scraped. The '
             'same brief that appears on the front page, delivered.</p></div>'
             + form +
             '<h2>What you get</h2>'
@@ -1415,23 +1476,46 @@ self.addEventListener('fetch', function (e) {
             '<a href="/events/">economic calendar</a>. Nothing else. '
             'Unsubscribe any time.</p>')), now))
 
+    contact_action = cfg.get("contact_form_url", "")
+    contact_email = cfg.get("contact_email", "hello@newsnownext.org")
+    form_attrs = (f'method="post" action="{esc(contact_action)}"'
+                  if contact_action else 'data-contact-form')
     urls.append((simple_page(
         cfg, mkt, base, out, path="/contact/", current="/contact/",
-        title=f"Contact — {cfg['site_name']}", heading="Contact",
-        description="Get in touch about the feed, a source, or advertising.",
+        title=f"Contact - {cfg['site_name']}", heading="Contact",
+        description="Suggest a source, report a problem, or talk to us about advertising.",
         body_html=(
-            '<div class="note"><p>Suggest a source, report a broken feed, or ask '
-            'about advertising and partnerships.</p>'
-            '<p><strong>Email</strong> '
-            '<a href="mailto:hello@newsnownext.org">hello@newsnownext.org</a></p></div>'
-            '<h2>Adding a source</h2>'
-            '<p>Tell us the outlet and, if you have it, the RSS URL. We link out to '
-            'publishers and never reproduce article text, so most desks are happy to '
-            'be included.</p>'
-            '<h2>Corrections</h2>'
-            '<p>Headlines belong to the publishers that wrote them. If a headline is '
-            'wrong, it is fastest to contact the source directly &mdash; but tell us '
-            'too and we will drop it from the wire.</p>')), now))
+            '<div class="contact-grid">'
+            '<div class="ccard"><span class="ccard-ico">&#9993;</span>'
+            '<h2>Say hello</h2><p>Questions, corrections, anything else.</p>'
+            f'<a href="mailto:{esc(contact_email)}">{esc(contact_email)}</a></div>'
+            '<div class="ccard"><span class="ccard-ico">&#128240;</span>'
+            '<h2>Suggest a source</h2><p>Tell us the outlet and, if you have it, '
+            'the RSS URL. We link out and never reproduce article text, so most '
+            'desks are happy to be included.</p></div>'
+            '<div class="ccard"><span class="ccard-ico">&#128188;</span>'
+            '<h2>Advertising</h2><p>One banner slot and a daily newsletter. '
+            'Finance audience, no tracking, direct deals only.</p></div>'
+            '</div>'
+            '<h2 class="contact-form-h">Write to us</h2>'
+            f'<form class="cform" {form_attrs}>'
+            '<div class="cform-row">'
+            '<label>Name<input name="name" type="text" required '
+            'autocomplete="name"></label>'
+            '<label>Email<input name="email" type="email" required '
+            'autocomplete="email"></label></div>'
+            '<label>Topic<select name="topic">'
+            '<option>General</option><option>Suggest a source</option>'
+            '<option>Correction</option><option>Advertising</option>'
+            '</select></label>'
+            '<label>Message<textarea name="message" rows="5" required>'
+            '</textarea></label>'
+            '<button class="nl-btn" type="submit">Send message</button>'
+            + ('' if contact_action else
+               '<p class="intro"><p>Sending opens your email app until a form '
+               'endpoint is connected (set <code>contact_form_url</code> in '
+               'config.json).</p></p>')
+            + '</form>')), now))
 
     prefs_meta = json.dumps({
         "regions": [{"id": r["id"], "title": r["title"]} for r in cfg["regions"]],
@@ -1440,7 +1524,7 @@ self.addEventListener('fetch', function (e) {
     })
     urls.append((simple_page(
         cfg, mkt, base, out, path="/preferences/", current="/preferences/",
-        title=f"News preferences — {cfg['site_name']}", heading="Preferences",
+        title=f"News preferences - {cfg['site_name']}", heading="Preferences",
         description="Choose which regions and sources appear on your feed.",
         body_html=(
             '<p>These settings live in this browser only. Nothing is uploaded and '
@@ -1452,7 +1536,7 @@ self.addEventListener('fetch', function (e) {
 
     urls.append((simple_page(
         cfg, mkt, base, out, path="/read-later/", current="/read-later/",
-        title=f"Read later — {cfg['site_name']}", heading="Read Later",
+        title=f"Read later - {cfg['site_name']}", heading="Read Later",
         description="Headlines you saved to come back to.", index=False,
         body_html=(
             '<div id="later-app" data-later></div>'
@@ -1460,7 +1544,7 @@ self.addEventListener('fetch', function (e) {
 
     urls.append((simple_page(
         cfg, mkt, base, out, path="/portfolio/", current="/portfolio/",
-        title=f"Portfolio — {cfg['site_name']}", heading="Portfolio",
+        title=f"Portfolio - {cfg['site_name']}", heading="Portfolio",
         description="Track your holdings against the wire.", index=False,
         body_html=(
             '<div class="note"><p><strong>Coming soon.</strong> Portfolio tracking '
@@ -1482,7 +1566,7 @@ self.addEventListener('fetch', function (e) {
         canonical = f"{base}/topics/{topic['slug']}.html"
         write(out / "topics" / f"{topic['slug']}.html", shell(
             cfg,
-            title=f"{topic['title']} news — {cfg['site_name']}",
+            title=f"{topic['title']} news - {cfg['site_name']}",
             description=topic["description"], canonical=canonical,
             body=('<div class="prose"><div class="page-head">'
                   f'<h1>{esc(topic["title"])}</h1>'
@@ -1499,7 +1583,7 @@ self.addEventListener('fetch', function (e) {
         for t in cfg["topics"]
     )
     write(out / "topics" / "index.html", shell(
-        cfg, title=f"Topics — {cfg['site_name']}",
+        cfg, title=f"Topics - {cfg['site_name']}",
         description="Financial news by topic: oil, crypto, rates, equities, China and tech.",
         canonical=f"{base}/topics/", current="/topics/", ticker=ticker_strip(mkt),
         body=('<div class="prose"><div class="page-head"><h1>Topics</h1>'
@@ -1530,7 +1614,7 @@ self.addEventListener('fetch', function (e) {
         "url": canonical,
     })
     write(out / "recap" / f"{today.isoformat()}.html", shell(
-        cfg, title=f"Market recap, {pretty} — {cfg['site_name']}",
+        cfg, title=f"Market recap, {pretty} - {cfg['site_name']}",
         description=(synopsis[:155] if synopsis
                      else f"Every headline that crossed the wire on {pretty}."),
         canonical=canonical, ticker=ticker_strip(mkt), current="/recap/", noindex=not synopsis,
@@ -1551,7 +1635,7 @@ self.addEventListener('fetch', function (e) {
         f'{esc(datetime.fromisoformat(p.stem).strftime("%d %B %Y"))}</a></h2></li>'
         for p in archive)
     write(out / "recap" / "index.html", shell(
-        cfg, title=f"Daily market recaps — {cfg['site_name']}",
+        cfg, title=f"Daily market recaps - {cfg['site_name']}",
         description="An archive of daily financial market recaps.",
         canonical=f"{base}/recap/", ticker=ticker_strip(mkt), current="/recap/",
         body=('<div class="prose"><div class="page-head"><h1>Daily recaps</h1>'
@@ -1571,7 +1655,7 @@ self.addEventListener('fetch', function (e) {
 
     now = datetime.now(timezone.utc)
     rss = ["<?xml version='1.0' encoding='UTF-8'?>", "<rss version='2.0'><channel>",
-           f"<title>{esc(cfg['site_name'])} — daily market recap</title>",
+           f"<title>{esc(cfg['site_name'])} - daily market recap</title>",
            f"<link>{esc(base)}/recap/</link>",
            "<description>A short written summary of each trading day.</description>",
            f"<lastBuildDate>{format_datetime(now)}</lastBuildDate>"]
@@ -1585,7 +1669,7 @@ self.addEventListener('fetch', function (e) {
     write(out / "feed.xml", "\n".join(rss))
 
     write(out / "404.html", shell(
-        cfg, title=f"Page not found — {cfg['site_name']}",
+        cfg, title=f"Page not found - {cfg['site_name']}",
         description="That page does not exist.",
         canonical=f"{base}/404.html", noindex=True, ticker=ticker_strip(mkt),
         body=('<div class="prose"><div class="page-head">'
@@ -1616,7 +1700,7 @@ def main():
     if args.no_fetch:
         cache_file = cache_path(cfg)
         if not cache_file.exists():
-            sys.exit("No cache yet — run once without --no-fetch.")
+            sys.exit("No cache yet - run once without --no-fetch.")
         raw = json.loads(cache_file.read_text(encoding="utf-8"))
         print(f"Using cached pull: {len(raw)} items")
     else:
@@ -1642,8 +1726,8 @@ def main():
     print(f"\nDone. {shown} headlines on the home page, "
           f"{count} indexable URL(s) in {out}")
     if not has_syn:
-        print(f"Today's recap is noindex — write synopsis/{day}.txt "
-              f"(200–300 words) and rerun to publish it.")
+        print(f"Today's recap is noindex - write synopsis/{day}.txt "
+              f"(200-300 words) and rerun to publish it.")
     missing = [t["slug"] for t in cfg["topics"]
                if not (HERE / "notes" / f"{t['slug']}.txt").exists()]
     if missing:

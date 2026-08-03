@@ -6,7 +6,7 @@
   "window_hours": 72,
   "max_per_source": 12,
   "max_per_topic": 60,
-  "_regions_note": "Mirrors the region/source layout of the live site. 'Markets' is the one addition — the three finance desks that have no home in the country cards. Delete that block to match the live site exactly.",
+  "_regions_note": "Mirrors the region/source layout of the live site. 'Markets' is the one addition - the three finance desks that have no home in the country cards. Delete that block to match the live site exactly.",
   "regions": [
     {
       "id": "markets",

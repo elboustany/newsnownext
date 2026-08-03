@@ -5,8 +5,8 @@ in the same visual language. Client work (a friend of the owner); it will be
 deployed somewhere other than the current Replit host.
 
 ```
-generator/    Python static site builder — the site
-extension/    Chrome MV3 new-tab extension — same look, same sources
+generator/    Python static site builder - the site
+extension/    Chrome MV3 new-tab extension - same look, same sources
 launch/       Copy for every launch channel
 dev/          Preview server + the two file generators (never shipped)
 dist/         Store upload zips (generated)
@@ -38,14 +38,14 @@ python3 dev/gen-feeds.py --check && python3 dev/gen-css.py --check
 cd generator && python3 build.py --config config.test.json
 ```
 
-The self-test must exit 0 with `oil` indexable and `equities` noindex — that
+The self-test must exit 0 with `oil` indexable and `equities` noindex - that
 asserts the thin-content guard still works.
 
 ## Rules that are load-bearing
 
 **Match the existing design exactly.** The palette, type, grid and card
 structure were sampled off the running site. The client's first reaction to a
-redesign was that it was too different — visual invention is not wanted here.
+redesign was that it was too different - visual invention is not wanted here.
 All tokens live in `generator/theme.py`; nothing else defines a colour.
 
 **No dark mode.** The live site is light-only. A page that flips to dark on a
@@ -53,7 +53,7 @@ dark-mode machine is the exact mismatch this build exists to avoid.
 
 **Keep the regions.** The eight cards mirror the live site's country layout.
 `Markets` is the only addition and is one config block to remove. Do not merge
-regions into a single wire — the country structure is what the client asked to
+regions into a single wire - the country structure is what the client asked to
 keep.
 
 **New features go behind `More filters`.** Search, region and order are the
@@ -75,7 +75,7 @@ manifest's `host_permissions` are generated from `generator/config.json` and
 **`section[data-region]`, never bare `[data-region]`.** Each `<li>` also carries
 `data-region` so the region filter can test it directly. A bare selector treats
 every headline as a card, finds no `[data-item]` inside it, and hides the entire
-page — with the counter still reading correctly, because it is computed before
+page - with the counter still reading correctly, because it is computed before
 that loop. This bug has been introduced once already.
 
 **Bump `version` in `extension/manifest.json` on every store resubmission.**
@@ -106,11 +106,11 @@ Global Times' own RSS returns 200 but its item dates are months stale and its
 topic feeds 404, so it routes through Google News. Reuters, Bloomberg and
 SwissInfo likewise have no usable open RSS.
 
-Not built: the market ticker strip (needs a market-data feed — a separate
+Not built: the market ticker strip (needs a market-data feed - a separate
 decision), Trending Now, Books, Forex, Podcasts, Preferences, Read Later.
 
-All six topic notes are written (short by design — they exist for crawlers,
+All six topic notes are written (short by design - they exist for crawlers,
 rendered as small muted text so they never compete with the wire). Recap
 synopses remain unwritten, so recaps stay noindex until someone writes them.
 17 URLs in the sitemap. Source logos are fetched once at build time into
-static/logos/ and shipped as local assets — never hotlinked.
+static/logos/ and shipped as local assets - never hotlinked.

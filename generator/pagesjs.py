@@ -2,7 +2,7 @@
 Shared behaviour for the promo banner, podcasts, preferences and read-later.
 
 All progressive enhancement: the pages render fully server-side and these only
-add interaction. Preferences and Read Later are browser-local by design —
+add interaction. Preferences and Read Later are browser-local by design -
 there is no account and nothing is uploaded.
 """
 
@@ -263,6 +263,48 @@ PAGES_JS = r"""
     } catch (e) {}
   }
 
+  /* ── Today's Brief: collapse + read-more ────────────────────────── */
+  var brief = document.querySelector('[data-brief]');
+  if (brief) {
+    var bBody = document.getElementById('brief-body');
+    var bColl = document.getElementById('brief-collapse');
+    function setBrief(open) {
+      bBody.hidden = !open;
+      bColl.setAttribute('aria-expanded', String(open));
+      bColl.innerHTML = open ? '&#9650;' : '&#9660;';
+      try { localStorage.setItem('nnn:brief', open ? 'open' : 'shut'); } catch (e) {}
+    }
+    bColl.addEventListener('click', function () { setBrief(bBody.hidden); });
+    try {
+      if (localStorage.getItem('nnn:brief') === 'shut') setBrief(false);
+    } catch (e) {}
+    var bx = document.getElementById('brief-expand');
+    if (bx) {
+      bx.addEventListener('click', function () {
+        var more = document.getElementById('brief-more');
+        more.hidden = !more.hidden;
+        bx.setAttribute('aria-expanded', String(!more.hidden));
+        bx.innerHTML = more.hidden
+          ? 'Read the full brief &darr;' : 'Show less &uarr;';
+      });
+    }
+  }
+
+  /* ── Contact form without a backend: compose an email ────────────── */
+  var cform = document.querySelector('[data-contact-form]');
+  if (cform) {
+    cform.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var f = new FormData(cform);
+      var subj = '[' + (f.get('topic') || 'General') + '] Message from ' +
+                 (f.get('name') || 'the site');
+      var body = (f.get('message') || '') + '\n\n' +
+                 (f.get('name') || '') + '\n' + (f.get('email') || '');
+      location.href = 'mailto:hello@newsnownext.org?subject=' +
+        encodeURIComponent(subj) + '&body=' + encodeURIComponent(body);
+    });
+  }
+
   /* ── Read-later bookmarks ────────────────────────────────────────── */
   var bms = [].slice.call(document.querySelectorAll('[data-bm]'));
   if (bms.length) {
@@ -287,7 +329,8 @@ PAGES_JS = r"""
           b.setAttribute('aria-pressed', 'false');
         } else {
           list.unshift({ title: b.getAttribute('data-title'), link: link,
-                         source: b.getAttribute('data-bm-source') });
+                         source: b.getAttribute('data-bm-source'),
+                         savedAt: Date.now() });
           b.setAttribute('aria-pressed', 'true');
         }
         writeList(list);
@@ -364,10 +407,10 @@ PAGES_JS = r"""
     }
     prefs.innerHTML =
       chipRow('pref-region', 'Default region') +
-      chipRow('pref-pins', 'Favourite regions — shown first on the feed') +
-      chipRow('pref-sources', 'Sources — click to hide from your feed') +
+      chipRow('pref-pins', 'Favourite regions - shown first on the feed') +
+      chipRow('pref-sources', 'Sources - click to hide from your feed') +
       '<div class="frow" style="margin:14px 0 4px">' +
-      '<span class="flabel">Followed keywords — build your "For you" strip</span></div>' +
+      '<span class="flabel">Followed keywords - build your "For you" strip</span></div>' +
       '<form id="pref-kw-form" class="frow" style="gap:8px">' +
       '<input id="pref-kw" type="text" placeholder="e.g. yen, opec, nvidia" ' +
       'style="font:inherit;font-size:14px;padding:8px 12px;border:1px solid ' +
@@ -467,27 +510,131 @@ PAGES_JS = r"""
         localStorage.setItem('nnn:nl-intent', JSON.stringify(l));
       } catch (err) {}
       nlp.outerHTML = '<div class="note"><p><strong>Noted.</strong> Sending '
-        + 'starts once the list provider is connected — your address is kept '
+        + 'starts once the list provider is connected - your address is kept '
         + 'in this browser until then.</p></div>';
     });
   }
 
-  /* ── Read later ──────────────────────────────────────────────────── */
+  /* ── Read later: manage, filter, remove ──────────────────────────── */
   var later = document.querySelector('[data-later]');
   if (later) {
     var LKEY = 'nnn:later';
-    var saved2 = [];
-    try { saved2 = JSON.parse(localStorage.getItem(LKEY) || '[]'); } catch (e) {}
-    if (!saved2.length) {
-      later.innerHTML = '<p class="empty">Nothing saved yet. ' +
-        'Use the bookmark on any headline to keep it here.</p>';
-    } else {
-      later.innerHTML = '<ul class="items">' + saved2.map(function (it) {
-        return '<li><a href="' + escHtml(it.link) + '" rel="nofollow noopener" ' +
-          'target="_blank">' + escHtml(it.title) + '</a>' +
-          '<time>' + escHtml(it.source || '') + '</time></li>';
-      }).join('') + '</ul>';
+    function readL() {
+      try { return JSON.parse(localStorage.getItem(LKEY) || '[]'); }
+      catch (e) { return []; }
     }
+    function writeL(l) {
+      try { localStorage.setItem(LKEY, JSON.stringify(l)); } catch (e) {}
+    }
+    function dayLabel(ts) {
+      if (!ts) return 'Earlier';
+      var d = new Date(ts), now = new Date();
+      var one = 86400000;
+      var d0 = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      var n0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var diff = Math.round((n0 - d0) / one);
+      if (diff === 0) return 'Today';
+      if (diff === 1) return 'Yesterday';
+      return d.toLocaleDateString(undefined,
+        { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+    var rlq = '', rlsrc = '', rlorder = 'new';
+
+    function render() {
+      var list = readL();
+      var srcs = [];
+      list.forEach(function (it) {
+        if (it.source && srcs.indexOf(it.source) === -1) srcs.push(it.source);
+      });
+      srcs.sort();
+
+      var shownList = list.filter(function (it) {
+        if (rlsrc && it.source !== rlsrc) return false;
+        if (rlq && (it.title || '').toLowerCase().indexOf(rlq) === -1) return false;
+        return true;
+      });
+      shownList.sort(function (a, b) {
+        return rlorder === 'old' ? (a.savedAt || 0) - (b.savedAt || 0)
+                                 : (b.savedAt || 0) - (a.savedAt || 0);
+      });
+
+      var html = '';
+      if (!list.length) {
+        html = '<p class="empty">Nothing saved yet. Use the bookmark on any ' +
+               'headline to keep it here.</p>';
+      } else {
+        html = '<div class="filters" style="margin-top:14px">' +
+          '<div class="fsearch"><input id="rl-q" type="search" ' +
+          'placeholder="Search saved stories…" value="' + escHtml(rlq) + '"></div>' +
+          '<select id="rl-src" class="fsel"><option value="">All sources</option>' +
+          srcs.map(function (x) {
+            return '<option' + (x === rlsrc ? ' selected' : '') + '>' +
+                   escHtml(x) + '</option>';
+          }).join('') + '</select>' +
+          '<select id="rl-order" class="fsel">' +
+          '<option value="new"' + (rlorder === 'new' ? ' selected' : '') +
+          '>Newest saved</option>' +
+          '<option value="old"' + (rlorder === 'old' ? ' selected' : '') +
+          '>Oldest saved</option></select>' +
+          '<p class="fcount"><span>' +
+          (shownList.length === list.length
+            ? list.length + ' saved'
+            : shownList.length + ' of ' + list.length + ' saved') +
+          '</span><button class="linkbtn" id="rl-clear" type="button">' +
+          'Remove all</button></p></div>';
+
+        var day = null;
+        shownList.forEach(function (it) {
+          var lbl = dayLabel(it.savedAt);
+          if (lbl !== day) {
+            html += '<h2 class="rl-day">' + escHtml(lbl) + '</h2>';
+            day = lbl;
+          }
+          html += '<div class="rl-item">' +
+            '<a href="' + escHtml(it.link) + '" rel="nofollow noopener" ' +
+            'target="_blank">' + escHtml(it.title || it.link) + '</a>' +
+            '<span class="rl-src">' + escHtml(it.source || '') + '</span>' +
+            '<button class="rl-x" type="button" data-rm="' +
+            escHtml(it.link) + '" aria-label="Remove">&times;</button></div>';
+        });
+        if (!shownList.length) {
+          html += '<p class="empty">No saved stories match.</p>';
+        }
+      }
+      later.innerHTML = html;
+
+      var q2 = document.getElementById('rl-q');
+      if (q2) {
+        q2.addEventListener('input', function () {
+          rlq = q2.value.toLowerCase();
+          var pos = q2.selectionStart;
+          render();
+          var nq = document.getElementById('rl-q');
+          nq.focus(); nq.setSelectionRange(pos, pos);
+        });
+      }
+      var s2 = document.getElementById('rl-src');
+      if (s2) s2.addEventListener('change', function () {
+        rlsrc = s2.value; render();
+      });
+      var o2 = document.getElementById('rl-order');
+      if (o2) o2.addEventListener('change', function () {
+        rlorder = o2.value; render();
+      });
+      var c2 = document.getElementById('rl-clear');
+      if (c2) c2.addEventListener('click', function () {
+        if (confirm('Remove all saved stories?')) { writeL([]); render(); }
+      });
+      [].slice.call(later.querySelectorAll('[data-rm]')).forEach(function (b) {
+        b.addEventListener('click', function () {
+          writeL(readL().filter(function (it) {
+            return it.link !== b.getAttribute('data-rm');
+          }));
+          render();
+        });
+      });
+    }
+    render();
   }
 })();
 """

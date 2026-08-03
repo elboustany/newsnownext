@@ -1,4 +1,4 @@
-# NewsNowNext — launch kit
+# NewsNowNext - launch kit
 
 Everything below is drafted and ready to post. Nothing here works if it goes out
 from a brand-new account with no history, so read the "before you post anything"
@@ -15,7 +15,7 @@ Three things, in this order, or the rest is wasted:
    Chrome Web Store listing that accumulates its own search traffic.
 2. **Use accounts with history.** Reddit and Hacker News both bury links from
    accounts that have only ever promoted one thing. If the client has no
-   presence, use yours, and post as someone who built a tool — not as the brand.
+   presence, use yours, and post as someone who built a tool - not as the brand.
 3. **Get one topic page indexed.** Write the intro notes so at least two topic
    pages come out of the build indexable. There is no point sending traffic to a
    site with nothing crawlable on it.
@@ -25,7 +25,7 @@ Three things, in this order, or the rest is wasted:
 ## 1. Chrome Web Store listing
 
 **Name**
-NewsNowNext — Market Wire
+NewsNowNext - Market Wire
 
 **Short description** (132 char limit)
 Every new tab becomes a live financial wire: Reuters, Bloomberg, CNBC, MarketWatch and more, on one timeline.
@@ -57,12 +57,12 @@ Every new tab becomes a live financial wire: Reuters, Bloomberg, CNBC, MarketWat
 1. The full wire mid-session, London open rule visible
 2. Dark mode
 3. Source chips with two muted
-4. Close crop of a session rule — this is the thing nobody else has
+4. Close crop of a session rule - this is the thing nobody else has
 5. The wire on a narrow window
 
 **Privacy justification** (the review team will ask):
-- `storage` — caches headlines and remembers which sources the user muted, locally
-- host permissions — fetches the RSS feeds listed; no other requests are made
+- `storage` - caches headlines and remembers which sources the user muted, locally
+- host permissions - fetches the RSS feeds listed; no other requests are made
 - Single purpose: display a financial news feed on the new tab page
 
 ---
@@ -75,7 +75,7 @@ Every new tab becomes a live financial wire: Reuters, Bloomberg, CNBC, MarketWat
 **Body**
 
 > I built this because I had eight finance tabs open every morning and still
-> missed things — mostly because a headline at 06:00 and the same headline at
+> missed things - mostly because a headline at 06:00 and the same headline at
 > 14:30 mean completely different things, and no aggregator shows you which side
 > of the open a story landed on.
 >
@@ -85,15 +85,15 @@ Every new tab becomes a live financial wire: Reuters, Bloomberg, CNBC, MarketWat
 >
 > Sources are Reuters, Bloomberg, CNBC, MarketWatch, Yahoo Finance, FT,
 > Investing.com and ZeroHedge. Bloomberg and Reuters killed their public RSS, so
-> those two come through Google News site queries — if anyone knows a cleaner
+> those two come through Google News site queries - if anyone knows a cleaner
 > legitimate route, I'd genuinely like to hear it.
 >
-> No account, no tracking, no article text stored — headlines link out.
+> No account, no tracking, no article text stored - headlines link out.
 >
 > Chrome extension: [link]  ·  Web version: https://www.newsnownext.org
 
-**Timing:** Tuesday–Thursday, 07:00–09:00 US Eastern. Be at your desk for the
-next four hours — replying to the first ten comments is most of what determines
+**Timing:** Tuesday-Thursday, 07:00-09:00 US Eastern. Be at your desk for the
+next four hours - replying to the first ten comments is most of what determines
 whether it stays on the front page.
 
 **Have an answer ready for:** "isn't this just an RSS reader?" The honest answer
@@ -122,7 +122,7 @@ no tracking.
 > without noticing when it actually broke.
 >
 > The fix that worked was treating news as a timeline instead of a list. The
-> session rules across the feed are the whole idea — a headline before the London
+> session rules across the feed are the whole idea - a headline before the London
 > open and one after it are different pieces of information.
 >
 > It's free, there's no account, and headlines link straight to the publisher.
@@ -134,32 +134,32 @@ no tracking.
 
 ## 4. Reddit
 
-Check each subreddit's self-promotion rule the week you post — they change, and
+Check each subreddit's self-promotion rule the week you post - they change, and
 several finance subs ban tool links outright. These are written as contributions,
 not adverts, which is the only version that survives.
 
-**r/SideProject** — safest, permissive
+**r/SideProject** - safest, permissive
 > Title: I turned my new tab into a financial news timeline instead of a list
 >
 > Body: short build story, what was hard (Bloomberg and Reuters have no public
 > RSS any more), screenshot, link. Ask what sources people would add.
 
-**r/webdev or r/chrome_extensions** — lead with the technical problem
-> Title: MV3 extensions can fetch cross-origin RSS directly — no proxy needed
+**r/webdev or r/chrome_extensions** - lead with the technical problem
+> Title: MV3 extensions can fetch cross-origin RSS directly - no proxy needed
 >
 > Body: the actual finding, with the manifest snippet, then mention the extension
 > at the end as the thing you built while learning it. This one earns links.
 
-**r/algotrading, r/investing, r/stocks** — highest value, highest risk.
+**r/algotrading, r/investing, r/stocks** - highest value, highest risk.
 Do not link on the first post. Comment usefully for two weeks first, then post
 only if the sub explicitly allows tools. A ban here costs more than the traffic
 is worth.
 
 ---
 
-## 5. X / Twitter — 10 posts
+## 5. X / Twitter - 10 posts
 
-Post 1–3 in launch week, then roughly two a week.
+Post 1-3 in launch week, then roughly two a week.
 
 1. Eight finance tabs every morning. Now it's one, and it's the tab I was going to open anyway. [screenshot]
 2. A headline at 06:00 and the same headline at 14:30 are not the same information. So the feed is a timeline, with the session opens drawn across it.
@@ -173,7 +173,7 @@ Post 1–3 in launch week, then roughly two a week.
 10. Free, no account, no tracking, headlines link straight to the publisher. [link]
 
 **Reply targets:** finance and macro accounts posting "here's what I read every
-morning" threads. Don't drop the link cold — answer the question first, mention
+morning" threads. Don't drop the link cold - answer the question first, mention
 the tool only if it fits.
 
 ---
@@ -189,7 +189,7 @@ writers, finance Discords, trading Telegram groups.
 >
 > Hi [name],
 >
-> You mentioned [specific thing they wrote] — the bit about [detail] is exactly
+> You mentioned [specific thing they wrote] - the bit about [detail] is exactly
 > the problem I ended up building for.
 >
 > I made a Chrome extension that turns the new tab into a single wire of
@@ -203,7 +203,7 @@ writers, finance Discords, trading Telegram groups.
 >
 > [you]
 
-The last line is not modesty — it is the line that gets replies.
+The last line is not modesty - it is the line that gets replies.
 
 ---
 
@@ -212,13 +212,13 @@ The last line is not modesty — it is the line that gets replies.
 | Week | Do this |
 |---|---|
 | 0 | Extension submitted for review. Two topic notes written. Screenshots made. |
-| 1 | Store approval → Show HN Tuesday, r/SideProject Thursday. Post X 1–3. |
+| 1 | Store approval → Show HN Tuesday, r/SideProject Thursday. Post X 1-3. |
 | 2 | Product Hunt. r/webdev technical post. Begin newsletter outreach (10). |
 | 3 | Second outreach batch (10). Daily recap published every weekday from here. |
 | 4 | Review search console. Write notes for the topics actually getting impressions. |
-| 5–12 | Two X posts a week, one recap a day, one outreach batch a fortnight. Report monthly. |
+| 5-12 | Two X posts a week, one recap a day, one outreach batch a fortnight. Report monthly. |
 
-Weeks 5–12 are the part that decides the outcome and the part everyone skips.
+Weeks 5-12 are the part that decides the outcome and the part everyone skips.
 
 ---
 

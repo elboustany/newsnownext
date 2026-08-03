@@ -37,17 +37,17 @@ const TOPIC_RE = new Map(TOPICS.map(t => [
 
 // Strip the " - Publisher" suffix Google News appends to every headline.
 // For a site-restricted query the publisher is the source label, but a broad
-// query ("switzerland economy") returns whatever outlet ran it — so a Swiss
+// query ("switzerland economy") returns whatever outlet ran it - so a Swiss
 // rates story arrives as "… - Bitcoin World" and then matches the crypto
 // topic. Strip it for anything via Google News; leave native feeds alone,
 // where a trailing dash is usually part of the headline.
 function cleanTitle(title, feed) {
   const t = title.trim().replace(/\s+/g, " ");
   if (feed.via === "Google News") {
-    return t.replace(/\s+[-–—]\s+[^-–—]{2,40}$/, "").trim();
+    return t.replace(/\s+[---]\s+[^---]{2,40}$/, "").trim();
   }
   const head = escRe(feed.label.split(" ")[0]);
-  return t.replace(new RegExp("\\s+[-–—]\\s+" + head + "[^-–—]*$", "i"), "").trim();
+  return t.replace(new RegExp("\\s+[---]\\s+" + head + "[^---]*$", "i"), "").trim();
 }
 
 function parseFeed(xml, feed) {
@@ -175,7 +175,7 @@ function skeletons() {
   }
 }
 
-// 'Aug 3 12:23 PM' — the format the site uses.
+// 'Aug 3 12:23 PM' - the format the site uses.
 function stamp(ts) {
   const d = new Date(ts);
   const h = d.getHours() % 12 || 12;
@@ -309,7 +309,7 @@ function apply() {
     block.hidden = ![...block.querySelectorAll("[data-item]")].some(li => !li.hidden);
   }
 
-  // Must stay `section[data-region]` — each <li> also carries data-region, so a
+  // Must stay `section[data-region]` - each <li> also carries data-region, so a
   // bare [data-region] selector would treat every headline as a card and hide
   // the lot, since an <li> has no [data-item] descendants.
   const cards = [...el.grid.querySelectorAll("section[data-region]")];

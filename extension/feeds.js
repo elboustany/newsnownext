@@ -1,4 +1,4 @@
-// GENERATED FILE — do not edit by hand.
+// GENERATED FILE - do not edit by hand.
 // Source of truth: generator/config.json
 // Regenerate:      python3 dev/gen-feeds.py
 //

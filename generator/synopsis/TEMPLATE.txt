@@ -1,21 +1,21 @@
-Copy this file to YYYY-MM-DD.txt and write over it. 200–300 words. Until that
+Copy this file to YYYY-MM-DD.txt and write over it. 200-300 words. Until that
 file exists, the day's recap page is generated but carries noindex and stays out
-of the sitemap — that guard is deliberate, see README.
+of the sitemap - that guard is deliberate, see README.
 
 Blank line between paragraphs. Plain text, no HTML, no markdown.
 
 Structure that works:
 
-Paragraph one — what actually moved and by how much. A number in the first
+Paragraph one - what actually moved and by how much. A number in the first
 sentence. "Brent closed 5% lower at $61.40" beats "oil markets were volatile".
 
-Paragraph two — why, and what the wire got wrong. This is the paragraph that
+Paragraph two - why, and what the wire got wrong. This is the paragraph that
 makes the page worth indexing. If every source ran the same explanation, say
 which one broke it first and which ones followed. If the explanation changed
-between the London and New York opens, say that — it's the thing our timeline
+between the London and New York opens, say that - it's the thing our timeline
 shows and nobody else's recap does.
 
-Paragraph three — what to watch tomorrow. One or two specifics: a data release,
+Paragraph three - what to watch tomorrow. One or two specifics: a data release,
 an earnings print, a central bank speaker. Not "markets will remain volatile".
 
 Rules:

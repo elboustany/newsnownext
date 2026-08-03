@@ -1,13 +1,13 @@
 # NewsNowNext
 
 A rebuild of newsnownext.org as a static site, plus a Chrome new-tab extension
-that looks like the same product. Same layout, same palette, same region cards —
+that looks like the same product. Same layout, same palette, same region cards -
 with search, filters and sorting added, and everything server-rendered so search
 engines can actually read it.
 
 ```
-generator/           Python static site builder — the site
-extension/           Chrome MV3 new-tab extension — same look, same sources
+generator/           Python static site builder - the site
+extension/           Chrome MV3 new-tab extension - same look, same sources
 launch/              Store copy, Show HN, Product Hunt, Reddit, X posts, sequence
 dev/                 Local preview server and the two file generators
 dist/                Store upload zips (generated)
@@ -22,15 +22,15 @@ pack-extension.sh    Builds the store upload
 python3 dev/devserver.py
 ```
 
-- **Site** — <http://localhost:8787/site/>
-- **Extension** — <http://localhost:8787>
+- **Site** - <http://localhost:8787/site/>
+- **Extension** - <http://localhost:8787>
 
 The extension preview runs the real extension code as an ordinary web page
 (`chrome.storage` shimmed to localStorage, feeds proxied past CORS), so there is
 nothing to install and nothing to approve. A red bar marks it as a preview.
 
-To check it as a real extension — do this before shipping, since the harness
-fakes storage and the network — `chrome://extensions` → Developer mode → Load
+To check it as a real extension - do this before shipping, since the harness
+fakes storage and the network - `chrome://extensions` → Developer mode → Load
 unpacked → pick `extension/`.
 
 ---
@@ -64,7 +64,7 @@ avoids. `theme.py` says where to add one if it's ever wanted.
 ## The regions
 
 The eight cards mirror the live site: **US News, UK News, Blogs, China News,
-France News, Switzerland News, Middle East News**, plus **Markets** — the three
+France News, Switzerland News, Middle East News**, plus **Markets** - the three
 finance desks that had no home in the country cards. Delete that one block in
 `config.json` to match the live site exactly.
 
@@ -85,13 +85,13 @@ finance desks that had no home in the country cards. Delete that one block in
 
 Primary controls, always visible:
 
-- **Search** — live, `/` to focus, `esc` to clear, multiple words are AND,
+- **Search** - live, `/` to focus, `esc` to clear, multiple words are AND,
   `"quoted phrases"` supported, matches highlighted
-- **Region** — one click to a single country card
-- **Order** — newest or oldest first, within every source block
+- **Region** - one click to a single country card
+- **Order** - newest or oldest first, within every source block
 
 Behind **More filters**, closed by default: six topic filters, and a time window
-(6/12/24h). They were kept out of the main bar on purpose — the default view
+(6/12/24h). They were kept out of the main bar on purpose - the default view
 should look like the site people already know.
 
 Every setting persists. Preferences are validated on load, so an option removed
@@ -134,8 +134,8 @@ Then serve `generator/site/`. Point `base_url` in `config.json` at the real host
 A topic page with no original writing is published with `noindex`, and so is a
 recap with no synopsis. To make one indexable, write:
 
-- `generator/notes/<slug>.txt` — 100–200 words (`notes/oil.txt` is the example)
-- `generator/synopsis/YYYY-MM-DD.txt` — 200–300 words (`synopsis/TEMPLATE.txt`)
+- `generator/notes/<slug>.txt` - 100-200 words (`notes/oil.txt` is the example)
+- `generator/synopsis/YYYY-MM-DD.txt` - 200-300 words (`synopsis/TEMPLATE.txt`)
 
 The sitemap only ever contains pages that cleared that bar. It is deliberately
 annoying: submitting fifty pages of other people's headlines is how a domain
@@ -149,7 +149,7 @@ and the other five topics are not. That is the work the build cannot do for you.
 ## Generated files
 
 `extension/feeds.js`, `extension/newtab.css` and the manifest's
-`host_permissions` are generated — never edit them by hand:
+`host_permissions` are generated - never edit them by hand:
 
 ```bash
 python3 dev/gen-feeds.py     # feeds.js + host_permissions, from config.json
@@ -169,7 +169,7 @@ palette in `generator/theme.py`. Two hand-edited copies never stay in step.
 ```
 
 - Chrome Web Store developer account: one-off $5
-- Review usually takes 1–3 days; new-tab overrides get looked at more closely,
+- Review usually takes 1-3 days; new-tab overrides get looked at more closely,
   so the privacy justifications in `launch/launch-kit.md` matter
 - Bump `version` in `extension/manifest.json` on every resubmission
 
@@ -185,5 +185,5 @@ palette in `generator/theme.py`. Two hand-edited copies never stay in step.
 - **Check the terms on every source before this goes commercial.** Headline plus
   a link out is the defensible position; snippets and full text are not, and
   aggregators have been sued over exactly this.
-- **The build is the cheap half.** Weeks 5–12 of the launch sequence decide the
+- **The build is the cheap half.** Weeks 5-12 of the launch sequence decide the
   outcome.

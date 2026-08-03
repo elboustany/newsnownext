@@ -31,7 +31,7 @@ SITE = ROOT / "generator" / "site"
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8787
 UA = "Mozilla/5.0 (compatible; NewsNowNextDev/1.0)"
 
-# Only these hosts may be proxied — a dev box should not be an open relay.
+# Only these hosts may be proxied - a dev box should not be an open relay.
 ALLOWED = {
     "feeds.bbci.co.uk",
     "feeds.content.dowjones.io",
@@ -93,7 +93,7 @@ BANNER = b"""
   font:10px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;
   text-transform:uppercase;text-align:center;padding:7px;
   background:#B23A2E;color:#fff">
-  Dev preview &mdash; feeds proxied locally. The real extension fetches direct.
+  Dev preview - feeds proxied locally. The real extension fetches direct.
 </div>
 """
 
@@ -112,7 +112,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if parts.path == "/__feed":
             return self._proxy(urllib.parse.parse_qs(parts.query).get("url", [""])[0])
 
-        # Extension preview lives under /ext so the SITE owns the root — its
+        # Extension preview lives under /ext so the SITE owns the root - its
         # nav links are absolute (/books/, /forex/ …) and must resolve here
         # exactly as they will on the real domain.
         if parts.path in ("/ext", "/ext/", "/ext/newtab.html"):

@@ -1,5 +1,5 @@
 {
-  "_comment": "Captured from the live site's /books page. Amazon links are generated as https://amazon.com/s?k=<title> <author>&tag=<affiliate_tag> — keep the tag, it is the client's revenue.",
+  "_comment": "Captured from the live site's /books page. Amazon links are generated as https://amazon.com/s?k=<title> <author>&tag=<affiliate_tag> - keep the tag, it is the client's revenue.",
   "affiliate_tag": "newsnownext-20",
   "categories": [
     "Investing",

@@ -6,8 +6,8 @@ the server sent, so a crawler sees the full page and a reader with no
 JavaScript still gets the whole wire. This only hides and reorders rows that
 are already there.
 
-The primary controls are search, region and order. Everything else — topics,
-time window, session markers — sits inside a collapsed <details>, because the
+The primary controls are search, region and order. Everything else - topics,
+time window, session markers - sits inside a collapsed <details>, because the
 main view should look like the site people already know.
 """
 
@@ -28,7 +28,7 @@ FILTER_JS = r"""
 
   // Must stay `section[data-region]`. Each <li> also carries data-region so the
   // region filter can test it directly, and a bare [data-region] selector
-  // therefore matches every headline as if it were a card — which then hides
+  // therefore matches every headline as if it were a card - which then hides
   // all of them, because an <li> contains no [data-item] descendants.
   var cards = [].slice.call(document.querySelectorAll('section[data-region]'));
   // .src scope matters: bookmark buttons also carry data-* attributes, and
