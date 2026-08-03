@@ -328,6 +328,16 @@ def trending_section(cfg, items):
         return ""
     by_slug = {t["slug"]: t for t in cfg["topics"]}
 
+    # Hotness: desk count decayed by age. A 2-desk story from 20 minutes ago
+    # beats a 4-desk story from last night, which is what "trending" means.
+    now_dt = datetime.now(timezone.utc)
+
+    def hotness(c):
+        age_h = max(0.0, (now_dt - parse_date(c["rep"]["ts"])).total_seconds() / 3600)
+        return len(c["sources"]) / (1.0 + age_h / 6.0)
+
+    hot_ranked = sorted(clusters, key=hotness, reverse=True)
+
     def card(rank, c):
         it = c["rep"]
         n = len(c["sources"])
@@ -368,7 +378,7 @@ def trending_section(cfg, items):
         return (f'<div class="tgrid" data-trend-group="{gid}"'
                 f'{" hidden" if hidden else ""}>{cards}</div>')
 
-    groups = [group("all", clusters, False)]
+    groups = [group("all", hot_ranked, False)]
     chips = ['<button class="chip" type="button" data-trend-chip="all" '
              'aria-pressed="true">All</button>']
 
@@ -381,7 +391,7 @@ def trending_section(cfg, items):
                      'data-trend-chip="consensus" aria-pressed="false">'
                      'Consensus</button>')
     now_utc = datetime.now(timezone.utc)
-    exclusives = [c for c in clusters
+    exclusives = [c for c in hot_ranked
                   if len(c["sources"]) == 1
                   and (now_utc - parse_date(c["rep"]["ts"])).total_seconds() < 6 * 3600]
     if len(exclusives) >= 2:
@@ -393,7 +403,7 @@ def trending_section(cfg, items):
         topic = by_slug.get(slug)
         if not topic:
             continue
-        rows = [c for c in clusters if matches(c["rep"], topic)]
+        rows = [c for c in hot_ranked if matches(c["rep"], topic)]
         if len(rows) < 2:
             continue                        # a one-story tab is not a trend
         groups.append(group(slug, rows, True))
@@ -454,6 +464,36 @@ CLOCKS = [
     ("Tokyo", "Asia/Tokyo", 540, 900),
     ("Hong Kong", "Asia/Hong_Kong", 570, 960),
 ]
+
+def _svg(*paths):
+    inner = "".join(f'<path d="{d}"/>' for d in paths)
+    return ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
+            f'aria-hidden="true">{inner}</svg>')
+
+
+NAV_ICONS = {
+    "Forex": _svg("M8 3L4 7l4 4", "M4 7h16", "M16 21l4-4-4-4", "M20 17H4"),
+    "Economic Calendar": _svg("M8 2v4", "M16 2v4",
+                              "M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
+                              "M3 10h18"),
+    "Topics": _svg("M4 9h16", "M4 15h16", "M10 3L8 21", "M16 3l-2 18"),
+    "Daily recap": _svg("M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z",
+                        "M14 2v6h6", "M16 13H8", "M16 17H8"),
+    "World News": _svg("M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z", "M2 12h20",
+                       "M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 "
+                       "15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"),
+    "Podcasts": _svg("M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z",
+                     "M19 10v2a7 7 0 0 1-14 0v-2", "M12 19v4", "M8 23h8"),
+    "Books": _svg("M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z",
+                  "M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"),
+    "Preferences": _svg("M4 21v-7", "M4 10V3", "M12 21v-9", "M12 8V3",
+                        "M20 21v-5", "M20 12V3", "M1 14h6", "M9 8h6", "M17 16h6"),
+    "Portfolio": _svg("M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16",
+                      "M2 9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"),
+    "Contact": _svg("M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
+                    "M22 6l-10 7L2 6"),
+}
 
 BOOKMARK_SVG = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
                 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
@@ -571,12 +611,14 @@ def ticker_strip(mkt):
                         else f"in {days} days")
                 cards.append(
                     f'<a class="quote evq" href="/events/" title="{esc(e["note"])}">'
-                    f'<span class="evq-date">{local.strftime("%b").upper()} '
-                    f'{local.day}</span>'
+                    f'<span class="evq-date">{local.strftime("%b").upper()}'
+                    f'<b>{local.day}</b></span>'
+                    f'<span class="evq-mid">'
                     f'<span class="evq-name">{esc(e["name"])}</span>'
-                    f'<span class="evq-when">{esc(when)}</span>'
+                    f'<span class="evq-when">{esc(when)} &middot; '
                     f'<span class="ev-badge {esc(e["impact"])}">'
-                    f'{"HIGH" if e["impact"] == "high" else "MED"}</span></a>')
+                    f'{"HIGH" if e["impact"] == "high" else "MED"}</span>'
+                    f'</span></span></a>')
             tabs.append(
                 '<button class="tab" type="button" role="tab" id="tab-events" '
                 'aria-controls="panel-events" aria-selected="false" '
@@ -595,9 +637,10 @@ def ticker_strip(mkt):
 def shell(cfg, *, title, description, canonical, body, noindex=False,
           current="/", extra_head="", body_attrs="", scripts="", ticker=""):
     def nav_link(href, label):
+        icon = BOOKMARK_SVG if label == "Read Later" else NAV_ICONS.get(label, "")
         return '<a href="{}"{}>{}{}</a>'.format(
             href, ' aria-current="page"' if href == current else "",
-            BOOKMARK_SVG if label == "Read Later" else "", esc(label))
+            icon, esc(label))
 
     parts = []
     for kind, label, target in NAV:
@@ -670,6 +713,11 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
 {ticker}
 <div class="wrap">
 {body}
+<button class="totop" id="totop" type="button" aria-label="Back to top" hidden>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
+</button>
 <button class="ai-fab" id="ai-fab" type="button" aria-expanded="false"
         aria-controls="ai-panel">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

@@ -14,3 +14,8 @@ dist/*.zip
 __pycache__/
 *.pyc
 generator/out/
+
+# Local Netlify folder
+.netlify
+generator/site-deploy/
+generator/config.deploy.json

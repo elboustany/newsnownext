@@ -275,9 +275,13 @@ PAGES_JS = r"""
       try { localStorage.setItem('nnn:brief', open ? 'open' : 'shut'); } catch (e) {}
     }
     bColl.addEventListener('click', function () { setBrief(bBody.hidden); });
-    try {
-      if (localStorage.getItem('nnn:brief') === 'shut') setBrief(false);
-    } catch (e) {}
+    // Collapsed by default; only readers who opened it stay opened.
+    var bSaved = null;
+    try { bSaved = localStorage.getItem('nnn:brief'); } catch (e) {}
+    setBrief(bSaved === 'open');
+    if (bSaved === null) {
+      try { localStorage.removeItem('nnn:brief'); } catch (e) {}
+    }
     var bx = document.getElementById('brief-expand');
     if (bx) {
       bx.addEventListener('click', function () {
@@ -288,6 +292,23 @@ PAGES_JS = r"""
           ? 'Read the full brief &darr;' : 'Show less &uarr;';
       });
     }
+  }
+
+  /* ── Back to top ─────────────────────────────────────────────────── */
+  var toTop = document.getElementById('totop');
+  if (toTop) {
+    var ticking = false;
+    window.addEventListener('scroll', function () {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        toTop.hidden = window.scrollY < 600;
+        ticking = false;
+      });
+    }, { passive: true });
+    toTop.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
   }
 
   /* ── Contact form without a backend: compose an email ────────────── */
