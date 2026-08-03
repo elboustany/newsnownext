@@ -381,6 +381,10 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
 <meta property="og:description" content="{esc(description)}">
 <meta property="og:url" content="{esc(canonical)}">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="{esc(cfg['site_name'])}">
+<meta property="og:image" content="{esc(cfg['base_url'].rstrip('/'))}/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{esc(cfg['base_url'].rstrip('/'))}/assets/og.png">
 <link rel="alternate" type="application/rss+xml" title="{esc(cfg['site_name'])} recaps" href="/feed.xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -403,6 +407,31 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
 {ticker}
 <div class="wrap">
 {body}
+<button class="ai-fab" id="ai-fab" type="button" aria-expanded="false"
+        aria-controls="ai-panel">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+  Ask AI about News
+</button>
+<div class="ai-panel" id="ai-panel" hidden>
+  <div class="ai-head"><strong>Ask AI about News</strong>
+    <button class="ai-x" id="ai-x" type="button" aria-label="Close">&times;</button></div>
+  <p class="ai-sub">Preview &mdash; answers search the live wire directly.</p>
+  <form id="ai-form">
+    <label class="sr-only" for="ai-q">Ask about the news</label>
+    <input id="ai-q" type="text" autocomplete="off"
+           placeholder="e.g. what&rsquo;s moving oil today?">
+  </form>
+  <div class="ai-sugg" id="ai-sugg">
+    <button class="chip" type="button" data-ai-q="oil">Oil</button>
+    <button class="chip" type="button" data-ai-q="fed rates">Fed &amp; rates</button>
+    <button class="chip" type="button" data-ai-q="china">China</button>
+    <button class="chip" type="button" data-ai-q="bitcoin">Crypto</button>
+    <button class="chip" type="button" data-ai-q="yen">Yen</button>
+  </div>
+</div>
 <footer class="foot">
   <p class="foot-tag">Never refresh, never miss &mdash; real-time news feed</p>
   <p class="foot-links"><a href="/topics/">Topics</a> &middot;
@@ -414,6 +443,7 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
      reproduced here.</p>
 </footer>
 </div>
+<script src="/assets/pages.js" defer></script>
 {scripts}
 </body>
 </html>
@@ -487,9 +517,13 @@ def region_card(region, buckets):
                 f'</li>'
             )
         via = f' <span class="via">via {esc(src["via"])}</span>' if src.get("via") else ""
+        logo = ""
+        if (HERE / "static" / "logos" / f"{src['id']}.png").exists():
+            logo = (f'<img class="srclogo" alt="" width="16" height="16" '
+                    f'loading="lazy" src="/assets/logos/{esc(src["id"])}.png">')
         blocks.append(
             f'<div class="src" data-source="{esc(src["id"])}">'
-            f'<h3>{esc(src["label"])}{via}</h3>'
+            f'<h3>{logo}{esc(src["label"])}{via}</h3>'
             f'<ul class="items">{"".join(lis)}</ul>'
             f'</div>'
         )
@@ -517,34 +551,35 @@ def forex_page(cfg, mkt, base, out):
         v = fx.get(pair)
         if not v:
             continue
-        dp = 4 if v["rate"] < 100 else 4
         cells = []
         for span in spans:
             ch = v["changes"].get(span)
             if ch is None:
                 cells.append('<td class="flat">n/a</td>')
             else:
-                cells.append(f'<td class="{dir_class(ch)}">{signed(ch, 2, "%")}</td>')
+                cells.append(f'<td><span class="pct {dir_class(ch)}">'
+                             f'{signed(ch, 2, "%")}</span></td>')
         rows.append(
-            f'<tr><td><span class="fx-pair">{esc(pair)}</span>'
-            f'<span class="fx-rate">{money(v["rate"], dp)}</span></td>'
+            f'<tr><td><div class="fx-pair">{esc(pair)}</div>'
+            f'<div class="fx-rate">{money(v["rate"], 4)}</div></td>'
             f'{"".join(cells)}</tr>')
 
-    asof = market.load_cache().get("fx_date")
-    note = (f'<p class="standfirst">European Central Bank reference rates'
-            f'{f", as of {esc(asof)}" if asof else ""}. '
-            f'ECB publishes once per business day, so moves are day-over-day '
-            f'rather than intraday.</p>')
-
+    asof = market.load_cache().get("fx_date") or ""
     body = (
         '<div class="page-head"><h1>Forex</h1>'
         '<p class="standfirst">Major currency pairs and how far they have moved.</p></div>'
-        + ('<div class="tablewrap"><table class="fx"><thead><tr><th>Pair</th>'
-           f'{heads}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>' + note
+        + (('<section class="card fxcard">'
+            '<div class="card-head"><h2>Major Pairs</h2>'
+            f'<span class="card-count">ECB reference rates'
+            f'{f", as of {esc(asof)}" if asof else ""}</span></div>'
+            '<div class="tablewrap"><table class="fx"><thead><tr><th>Pair</th>'
+            f'{heads}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
+            '<p class="fx-note">The ECB publishes one reference rate per business '
+            'day, so moves are day-over-day rather than intraday.</p>'
+            '</section>')
            if rows else
            '<p class="empty">Rates are temporarily unavailable. '
-           'The next build will restore them.</p>')
-    )
+           'The next build will restore them.</p>'))
     write(out / "forex" / "index.html", shell(
         cfg, title=f"Forex — major currency pairs — {cfg['site_name']}",
         description=("Live major forex pairs with daily, weekly, monthly, "
@@ -567,18 +602,29 @@ def books_page(cfg, mkt, base, out):
         f'aria-pressed="false">{esc(c)}</button>'
         for c in data["categories"])
 
+    # One gradient per category, so the shelf reads as organised colour.
+    HUES = {c: h for c, h in zip(data["categories"],
+            [214, 160, 262, 20, 340, 190, 30, 280, 120, 0])}
+
     cards = []
     for title, author, year, cat in books:
         q = urllib.parse.quote(f"{title} {author}")
         href = f"https://amazon.com/s?k={q}&tag={tag}"
+        h = HUES.get(cat, 214)
+        initial = re.sub(r"^(The|A|An)\s+", "", title)[:1].upper()
+        cover = (f'<span class="bcover" aria-hidden="true" '
+                 f'style="background:linear-gradient(160deg,'
+                 f'hsl({h},65%,46%),hsl({(h + 40) % 360},60%,32%))">'
+                 f'{esc(initial)}</span>')
         cards.append(
             f'<article class="book" data-book data-cat="{esc(cat)}" '
             f'data-year="{year}" data-title="{esc(title.lower())}">'
+            f'{cover}<div class="binfo">'
             f'<span class="book-cat">{esc(cat)}</span>'
             f'<h3>{esc(title)}</h3>'
             f'<p class="byline">{esc(author)} &middot; {year}</p>'
             f'<a class="buy" href="{esc(href)}" rel="nofollow sponsored noopener" '
-            f'target="_blank">Buy on Amazon &rarr;</a></article>')
+            f'target="_blank">Buy on Amazon &rarr;</a></div></article>')
 
     ld = json.dumps({
         "@context": "https://schema.org", "@type": "ItemList",
@@ -621,8 +667,7 @@ def books_page(cfg, mkt, base, out):
         ticker=ticker_strip(mkt),
         extra_head=(f'<script type="application/ld+json">{ld}</script>'
                     + breadcrumbs(base, [("Books", "/books/")])),
-        scripts=('<script src="/assets/books.js" defer></script>'
-                 '<script src="/assets/pages.js" defer></script>'),
+        scripts='<script src="/assets/books.js" defer></script>',
     ))
     return f"{base}/books/"
 
@@ -685,7 +730,6 @@ def podcasts_page(cfg, mkt, base, out):
         ticker=ticker_strip(mkt),
         extra_head=(f'<script type="application/ld+json">{ld}</script>'
                     + breadcrumbs(base, [("Podcasts", "/podcasts/")])),
-        scripts='<script src="/assets/pages.js" defer></script>',
     ))
     return f"{base}/podcasts/"
 
@@ -712,6 +756,7 @@ def world_page(cfg, mkt, base, out, world_items):
         rows = world_items.get(slug, [])
         if not rows:
             continue
+        flag = "".join(chr(127397 + ord(c)) for c in cc)
         lis = []
         for it in rows[:8]:
             when = parse_date(it["ts"])
@@ -723,7 +768,7 @@ def world_page(cfg, mkt, base, out, world_items):
                 f'<time datetime="{when.isoformat()}">{esc(stamp(when))}</time></li>')
         cards.append(
             f'<section class="card" data-region="{esc(slug)}">'
-            f'<div class="card-head"><h2>{esc(name)}</h2>'
+            f'<div class="card-head"><h2><span class="flag">{flag}</span> {esc(name)}</h2>'
             f'<span class="card-count" data-card-count>{len(rows[:8])}</span></div>'
             f'<div class="src" data-source="{esc(slug)}">'
             f'<ul class="items">{"".join(lis)}</ul></div></section>')
@@ -755,7 +800,6 @@ def simple_page(cfg, mkt, base, out, *, path, title, heading, description,
         body=(f'<div class="prose"><div class="page-head"><h1>{esc(heading)}</h1>'
               f'<p class="standfirst">{esc(description)}</p></div>{body_html}</div>'),
         extra_head=breadcrumbs(base, [(heading, path)]),
-        scripts='<script src="/assets/pages.js" defer></script>',
     ))
     return f"{base}{path}"
 
@@ -807,6 +851,20 @@ def build(cfg, items, out: Path, mkt=None):
     urls = []
 
     write(out / "assets" / "site.css", CSS.strip())
+    og_src = HERE / "static" / "og.png"
+    if og_src.exists():
+        (out / "assets").mkdir(parents=True, exist_ok=True)
+        (out / "assets" / "og.png").write_bytes(og_src.read_bytes())
+        print("  wrote og.png")
+    logo_dir = HERE / "static" / "logos"
+    if logo_dir.is_dir():
+        dest = out / "assets" / "logos"
+        dest.mkdir(parents=True, exist_ok=True)
+        n = 0
+        for f in logo_dir.glob("*.png"):
+            (dest / f.name).write_bytes(f.read_bytes())
+            n += 1
+        print(f"  wrote {n} source logos")
     write(out / "assets" / "filter.js", FILTER_JS.strip())
     write(out / "assets" / "books.js", BOOKS_JS.strip())
     write(out / "assets" / "pages.js", PAGES_JS.strip())
@@ -824,6 +882,19 @@ def build(cfg, items, out: Path, mkt=None):
             total += n
 
     topic_json = json.dumps({t["slug"]: topic_pattern(t) for t in cfg["topics"]})
+    site_ld = json.dumps({
+        "@context": "https://schema.org",
+        "@graph": [
+            {"@type": "Organization", "name": cfg["site_name"], "url": f"{base}/",
+             "logo": f"{base}/assets/og.png"},
+            {"@type": "WebSite", "name": cfg["site_name"], "url": f"{base}/",
+             "potentialAction": {
+                 "@type": "SearchAction",
+                 "target": {"@type": "EntryPoint",
+                            "urlTemplate": f"{base}/?q={{search_term_string}}"},
+                 "query-input": "required name=search_term_string"}},
+        ],
+    })
     home_body = (
         '<div class="page-head">'
         f'<h1>{esc(cfg["site_name"])} — {esc(cfg.get("tagline", "financial news"))}</h1>'
@@ -841,9 +912,9 @@ def build(cfg, items, out: Path, mkt=None):
                      "US, UK, China, France, Switzerland and the Middle East."),
         canonical=f"{base}/", body=home_body, current="/",
         ticker=ticker_strip(mkt),
-        extra_head=f"<script>window.__TOPICS__={topic_json};</script>",
-        scripts=('<script src="/assets/filter.js" defer></script>'
-                 '<script src="/assets/pages.js" defer></script>'),
+        extra_head=(f"<script>window.__TOPICS__={topic_json};</script>"
+                    f'<script type="application/ld+json">{site_ld}</script>'),
+        scripts='<script src="/assets/filter.js" defer></script>',
     ))
     urls.append((f"{base}/", datetime.now(timezone.utc)))
 
@@ -919,7 +990,7 @@ def build(cfg, items, out: Path, mkt=None):
         if note:
             paras = "".join(f"<p>{esc(p.strip())}</p>"
                             for p in note.split("\n\n") if p.strip())
-            note_html = f'<div class="note">{paras}</div>'
+            note_html = f'<div class="intro">{paras}</div>'
 
         canonical = f"{base}/topics/{topic['slug']}.html"
         write(out / "topics" / f"{topic['slug']}.html", shell(
@@ -1025,6 +1096,18 @@ def build(cfg, items, out: Path, mkt=None):
                    f"<pubDate>{format_datetime(d)}</pubDate></item>")
     rss.append("</channel></rss>")
     write(out / "feed.xml", "\n".join(rss))
+
+    write(out / "404.html", shell(
+        cfg, title=f"Page not found — {cfg['site_name']}",
+        description="That page does not exist.",
+        canonical=f"{base}/404.html", noindex=True, ticker=ticker_strip(mkt),
+        body=('<div class="prose"><div class="page-head">'
+              '<h1>Page not found</h1>'
+              '<p class="standfirst">That link has moved or never existed.</p></div>'
+              '<div class="note"><p>Try the <a href="/">live feed</a>, '
+              '<a href="/topics/">topics</a>, or the '
+              '<a href="/recap/">daily recap</a>.</p></div></div>'),
+    ))
 
     write(out / "robots.txt", f"User-agent: *\nAllow: /\nSitemap: {base}/sitemap.xml\n")
 

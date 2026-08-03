@@ -156,6 +156,68 @@ a{color:inherit}
   .logo{font-size:20px}
 }
 
+/* ── Topic intros, Forex, Books ────────────────────────────────────── */
+
+/* Topic intros exist for crawlers; readers should barely notice them. */
+.intro{max-width:760px;margin:2px 0 6px}
+.intro p{margin:0;font-size:13.5px;line-height:1.55;color:var(--muted-foreground)}
+
+.fxcard{max-width:1000px}
+.tablewrap{overflow-x:auto}
+table.fx{border-collapse:collapse;width:100%;min-width:680px}
+table.fx th,table.fx td{padding:12px 16px;text-align:right;font-size:14px;white-space:nowrap}
+table.fx th{
+  background:var(--muted);font-size:11px;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--muted-foreground);border-bottom:1px solid var(--border);
+}
+table.fx th:first-child,table.fx td:first-child{text-align:left}
+table.fx tbody tr{border-bottom:1px solid var(--border)}
+table.fx tbody tr:last-child{border-bottom:0}
+table.fx tbody tr:hover{background:#f8fafc}
+table.fx td{font-variant-numeric:tabular-nums}
+.fx-pair{font-weight:700;font-size:14.5px}
+.fx-rate{color:var(--muted-foreground);font-size:12.5px;margin-top:1px}
+.pct{
+  display:inline-block;min-width:74px;text-align:right;
+  padding:3px 8px;border-radius:6px;font-weight:600;font-size:13px;
+}
+.pct.up{background:rgba(5,150,105,.09)}
+.pct.down{background:rgba(220,38,38,.08)}
+.fx-note{
+  margin:0;padding:12px 16px;border-top:1px solid var(--border);
+  font-size:12.5px;color:var(--muted-foreground);
+}
+
+.books{display:grid;gap:12px;grid-template-columns:1fr;margin-top:18px}
+@media(min-width:700px){.books{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1100px){.books{grid-template-columns:repeat(3,1fr)}}
+.book{
+  border:1px solid var(--border);border-radius:var(--radius);background:var(--card);
+  padding:14px 16px;display:flex;gap:14px;align-items:flex-start;
+}
+.bcover{
+  flex:none;width:58px;height:86px;border-radius:5px;position:relative;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:800;font-size:26px;font-family:Georgia,serif;
+  box-shadow:0 2px 5px rgba(16,24,40,.18);
+}
+.bcover::before{
+  content:"";position:absolute;left:7px;top:0;bottom:0;width:1px;
+  background:rgba(255,255,255,.35);
+}
+.binfo{display:flex;flex-direction:column;gap:5px;min-width:0}
+.book-cat{
+  font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--source);
+}
+.book h3{font-size:15px;font-weight:600;margin:0;line-height:1.3}
+.book .byline{font-size:13px;color:var(--muted-foreground);margin:0}
+.book a.buy{
+  font-size:13px;font-weight:500;color:var(--primary);text-decoration:none;margin-top:2px;
+}
+.book a.buy:hover{text-decoration:underline}
+.book mark{background:rgba(36,99,235,.16);color:inherit;border-radius:2px;padding:0 1px}
+
 /* ── Shell ─────────────────────────────────────────────────────────── */
 
 .wrap{max-width:1320px;margin:0 auto;padding:20px 20px 64px}
@@ -250,8 +312,10 @@ select.fsel:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px 
 .src:last-child{border-bottom:0}
 .src h3{
   font-size:13px;font-weight:500;color:var(--source);margin:0 0 6px;
-  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  display:flex;align-items:center;gap:7px;flex-wrap:wrap;
 }
+.srclogo{width:16px;height:16px;border-radius:4px;flex:none;object-fit:contain}
+.flag{font-size:15px;margin-right:2px}
 .src h3 .via{color:var(--muted-foreground);font-weight:400;font-size:11px}
 
 ul.items{list-style:none;margin:0;padding:0}
@@ -328,6 +392,37 @@ ol.wire mark{background:rgba(36,99,235,.16);color:inherit;border-radius:2px;padd
 .pod-sum{margin:0 0 12px;font-size:15px;line-height:1.6}
 .pod-link{font-size:14px;font-weight:500;color:var(--primary);text-decoration:none}
 .pod-link:hover{text-decoration:underline}
+
+/* ── Ask AI ────────────────────────────────────────────────────────── */
+
+.ai-fab{
+  position:fixed;right:22px;bottom:22px;z-index:60;
+  display:inline-flex;align-items:center;gap:9px;
+  font:inherit;font-size:14px;font-weight:600;color:#fff;
+  background:#dc2626;border:0;border-radius:999px;padding:13px 20px;cursor:pointer;
+  box-shadow:0 6px 16px rgba(220,38,38,.35);
+}
+.ai-fab:hover{background:#b91c1c}
+.ai-fab svg{width:17px;height:17px}
+.ai-panel{
+  position:fixed;right:22px;bottom:78px;z-index:60;width:min(330px,calc(100vw - 44px));
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  box-shadow:0 18px 40px rgba(16,24,40,.22);padding:14px 16px;
+}
+.ai-head{display:flex;align-items:center;justify-content:space-between;font-size:15px}
+.ai-x{
+  background:none;border:0;font-size:20px;line-height:1;cursor:pointer;
+  color:var(--muted-foreground);padding:2px 4px;
+}
+.ai-x:hover{color:var(--foreground)}
+.ai-sub{font-size:12px;color:var(--muted-foreground);margin:4px 0 10px}
+#ai-q{
+  width:100%;font:inherit;font-size:14px;color:var(--foreground);
+  background:var(--input);border:1px solid var(--border);border-radius:8px;
+  padding:9px 12px;
+}
+#ai-q:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(36,99,235,.13)}
+.ai-sugg{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 
 /* ── Foot ──────────────────────────────────────────────────────────── */
 

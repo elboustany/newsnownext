@@ -60,6 +60,46 @@ PAGES_JS = r"""
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  /* ── Ask AI ──────────────────────────────────────────────────────── */
+  var fab = document.getElementById('ai-fab');
+  var panel = document.getElementById('ai-panel');
+  if (fab && panel) {
+    var aiq = document.getElementById('ai-q');
+    function toggle(open) {
+      panel.hidden = !open;
+      fab.setAttribute('aria-expanded', String(open));
+      if (open) aiq.focus();
+    }
+    fab.addEventListener('click', function () { toggle(panel.hidden); });
+    document.getElementById('ai-x').addEventListener('click', function () { toggle(false); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !panel.hidden) toggle(false);
+    });
+
+    // On the feed, run the query through the live filter; elsewhere, carry it
+    // to the feed as /?q=…
+    function ask(q) {
+      q = q.trim();
+      if (!q) return;
+      var wire = document.querySelector('[data-filters] #f-q');
+      if (wire) {
+        wire.value = q;
+        wire.dispatchEvent(new Event('input'));
+        toggle(false);
+        wire.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      } else {
+        location.href = '/?q=' + encodeURIComponent(q);
+      }
+    }
+    document.getElementById('ai-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      ask(aiq.value);
+    });
+    [].slice.call(document.querySelectorAll('[data-ai-q]')).forEach(function (b) {
+      b.addEventListener('click', function () { ask(b.getAttribute('data-ai-q')); });
+    });
+  }
+
   /* ── Podcasts ────────────────────────────────────────────────────── */
   var pf = document.querySelector('[data-pod-filters]');
   if (pf) {

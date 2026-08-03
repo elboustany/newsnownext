@@ -15,17 +15,20 @@
         {
           "id": "marketwatch",
           "label": "MarketWatch",
-          "url": "https://feeds.content.dowjones.io/public/rss/mw_topstories"
+          "url": "https://feeds.content.dowjones.io/public/rss/mw_topstories",
+          "domain": "marketwatch.com"
         },
         {
           "id": "yahoo",
           "label": "Yahoo Finance",
-          "url": "https://finance.yahoo.com/news/rssindex"
+          "url": "https://finance.yahoo.com/news/rssindex",
+          "domain": "yahoo.com"
         },
         {
           "id": "investing",
           "label": "Investing.com",
-          "url": "https://www.investing.com/rss/news.rss"
+          "url": "https://www.investing.com/rss/news.rss",
+          "domain": "investing.com"
         }
       ]
     },
@@ -36,19 +39,22 @@
         {
           "id": "cnbc",
           "label": "CNBC",
-          "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114"
+          "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114",
+          "domain": "cnbc.com"
         },
         {
           "id": "reuters",
           "label": "Reuters",
           "via": "Google News",
-          "url": "https://news.google.com/rss/search?q=when:1d+site:reuters.com+(markets+OR+economy+OR+stocks)&hl=en-US&gl=US&ceid=US:en"
+          "url": "https://news.google.com/rss/search?q=when:1d+site:reuters.com+(markets+OR+economy+OR+stocks)&hl=en-US&gl=US&ceid=US:en",
+          "domain": "reuters.com"
         },
         {
           "id": "bloomberg",
           "label": "Bloomberg",
           "via": "Google News",
-          "url": "https://news.google.com/rss/search?q=when:1d+site:bloomberg.com+(markets+OR+economy+OR+stocks)&hl=en-US&gl=US&ceid=US:en"
+          "url": "https://news.google.com/rss/search?q=when:1d+site:bloomberg.com+(markets+OR+economy+OR+stocks)&hl=en-US&gl=US&ceid=US:en",
+          "domain": "bloomberg.com"
         }
       ]
     },
@@ -59,12 +65,14 @@
         {
           "id": "bbc",
           "label": "BBC",
-          "url": "https://feeds.bbci.co.uk/news/business/rss.xml"
+          "url": "https://feeds.bbci.co.uk/news/business/rss.xml",
+          "domain": "bbc.com"
         },
         {
           "id": "ft",
           "label": "Financial Times",
-          "url": "https://www.ft.com/rss/home/international"
+          "url": "https://www.ft.com/rss/home/international",
+          "domain": "ft.com"
         }
       ]
     },
@@ -75,23 +83,27 @@
         {
           "id": "seekingalpha",
           "label": "Seeking Alpha",
-          "url": "https://seekingalpha.com/feed.xml"
+          "url": "https://seekingalpha.com/feed.xml",
+          "domain": "seekingalpha.com"
         },
         {
           "id": "googletop",
           "label": "Google Top Stories",
           "via": "Google News",
-          "url": "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en"
+          "url": "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
+          "domain": "google.com"
         },
         {
           "id": "zerohedge",
           "label": "ZeroHedge",
-          "url": "https://feeds.feedburner.com/zerohedge/feed"
+          "url": "https://feeds.feedburner.com/zerohedge/feed",
+          "domain": "zerohedge.com"
         },
         {
           "id": "projectsyndicate",
           "label": "Project Syndicate",
-          "url": "https://www.project-syndicate.org/rss"
+          "url": "https://www.project-syndicate.org/rss",
+          "domain": "project-syndicate.org"
         }
       ]
     },
@@ -102,20 +114,23 @@
         {
           "id": "scmp",
           "label": "South China Morning Post",
-          "url": "https://www.scmp.com/rss/91/feed"
+          "url": "https://www.scmp.com/rss/91/feed",
+          "domain": "scmp.com"
         },
         {
           "id": "globaltimes",
           "label": "Global Times",
           "via": "Google News",
           "_note": "globaltimes.cn/rss/outbrain.xml returns 200 but its item dates are months stale, and the topic feeds 404. Google News is the only live route.",
-          "url": "https://news.google.com/rss/search?q=when:2d+site:globaltimes.cn&hl=en-US&gl=US&ceid=US:en"
+          "url": "https://news.google.com/rss/search?q=when:2d+site:globaltimes.cn&hl=en-US&gl=US&ceid=US:en",
+          "domain": "globaltimes.cn"
         },
         {
           "id": "chinagoogle",
           "label": "China News (Google)",
           "via": "Google News",
-          "url": "https://news.google.com/rss/search?q=when:1d+china+economy+OR+markets&hl=en-US&gl=US&ceid=US:en"
+          "url": "https://news.google.com/rss/search?q=when:1d+china+economy+OR+markets&hl=en-US&gl=US&ceid=US:en",
+          "domain": "google.com"
         }
       ]
     },
@@ -126,12 +141,14 @@
         {
           "id": "lemonde",
           "label": "Le Monde",
-          "url": "https://www.lemonde.fr/economie/rss_full.xml"
+          "url": "https://www.lemonde.fr/economie/rss_full.xml",
+          "domain": "lemonde.fr"
         },
         {
           "id": "france24",
           "label": "France 24",
-          "url": "https://www.france24.com/en/rss"
+          "url": "https://www.france24.com/en/rss",
+          "domain": "france24.com"
         }
       ]
     },
@@ -143,13 +160,15 @@
           "id": "swissinfo",
           "label": "SwissInfo",
           "via": "Google News",
-          "url": "https://news.google.com/rss/search?q=when:7d+site:swissinfo.ch&hl=en-US&gl=US&ceid=US:en"
+          "url": "https://news.google.com/rss/search?q=when:7d+site:swissinfo.ch&hl=en-US&gl=US&ceid=US:en",
+          "domain": "swissinfo.ch"
         },
         {
           "id": "swissgoogle",
           "label": "Switzerland News (Google)",
           "via": "Google News",
-          "url": "https://news.google.com/rss/search?q=when:2d+switzerland+economy+OR+SNB+OR+franc&hl=en-US&gl=US&ceid=US:en"
+          "url": "https://news.google.com/rss/search?q=when:2d+switzerland+economy+OR+SNB+OR+franc&hl=en-US&gl=US&ceid=US:en",
+          "domain": "google.com"
         }
       ]
     },
@@ -160,17 +179,20 @@
         {
           "id": "aljazeera",
           "label": "Al Jazeera",
-          "url": "https://www.aljazeera.com/xml/rss/all.xml"
+          "url": "https://www.aljazeera.com/xml/rss/all.xml",
+          "domain": "aljazeera.com"
         },
         {
           "id": "haaretz",
           "label": "Haaretz",
-          "url": "https://www.haaretz.com/cmlink/1.4605102"
+          "url": "https://www.haaretz.com/cmlink/1.4605102",
+          "domain": "haaretz.com"
         },
         {
           "id": "almonitor",
           "label": "Al Monitor",
-          "url": "https://www.al-monitor.com/rss"
+          "url": "https://www.al-monitor.com/rss",
+          "domain": "al-monitor.com"
         }
       ]
     }

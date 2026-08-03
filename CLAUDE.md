@@ -92,5 +92,8 @@ SwissInfo likewise have no usable open RSS.
 Not built: the market ticker strip (needs a market-data feed — a separate
 decision), Trending Now, Books, Forex, Podcasts, Preferences, Read Later.
 
-Not written: five of six topic notes, and every recap synopsis — so only the
-home page, topics index, recap index and `oil` are indexable.
+All six topic notes are written (short by design — they exist for crawlers,
+rendered as small muted text so they never compete with the wire). Recap
+synopses remain unwritten, so recaps stay noindex until someone writes them.
+17 URLs in the sitemap. Source logos are fetched once at build time into
+static/logos/ and shipped as local assets — never hotlinked.

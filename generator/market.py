@@ -186,11 +186,13 @@ def _fmp_quotes(symbols, key):
     return out
 
 
-def fetch_quotes(cache):
+def fetch_quotes(cache, offline=False):
     """Return {symbol: {price, change, pct, stale}} for every ticker symbol."""
     symbols = [s for _, _, rows in TABS for s, _, _ in rows]
     fresh, key = {}, os.environ.get("FMP_API_KEY")
 
+    if offline:
+        key = None                                  # cache only, below
     if key:
         try:
             fresh = _fmp_quotes(symbols, key)
@@ -198,14 +200,14 @@ def fetch_quotes(cache):
         except Exception as e:                      # noqa: BLE001
             print(f"  market: FMP failed ({e}); falling back to Yahoo")
 
-    if not fresh:
+    if not fresh and not offline:
         try:
             fresh = _cnbc_quotes()
             print(f"  market: {len(fresh)}/{len(symbols)} via CNBC")
         except Exception as e:                      # noqa: BLE001
             print(f"  market: CNBC failed ({e}); falling back to Yahoo")
 
-    if len(fresh) < len(symbols):
+    if len(fresh) < len(symbols) and not offline:
         ok = len(fresh)
         for sym in [s for s in symbols if s not in fresh]:
             try:
@@ -278,13 +280,15 @@ def _cross(rates, pair):
     return q / b
 
 
-def fetch_fx(cache):
+def fetch_fx(cache, offline=False):
     """Return {pair: {rate, changes:{span: pct}, stale}} for all 18 pairs."""
     today = date.today()
     ok, stale = 0, False
 
     # Anchor on the latest publication, not on today's calendar date.
     try:
+        if offline:
+            raise RuntimeError("offline")
         latest, latest_date = _ecb("latest")
         cache["fx"]["latest"] = latest
         cache["fx"]["latest_date"] = latest_date
@@ -298,6 +302,8 @@ def fetch_fx(cache):
 
     spans = {}                                      # label -> rates
     try:
+        if offline:
+            raise RuntimeError("offline")
         prev_rates, _ = _ecb_previous(latest_date)
         if prev_rates:
             spans["Daily"] = prev_rates
@@ -315,6 +321,8 @@ def fetch_fx(cache):
         day = (date(anchor.year, 1, 1).isoformat() if days is None
                else (anchor - timedelta(days=days)).isoformat())
         try:
+            if offline:
+                raise RuntimeError("offline")
             rates, _ = _ecb(day)
             spans[label] = rates
             cache["fx"][day] = rates
@@ -345,17 +353,11 @@ def fetch_fx(cache):
 
 def collect(offline=False):
     cache = load_cache()
+    quotes = fetch_quotes(cache, offline=offline)
+    fx = fetch_fx(cache, offline=offline)
     if offline:
-        print("  market: offline, using cache only")
-        quotes, fx = {}, {}
-        for sym, row in cache.get("quotes", {}).items():
-            change = row["price"] - row["prev"]
-            quotes[sym] = {"price": row["price"], "change": change,
-                           "pct": (change / row["prev"] * 100) if row["prev"] else 0,
-                           "stale": True}
+        print("  market: offline — quotes and fx rebuilt from cache")
     else:
-        quotes = fetch_quotes(cache)
-        fx = fetch_fx(cache)
         cache["fetched"] = datetime.now(timezone.utc).isoformat()
         save_cache(cache)
 

@@ -63,6 +63,13 @@ FILTER_JS = r"""
     state.sessions = saved.sessions === true;
   } catch (e) {}
 
+  // Deep link: /?q=yen pre-fills the search. Used by the assistant and by
+  // the WebSite SearchAction schema; never persisted.
+  try {
+    var qs = new URLSearchParams(location.search).get('q');
+    if (qs) state.q = qs;
+  } catch (e) {}
+
   function save() {
     try {
       localStorage.setItem(KEY, JSON.stringify({

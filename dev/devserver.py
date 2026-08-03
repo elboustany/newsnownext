@@ -145,6 +145,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if (path / "index.html").is_file():
                 path = path / "index.html"
             else:
+                nf = SITE / "404.html"
+                if nf.is_file():
+                    return self._send(nf.read_bytes(),
+                                      "text/html; charset=utf-8", 404)
                 return self._send(b"Not found", "text/plain", 404)
         types = {".html": "text/html; charset=utf-8", ".css": "text/css",
                  ".js": "application/javascript", ".json": "application/json",
