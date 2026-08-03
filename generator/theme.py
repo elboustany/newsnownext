@@ -75,17 +75,17 @@ a{color:inherit}
 
 /* ── Sticky chrome ─────────────────────────────────────────────────── */
 
-/* Nav and ticker travel together, so the menu and the tape are on every
-   page and stay put while the wire scrolls. */
+/* Only the nav is sticky. The quote cards are tall; pinning them too would
+   permanently eat a third of the viewport. */
 .chrome{position:sticky;top:0;z-index:50}
 
 .nav{background:var(--navbar);color:var(--navbar-fg)}
 .nav-in{
-  max-width:1320px;margin:0 auto;padding:10px 20px;
-  display:flex;align-items:center;gap:18px;
+  max-width:1320px;margin:0 auto;padding:16px 20px;
+  display:flex;align-items:center;gap:24px;
 }
 .logo{
-  font-weight:900;font-size:17px;line-height:.92;letter-spacing:-.02em;
+  font-weight:900;font-size:26px;line-height:.92;letter-spacing:-.02em;
   text-decoration:none;flex:none;
 }
 .logo span{display:block}
@@ -94,53 +94,66 @@ a{color:inherit}
 .logo .l3{color:var(--logo-next)}
 
 .nav-links{
-  display:flex;gap:2px;align-items:center;margin-left:auto;
+  display:flex;gap:4px;align-items:center;margin-left:auto;
   overflow-x:auto;scrollbar-width:none;
 }
 .nav-links::-webkit-scrollbar{display:none}
 .nav-links a{
-  color:#cbd5e1;text-decoration:none;font-size:14px;font-weight:500;
-  padding:7px 11px;border-radius:6px;white-space:nowrap;
+  color:#e5e7eb;text-decoration:none;font-size:15px;font-weight:500;
+  padding:8px 11px;border-radius:6px;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:6px;
 }
 .nav-links a:hover{color:#fff;background:rgba(255,255,255,.10)}
 .nav-links a[aria-current]{color:#fff;background:rgba(255,255,255,.16)}
+.nav-links svg{width:15px;height:15px;flex:none}
 
-/* ── Ticker ────────────────────────────────────────────────────────── */
+/* ── Ticker — the quote-card band under the nav ────────────────────── */
 
-.ticker{background:var(--card);border-bottom:1px solid var(--border)}
-.ticker-in{
-  max-width:1320px;margin:0 auto;padding:0 20px;
-  display:flex;align-items:stretch;gap:14px;
-}
-.tabs{display:flex;gap:2px;align-items:center;flex:none;padding:7px 0}
+.ticker{background:#eceff3;border-bottom:1px solid var(--border);padding:16px 0 20px}
+.ticker-in{max-width:1320px;margin:0 auto;padding:0 20px}
+.tabs{display:flex;justify-content:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .tab{
-  font:inherit;font-size:12px;font-weight:600;padding:5px 9px;border-radius:6px;
-  border:0;background:transparent;color:var(--muted-foreground);cursor:pointer;white-space:nowrap;
+  font:inherit;font-size:14px;font-weight:500;padding:7px 16px;border-radius:999px;
+  border:0;background:#fff;color:var(--foreground);cursor:pointer;white-space:nowrap;
+  box-shadow:0 1px 2px rgba(16,24,40,.06);
 }
-.tab:hover{background:var(--muted);color:var(--foreground)}
+.tab:hover{background:var(--muted)}
 .tab[aria-selected="true"]{background:#1f2937;color:#fff}
-.tab:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.tab:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 
 .quotes{
-  display:flex;gap:0;overflow-x:auto;scrollbar-width:none;flex:1;
-  border-left:1px solid var(--border);
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,210px));
+  justify-content:center;gap:14px;
 }
-.quotes::-webkit-scrollbar{display:none}
-.quote{
-  display:flex;align-items:baseline;gap:7px;padding:9px 14px;white-space:nowrap;
-  border-right:1px solid var(--border);
+.qcard{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;box-shadow:0 1px 2px rgba(16,24,40,.05);
 }
-.quote-name{font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--muted-foreground)}
-.quote-price{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
-.quote-chg{font-size:12px;font-weight:500;font-variant-numeric:tabular-nums}
-.quote.stale .quote-name::after{content:"·";margin-left:4px;color:#f59e0b}
+.qtop{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.qname{font-size:13px;font-weight:600;line-height:1.25}
+.qlive{
+  display:inline-flex;align-items:center;gap:5px;flex:none;
+  font-size:11px;color:var(--muted-foreground);padding-top:1px;
+}
+.qlive i{width:7px;height:7px;border-radius:50%;background:#10b981}
+.qlive.delayed i{background:#f59e0b}
+.qbadge{
+  display:inline-block;margin:7px 0 6px;font-size:11px;font-weight:700;color:#fff;
+  padding:2px 8px;border-radius:6px;letter-spacing:.02em;
+}
+.qprice{font-size:20px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.qchg{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:3px}
+.qtime{
+  font-size:12px;color:var(--muted-foreground);margin-top:5px;
+  display:flex;align-items:center;gap:5px;
+}
+.qtime::before{content:"";width:5px;height:5px;border-radius:50%;background:#93c5fd}
 .up{color:#059669}.down{color:#dc2626}.flat{color:var(--muted-foreground)}
-.quote-missing{font-size:12px;color:var(--muted-foreground)}
+.qmissing{font-size:13px;color:var(--muted-foreground);margin-top:8px}
 
-@media(max-width:900px){
-  .ticker-in{flex-direction:column;gap:0;padding:0 12px}
-  .tabs{overflow-x:auto;padding:6px 0}
-  .quotes{border-left:0;border-top:1px solid var(--border)}
+@media(max-width:640px){
+  .quotes{grid-template-columns:repeat(2,1fr)}
+  .logo{font-size:20px}
 }
 
 /* ── Shell ─────────────────────────────────────────────────────────── */
@@ -319,10 +332,13 @@ ol.wire mark{background:rgba(36,99,235,.16);color:inherit;border-radius:2px;padd
 /* ── Foot ──────────────────────────────────────────────────────────── */
 
 .foot{
-  margin-top:36px;padding-top:14px;border-top:1px solid var(--border);
-  font-size:13px;color:var(--muted-foreground);
+  margin-top:36px;padding-top:16px;border-top:1px solid var(--border);
+  font-size:13px;color:var(--muted-foreground);text-align:center;
 }
-.foot a{color:var(--primary)}
+.foot p{margin:0 0 6px}
+.foot a{color:var(--primary);text-decoration:none}
+.foot a:hover{text-decoration:underline}
+.foot-tag{font-weight:500;color:var(--foreground)}
 
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 """

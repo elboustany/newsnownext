@@ -112,23 +112,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if parts.path == "/__feed":
             return self._proxy(urllib.parse.parse_qs(parts.query).get("url", [""])[0])
 
-        if parts.path in ("/", "/index.html", "/newtab.html"):
+        # Extension preview lives under /ext so the SITE owns the root — its
+        # nav links are absolute (/books/, /forex/ …) and must resolve here
+        # exactly as they will on the real domain.
+        if parts.path in ("/ext", "/ext/", "/ext/newtab.html"):
             html = (EXT / "newtab.html").read_bytes()
             html = html.replace(
                 b'<script type="module"',
                 b'<script src="/__shim.js"></script>\n<script type="module"', 1)
             html = html.replace(b"</body>", BANNER + b"</body>", 1)
             return self._send(html, "text/html; charset=utf-8")
+        if parts.path.startswith("/ext/"):
+            return self._static(EXT, parts.path[len("/ext/"):])
 
-        if parts.path.startswith("/site/"):
-            return self._static(SITE, parts.path[len("/site/"):] or "index.html")
-
-        # Generated pages link to /assets/… because that is correct on the real
-        # domain. The extension has no assets/ directory, so map it to the site.
-        if parts.path.startswith("/assets/"):
-            return self._static(SITE, parts.path.lstrip("/"))
-
-        return self._static(EXT, parts.path.lstrip("/"))
+        # Everything else is the generated site, rooted like production.
+        rel = parts.path.lstrip("/") or "index.html"
+        return self._static(SITE, rel)
 
     # ── helpers ──────────────────────────────────────────────────────────
 
@@ -172,9 +171,8 @@ class Server(socketserver.ThreadingTCPServer):
 
 
 if __name__ == "__main__":
-    print(f"Extension preview  http://localhost:{PORT}")
-    print(f"Generated site     http://localhost:{PORT}/site/topics/oil.html"
-          if SITE.exists() else "Generated site     (run generator/build.py first)")
+    print(f"Site               http://localhost:{PORT}/   (all nav links work here)")
+    print(f"Extension preview  http://localhost:{PORT}/ext/")
     print("Ctrl-C to stop.\n")
     with Server(("127.0.0.1", PORT), Handler) as httpd:
         httpd.serve_forever()

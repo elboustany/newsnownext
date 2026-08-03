@@ -257,13 +257,16 @@ NAV = [
     ("/forex/", "Forex"),
     ("/world-news/", "World News"),
     ("/podcasts/", "Podcasts"),
-    ("/topics/", "Topics"),
-    ("/recap/", "Daily recap"),
     ("/contact/", "Contact"),
     ("/preferences/", "Preferences"),
     ("/read-later/", "Read Later"),
     ("/portfolio/", "Portfolio"),
 ]
+
+BOOKMARK_SVG = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+                'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
+                'aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10'
+                'a2 2 0 0 1 2 2z"/></svg>')
 
 PROMO = ("""<div class="promo" id="promo"><div class="promo-in">"""
          """<span class="tag">AD</span>"""
@@ -288,13 +291,31 @@ def dir_class(v):
 
 
 def ticker_strip(mkt):
-    """The quote tape under the nav, on every page.
+    """The quote-card band under the nav, matching the live site: centred
+    tabs, then four cards per tab with a coloured badge, LIVE dot, price,
+    signed change and the as-of time in US Eastern.
 
-    All four tabs are server-rendered and the buttons only toggle visibility,
-    so it works with JavaScript off and a crawler sees every number.
+    All four panels are server-rendered; the tabs only toggle visibility, so
+    it works with JavaScript off and a crawler sees every number.
     """
     if not mkt or not mkt.get("quotes"):
         return ""
+
+    # As-of time, shown as the live site shows it. Quotes are one build old
+    # at most, so this is the fetch time, not an exchange timestamp.
+    when = ""
+    try:
+        from zoneinfo import ZoneInfo
+        fetched = mkt.get("fetched")
+        if fetched:
+            et = datetime.fromisoformat(fetched).astimezone(ZoneInfo("America/New_York"))
+            hour = et.hour % 12 or 12
+            when = f"{hour}:{et.strftime('%M')} {'AM' if et.hour < 12 else 'PM'} EDT"
+    except Exception:                               # noqa: BLE001 - cosmetic only
+        when = ""
+
+    BADGE = ["#3b82f6", "#10b981", "#a855f7", "#f97316"]   # blue green purple orange
+
     tabs, panels = [], []
     for i, (tid, label, rows) in enumerate(mkt["tabs"]):
         first = i == 0
@@ -304,20 +325,30 @@ def ticker_strip(mkt):
             f'data-tab="{tid}">{esc(label)}</button>')
 
         cards = []
-        for sym, name, _code in rows:
+        for j, (sym, name, code) in enumerate(rows):
             q = mkt["quotes"].get(sym)
+            badge = (f'<span class="qbadge" style="background:{BADGE[j % 4]}">'
+                     f'{esc(code)}</span>')
             if not q:
-                cards.append(f'<div class="quote"><span class="quote-name">{esc(name)}</span>'
-                             f'<span class="quote-missing">n/a</span></div>')
+                cards.append(
+                    f'<div class="qcard"><div class="qtop">'
+                    f'<span class="qname">{esc(name)}</span></div>{badge}'
+                    f'<p class="qmissing">Unavailable</p></div>')
                 continue
             dp = 2 if abs(q["price"]) >= 10 else 4
+            cls = dir_class(q["change"])
+            arrow = "&#8599;" if q["change"] > 0 else "&#8600;" if q["change"] < 0 else ""
+            live = ('<span class="qlive delayed"><i></i>DELAYED</span>' if q["stale"]
+                    else '<span class="qlive"><i></i>LIVE</span>')
             cards.append(
-                f'<div class="quote{" stale" if q["stale"] else ""}" '
-                f'title="{esc(name)}{" (last known)" if q["stale"] else ""}">'
-                f'<span class="quote-name">{esc(name)}</span>'
-                f'<span class="quote-price">{money(q["price"], dp)}</span>'
-                f'<span class="quote-chg {dir_class(q["change"])}">'
-                f'{signed(q["pct"], 2, "%")}</span></div>')
+                f'<div class="qcard">'
+                f'<div class="qtop"><span class="qname">{esc(name)}</span>{live}</div>'
+                f'{badge}'
+                f'<div class="qprice">{money(q["price"], dp)}</div>'
+                f'<div class="qchg {cls}">{arrow} {signed(q["change"], dp)} '
+                f'({signed(q["pct"], 2, "%")})</div>'
+                + (f'<div class="qtime">{esc(when)}</div>' if when else "")
+                + '</div>')
 
         panels.append(
             f'<div class="quotes" role="tabpanel" id="panel-{tid}" '
@@ -331,8 +362,9 @@ def ticker_strip(mkt):
 def shell(cfg, *, title, description, canonical, body, noindex=False,
           current="/", extra_head="", body_attrs="", scripts="", ticker=""):
     links = "".join(
-        '<a href="{}"{}>{}</a>'.format(
-            href, ' aria-current="page"' if href == current else "", esc(label))
+        '<a href="{}"{}>{}{}</a>'.format(
+            href, ' aria-current="page"' if href == current else "",
+            BOOKMARK_SVG if label == "Read Later" else "", esc(label))
         for href, label in NAV
     )
     robots = '<meta name="robots" content="noindex,follow">' if noindex else ""
@@ -367,13 +399,19 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
     <div class="nav-links">{links}</div>
   </div>
 </nav>
-{ticker}
 </div>
+{ticker}
 <div class="wrap">
 {body}
 <footer class="foot">
-  Headlines link out to their publishers. {esc(cfg['site_name'])} does not host or
-  reproduce article text. &nbsp;·&nbsp; <a href="/feed.xml">RSS</a>
+  <p class="foot-tag">Never refresh, never miss &mdash; real-time news feed</p>
+  <p class="foot-links"><a href="/topics/">Topics</a> &middot;
+     <a href="/recap/">Daily recap</a> &middot;
+     <a href="/feed.xml">RSS</a> &middot;
+     <a href="/contact/">Contact</a></p>
+  <p>&copy; 2025 {esc(cfg['site_name'])}. All Rights Reserved.
+     Headlines link out to their publishers &mdash; article text is never
+     reproduced here.</p>
 </footer>
 </div>
 {scripts}
