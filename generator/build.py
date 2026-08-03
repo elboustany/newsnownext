@@ -604,21 +604,28 @@ def ticker_strip(mkt):
             if len(upcoming) == 4:
                 break
         if upcoming:
+            CATS = {"fed": "Fed", "inflation": "Inflation", "jobs": "Jobs",
+                    "growth": "Growth"}
             cards = []
             for local, e in upcoming:
                 days = (local.date() - today_d).days
-                when = ("Today" if days == 0 else "Tomorrow" if days == 1
-                        else f"in {days} days")
+                big = ("Today" if days == 0 else "Tomorrow" if days == 1
+                       else f"{days} days")
+                hour = local.hour % 12 or 12
+                at = (f'{local.strftime("%A")}, {hour}:{local.strftime("%M")} '
+                      f'{"AM" if local.hour < 12 else "PM"} ET')
                 cards.append(
-                    f'<a class="quote evq" href="/events/" title="{esc(e["note"])}">'
-                    f'<span class="evq-date">{local.strftime("%b").upper()}'
-                    f'<b>{local.day}</b></span>'
-                    f'<span class="evq-mid">'
-                    f'<span class="evq-name">{esc(e["name"])}</span>'
-                    f'<span class="evq-when">{esc(when)} &middot; '
+                    f'<a class="qcard evc" href="/events/" title="{esc(e["note"])}">'
+                    f'<div class="qtop"><span class="qname">{esc(e["name"])}</span>'
                     f'<span class="ev-badge {esc(e["impact"])}">'
-                    f'{"HIGH" if e["impact"] == "high" else "MED"}</span>'
-                    f'</span></span></a>')
+                    f'{"HIGH" if e["impact"] == "high" else "MED"}</span></div>'
+                    f'<span class="qbadge" style="background:#1f2937">'
+                    f'{local.strftime("%b").upper()} {local.day}</span>'
+                    f'<div class="qprice">{esc(big)}</div>'
+                    f'<div class="qchg flat">{esc(at)}</div>'
+                    f'<div class="qtime">{esc(CATS.get(e["category"], "Calendar"))}'
+                    f' &middot; Economic calendar</div>'
+                    f'</a>')
             tabs.append(
                 '<button class="tab" type="button" role="tab" id="tab-events" '
                 'aria-controls="panel-events" aria-selected="false" '
@@ -631,7 +638,7 @@ def ticker_strip(mkt):
 
     return (f'<div class="ticker"><div class="ticker-in">'
             f'<div class="tabs" role="tablist" data-ticker>{"".join(tabs)}</div>'
-            f'{"".join(panels)}</div></div>')
+            f'<div class="panels">{"".join(panels)}</div></div></div>')
 
 
 def shell(cfg, *, title, description, canonical, body, noindex=False,

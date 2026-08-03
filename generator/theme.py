@@ -211,16 +211,31 @@ a{color:inherit}
 .tab[aria-selected="true"]{background:#1f2937;color:#fff}
 .tab:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 
+/* Every panel occupies the same grid cell; hidden ones keep their layout
+   (visibility, not display), so the band is always exactly as tall as its
+   tallest tab and switching can never resize the section. */
+.panels{display:grid}
+.panels > .quotes{grid-area:1/1}
+.panels > .quotes[hidden]{
+  display:grid !important;visibility:hidden;pointer-events:none;
+}
 .quotes{
   display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,210px));
-  justify-content:center;gap:14px;
+  justify-content:center;gap:14px;grid-auto-rows:1fr;
 }
 .qcard{
   background:var(--card);border:1px solid var(--border);border-radius:10px;
   padding:12px 14px;box-shadow:0 1px 2px rgba(16,24,40,.05);
 }
-.qtop{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
-.qname{font-size:13px;font-weight:600;line-height:1.25}
+.qtop{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:8px;
+  min-height:20px;
+}
+.qname{
+  font-size:13px;font-weight:600;line-height:1.25;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;min-height:2.5em;
+}
 .qlive{
   display:inline-flex;align-items:center;gap:5px;flex:none;
   font-size:11px;color:var(--muted-foreground);padding-top:1px;
@@ -241,27 +256,13 @@ a{color:inherit}
 .up{color:#059669}.down{color:#dc2626}.flat{color:var(--muted-foreground)}
 .qmissing{font-size:13px;color:var(--muted-foreground);margin-top:8px}
 
-.evq{
-  display:flex;align-items:center;gap:11px;text-decoration:none;
-  color:var(--foreground);min-width:230px;max-width:300px;white-space:normal;
-}
-.evq:hover .evq-name{color:var(--primary)}
-.evq-date{
-  flex:none;display:flex;flex-direction:column;align-items:center;
-  min-width:44px;font-size:10px;font-weight:700;letter-spacing:.06em;
-  background:#1f2937;color:#fff;border-radius:8px;padding:5px 7px 6px;
-}
-.evq-date b{font-size:17px;font-weight:800;line-height:1.05}
-.evq-mid{display:flex;flex-direction:column;gap:3px;min-width:0}
-.evq-name{
-  font-size:13px;font-weight:600;line-height:1.3;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
-}
-.evq-when{
-  font-size:11.5px;font-weight:600;color:var(--muted-foreground);
-  display:flex;align-items:center;gap:6px;
-}
-.evq-when .ev-badge{font-size:9px;padding:1px 6px}
+/* Event cards are quote cards: same skeleton (qtop/qbadge/qprice/qchg/
+   qtime), so switching tabs cannot change the band's height. The qname on
+   every card reserves two lines for the same reason: event names wrap,
+   and the reservation keeps instrument cards and event cards identical. */
+.evc{text-decoration:none;color:inherit;display:block}
+.evc:hover .qname{color:var(--primary)}
+.evc .ev-badge{flex:none;font-size:9px;padding:2px 6px}
 
 @media(max-width:640px){
   .quotes{grid-template-columns:repeat(2,1fr)}
