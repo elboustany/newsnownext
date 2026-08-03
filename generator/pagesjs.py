@@ -100,6 +100,68 @@ PAGES_JS = r"""
     });
   }
 
+  /* ── Trending ────────────────────────────────────────────────────── */
+  var trend = document.querySelector('[data-trend]');
+  if (trend) {
+    var tChips = [].slice.call(trend.querySelectorAll('[data-trend-chip]'));
+    var tGroups = [].slice.call(trend.querySelectorAll('[data-trend-group]'));
+    tChips.forEach(function (c) {
+      c.addEventListener('click', function () {
+        var v = c.getAttribute('data-trend-chip');
+        tChips.forEach(function (o) {
+          o.setAttribute('aria-pressed', String(o === c));
+        });
+        tGroups.forEach(function (g) {
+          g.hidden = g.getAttribute('data-trend-group') !== v;
+        });
+      });
+    });
+    var coll = trend.querySelector('.tcollapse');
+    var body = trend.querySelector('.trend-body');
+    function setOpen(open) {
+      body.hidden = !open;
+      coll.setAttribute('aria-expanded', String(open));
+      coll.innerHTML = open ? '&#9650;' : '&#9660;';
+      try { localStorage.setItem('nnn:trend', open ? 'open' : 'shut'); } catch (e) {}
+    }
+    coll.addEventListener('click', function () { setOpen(body.hidden); });
+    try {
+      if (localStorage.getItem('nnn:trend') === 'shut') setOpen(false);
+    } catch (e) {}
+  }
+
+  /* ── Read-later bookmarks ────────────────────────────────────────── */
+  var bms = [].slice.call(document.querySelectorAll('[data-bm]'));
+  if (bms.length) {
+    var BKEY = 'nnn:later';
+    function readList() {
+      try { return JSON.parse(localStorage.getItem(BKEY) || '[]'); }
+      catch (e) { return []; }
+    }
+    function writeList(l) {
+      try { localStorage.setItem(BKEY, JSON.stringify(l)); } catch (e) {}
+    }
+    var have = {};
+    readList().forEach(function (it) { have[it.link] = true; });
+    bms.forEach(function (b) {
+      var link = b.getAttribute('data-link');
+      b.setAttribute('aria-pressed', String(!!have[link]));
+      b.addEventListener('click', function () {
+        var list = readList();
+        var idx = list.findIndex(function (it) { return it.link === link; });
+        if (idx > -1) {
+          list.splice(idx, 1);
+          b.setAttribute('aria-pressed', 'false');
+        } else {
+          list.unshift({ title: b.getAttribute('data-title'), link: link,
+                         source: b.getAttribute('data-source') });
+          b.setAttribute('aria-pressed', 'true');
+        }
+        writeList(list);
+      });
+    });
+  }
+
   /* ── Podcasts ────────────────────────────────────────────────────── */
   var pf = document.querySelector('[data-pod-filters]');
   if (pf) {

@@ -156,6 +156,61 @@ a{color:inherit}
   .logo{font-size:20px}
 }
 
+/* ── Trending ──────────────────────────────────────────────────────── */
+
+.trend{
+  background:linear-gradient(180deg,#fff7ed,#fffdf8);
+  border:1px solid #fed7aa;border-radius:12px;
+  padding:16px 18px;margin:14px 0 18px;
+}
+.trend-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.trend-head h2{
+  font-size:21px;font-weight:800;letter-spacing:-.02em;color:#9a3412;
+  margin:0;display:flex;align-items:center;gap:8px;
+}
+.flame{font-size:19px}
+.trend-chips{margin-left:auto}
+.trend .chip[aria-pressed="true"]{background:#f97316;border-color:#f97316}
+.trend .chip:hover{border-color:#f97316;color:#ea580c}
+.trend .chip[aria-pressed="true"]:hover{color:#fff}
+.tcollapse{
+  background:none;border:0;cursor:pointer;font-size:12px;
+  color:#9a3412;padding:4px 6px;
+}
+.trend-body{margin-top:14px}
+.tgrid{display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:640px){.tgrid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1000px){.tgrid{grid-template-columns:repeat(5,1fr)}}
+.tcard{
+  background:var(--card);border:1px solid #f5e2cd;border-radius:10px;
+  padding:13px 14px;display:flex;flex-direction:column;gap:9px;
+  box-shadow:0 1px 2px rgba(16,24,40,.04);
+}
+.ttop{display:flex;align-items:center;justify-content:space-between}
+.tnum{
+  width:33px;height:33px;border-radius:50%;background:#f97316;color:#fff;
+  font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;
+}
+.bm{
+  background:none;border:0;cursor:pointer;color:#9ca3af;padding:3px;
+  display:inline-flex;border-radius:6px;
+}
+.bm svg{width:17px;height:17px;fill:none}
+.bm:hover{color:#f97316}
+.bm[aria-pressed="true"]{color:#f97316}
+.bm[aria-pressed="true"] svg{fill:#f97316}
+.thl{
+  font-size:14.5px;font-weight:600;line-height:1.4;color:var(--foreground);
+  text-decoration:none;
+}
+.thl:hover{color:var(--primary)}
+.tfoot{margin-top:auto;display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.tsrc{
+  background:#ffedd5;color:#9a3412;font-size:12px;font-weight:600;
+  padding:3px 10px;border-radius:8px;
+}
+.tmeta{font-size:11.5px;color:var(--muted-foreground);margin:0}
+
 /* ── Topic intros, Forex, Books ────────────────────────────────────── */
 
 /* Topic intros exist for crawlers; readers should barely notice them. */

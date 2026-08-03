@@ -238,6 +238,105 @@ def matches(item, topic):
     return re.search(topic_pattern(topic), item["title"], flags=re.I) is not None
 
 
+
+# ── Trending ─────────────────────────────────────────────────────────────
+
+STOP = {"the", "a", "an", "to", "of", "in", "on", "for", "as", "at", "and",
+        "or", "with", "after", "over", "more", "than", "says", "say", "new",
+        "its", "his", "her", "their", "from", "by", "is", "are", "be", "will",
+        "amid", "into", "out", "up", "down", "how", "why", "what", "who"}
+
+
+def _tokens(title):
+    return {w for w in re.findall(r"[a-z0-9]+", title.lower())
+            if len(w) > 2 and w not in STOP}
+
+
+def trending_clusters(items, hours=24):
+    """Group near-duplicate stories across desks.
+
+    The ranking signal is deliberately simple and explainable: a story that
+    three desks ran inside a day is trending; a story one desk ran is just
+    news. Similarity is token overlap against the cluster's newest title.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    recent = [i for i in items if parse_date(i["ts"]) >= cutoff]
+
+    clusters = []
+    for it in recent:                       # items arrive newest first
+        toks = _tokens(it["title"])
+        if len(toks) < 3:
+            continue
+        for c in clusters:
+            inter = len(toks & c["toks"])
+            if inter and inter / min(len(toks), len(c["toks"])) >= 0.6:
+                c["sources"].add(it["source"])
+                break
+        else:
+            clusters.append({"toks": toks, "rep": it, "sources": {it["source"]}})
+
+    clusters.sort(key=lambda c: (len(c["sources"]), c["rep"]["ts"]), reverse=True)
+    return clusters
+
+
+TREND_LABELS = [("oil", "Oil"), ("crypto", "Crypto"), ("rates", "Rates"),
+                ("equities", "Equities"), ("china", "China"),
+                ("ai-and-tech", "AI & tech")]
+
+
+def trending_section(cfg, items):
+    clusters = trending_clusters(items)
+    if len(clusters) < 5:
+        return ""
+    by_slug = {t["slug"]: t for t in cfg["topics"]}
+
+    def card(rank, c):
+        it = c["rep"]
+        n = len(c["sources"])
+        desks = (f'<p class="tmeta">Covered by {n} desks</p>' if n > 1 else "")
+        return (
+            f'<article class="tcard">'
+            f'<div class="ttop"><span class="tnum">#{rank}</span>'
+            f'<button class="bm" type="button" aria-pressed="false" '
+            f'aria-label="Read later" data-bm data-title="{esc(it["title"])}" '
+            f'data-link="{esc(it["link"])}" data-source="{esc(it["source"])}">'
+            f'{BOOKMARK_SVG}</button></div>'
+            f'<a class="thl" href="{esc(it["link"])}" rel="nofollow noopener" '
+            f'target="_blank">{esc(it["title"])}</a>'
+            f'<div class="tfoot"><span class="tsrc">{esc(it["source"])}</span>'
+            f'{desks}</div></article>')
+
+    def group(gid, rows, hidden):
+        cards = "".join(card(i + 1, c) for i, c in enumerate(rows[:5]))
+        return (f'<div class="tgrid" data-trend-group="{gid}"'
+                f'{" hidden" if hidden else ""}>{cards}</div>')
+
+    groups = [group("all", clusters, False)]
+    chips = ['<button class="chip" type="button" data-trend-chip="all" '
+             'aria-pressed="true">All</button>']
+    for slug, label in TREND_LABELS:
+        topic = by_slug.get(slug)
+        if not topic:
+            continue
+        rows = [c for c in clusters if matches(c["rep"], topic)]
+        if len(rows) < 2:
+            continue                        # a one-story tab is not a trend
+        groups.append(group(slug, rows, True))
+        chips.append(f'<button class="chip" type="button" '
+                     f'data-trend-chip="{slug}" aria-pressed="false">'
+                     f'{esc(label)}</button>')
+
+    return (
+        '<section class="trend" data-trend>'
+        '<div class="trend-head">'
+        '<h2><span class="flame" aria-hidden="true">&#128293;</span> Trending Now</h2>'
+        f'<div class="chips trend-chips">{"".join(chips)}</div>'
+        '<button class="tcollapse" type="button" aria-expanded="true" '
+        'aria-label="Collapse trending">&#9650;</button></div>'
+        f'<div class="trend-body">{"".join(groups)}</div>'
+        '</section>')
+
+
 # ── HTML ─────────────────────────────────────────────────────────────────
 
 def esc(s):
@@ -901,6 +1000,7 @@ def build(cfg, items, out: Path, mkt=None):
         '<p class="standfirst">Every desk on one page, newest first. '
         'Headlines link straight to the publisher.</p>'
         '</div>'
+        + trending_section(cfg, wire)
         + filter_bar(cfg, present)
         + '<p class="empty" id="f-empty" hidden>Nothing matches those filters.</p>'
         + f'<div class="grid">{"".join(cards)}</div>'
