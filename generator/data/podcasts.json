@@ -1,0 +1,125 @@
+{
+  "_comment": "Captured from the live site's /podcasts page. These summaries are the client's own original editorial — the most SEO-valuable text on the site, because nothing else here is written rather than aggregated. Fields: title, guest, host, date, summary, url.",
+  "episodes": [
+    {
+      "title": "Foundations: U.S. Market Structure & Value",
+      "guest": "Dr. Michael Burry",
+      "host": "Dr. Michael Burry",
+      "date": "2026-03-13",
+      "summary": "Burry argues that U.S. equities sit at historically extreme valuations after a 34-year stretch above long-term average Shiller CAPE, propped up by passive flows and buybacks in a structurally fragile market where crashes are getting sharper and more correlated—and where demographic and corporate shifts will soon turn the structural bid into a structural sell.",
+      "url": "https://michaeljburry.substack.com/p/foundations-us-market-structure-and"
+    },
+    {
+      "title": "The RAM Crisis Keeps Getting Worse",
+      "guest": "Dagogo Altraide (ColdFusion)",
+      "host": "Dagogo Altraide (ColdFusion)",
+      "date": "2026-03-01",
+      "summary": "The episode explains how the AI data-center boom has turned RAM—especially high-bandwidth and server-grade DRAM—into the main chokepoint of the AI era, creating a global memory shortage that is already driving up prices, reshaping chipmakers' priorities, and threatening a multi-year squeeze on consumer electronics from PCs and phones to game consoles.",
+      "url": "https://www.youtube.com/watch?v=-YNk9_e4pg4&t=458s"
+    },
+    {
+      "title": "Germany's Collapse Is Worse Than You Think",
+      "guest": "Nick, Coin Bureau Finance",
+      "host": "Nick, Coin Bureau Finance",
+      "date": "2026-03-01",
+      "summary": "The video explains how Germany went from Europe's \"economic miracle\" to the only G7 economy in recession, tracing a self-inflicted energy crisis, migration shock, auto-industry collapse, and infrastructure decay—and then examines whether a radical 500 billion euro fiscal and defense pivot marks genuine revival or just managed decline.",
+      "url": "https://www.youtube.com/watch?v=D_7gqjBiamg&t=429s"
+    },
+    {
+      "title": "THE 2028 GLOBAL INTELLIGENCE CRISIS",
+      "guest": "Citrini Research (CITRINI) and Alap Shah, macro and thematic equity researchers",
+      "host": "Citrini Research Macro Memo (fictional June 2028 memo written from the future)",
+      "date": "2026-02-24",
+      "summary": "The report is a thought-experiment that imagines a \"Global Intelligence Crisis\" by 2028: AI and agentic automation radically boost productivity and profits but hollow out white-collar jobs, crush intermediation business models, and trigger a systemic macro shock where GDP looks strong on paper while the human consumer economy, private credit complex, and even prime mortgages are pushed toward crisis.",
+      "url": "https://www.citriniresearch.com/p/2028gic"
+    },
+    {
+      "title": "MacroVoices #518 – Dr. Anas Alhajji: Debunking the 2026 Oil Bear Narrative",
+      "guest": "Dr. Anas Alhajji, Managing Partner, Energy Outlook Advisors; former Chief Economist, NGP Energy Capital",
+      "host": "Erik Townsend",
+      "date": "2026-02-20",
+      "summary": "The episode explains why the consensus \"oversupplied, bearish oil\" story for 2026 is wrong, arguing instead that apparent surpluses are mostly accounting artifacts and strategic stockpiling, while real supply losses, seasonal demand, OPEC+ strategy, and China's inventory policy point to range-bound but resilient crude prices in the 60s rather than a deep oil bear market.",
+      "url": "https://www.youtube.com/watch?v=l1qvUpHzKII"
+    },
+    {
+      "title": "NVIDIA CEO Jensen Huang's Vision for the Future (Huge Conversations)",
+      "guest": "Jensen Huang, CEO of NVIDIA",
+      "host": "Cleo Abram",
+      "date": "2026-02-16",
+      "summary": "Jensen Huang shares the big picture of NVIDIA's journey from gaming graphics to becoming the \"engine of the AI revolution,\" how GPUs revolutionized computing, the origin and impact of CUDA, and his vision for a world transformed by AI, robotics, and accelerated computing.",
+      "url": "https://www.youtube.com/watch?v=7ARBJQn6QkM"
+    },
+    {
+      "title": "LinkedIn Co-Founder Opens Up on the Reality of AI Job Loss",
+      "guest": "Reid Hoffman (LinkedIn co-founder, AI entrepreneur, investor)",
+      "host": "Peter Diamandis",
+      "date": "2026-02-16",
+      "summary": "A candid and forward-looking discussion on how AI is transforming jobs, the challenges of job loss and job creation, the future of digital superintelligence (ASI), and why entrepreneurship—and computational thinking—will define careers and economies in the coming years.",
+      "url": "https://www.youtube.com/watch?v=mbbG0RSkpFw"
+    },
+    {
+      "title": "World Leading Investing Expert: The Big Shift Is Coming! This Investment Could 15x in 5 Years!",
+      "guest": "Cathie Wood (ARK Invest)",
+      "host": "Steven Bartlett — The Diary Of A CEO",
+      "date": "2026-02-16",
+      "summary": "Cathie Wood shares why we are on the verge of the biggest shift in investing history, revealing her conviction that disruptive innovation (especially AI, robotics, and digital assets) will drive staggering returns in the next five years. She gives bold predictions and practical advice for anyone aiming to get \"on the right side of change.\"",
+      "url": "https://www.youtube.com/watch?v=ZznpMh0DegE"
+    },
+    {
+      "title": "China Moves to Kill the Dollar: Peter Schiff on Reserve Currency Collapse and the Rise of Gold",
+      "guest": "Peter Schiff, Chief Economist & Global Strategist at Euro Pacific Asset Management",
+      "host": "Rick Sanchez",
+      "date": "2026-02-16",
+      "summary": "Peter Schiff argues that China's accelerated push to internationalize the yuan, build a SWIFT alternative, and price energy in its own currency marks an inflection point in the de-dollarization of global finance, putting the U.S. dollar's reserve status—and the American consumer lifestyle built on it—at serious risk, while gold and non-U.S. assets emerge as the primary beneficiaries.",
+      "url": "https://www.youtube.com/watch?v=9If4uY9UvGQ"
+    },
+    {
+      "title": "Mark Carney at Davos 2026: Middle Powers, \"Living Within a Lie,\" and Building a New Global Order",
+      "guest": "Mark Carney, Prime Minister of Canada",
+      "host": "World Economic Forum Special Address (Davos main stage)",
+      "date": "2026-02-16",
+      "summary": "Mark Carney argues that the old U.S-led \"rules-based international order\" is breaking, and calls on middle powers like Canada to stop \"living within a lie\" of great-power benevolence and instead build a new, values-driven, resilient order grounded in sovereignty, realism, and collective action.",
+      "url": "https://www.youtube.com/watch?v=dTvFnC-oFGw"
+    },
+    {
+      "title": "Trump at Davos 2026: \"America's Economic Miracle\" and the Battle Over Energy, Migration, and Greenland",
+      "guest": "Donald J. Trump, President of the United States",
+      "host": "Introduced by Larry Fink in his role at the World Economic Forum",
+      "date": "2026-02-16",
+      "summary": "President Trump uses his Davos 2026 speech to claim credit for a historic U.S. economic \"turnaround\" driven by tax cuts, deregulation, tariffs, fossil-fuel expansion, and tough immigration controls, while attacking Europe's green policies and making a controversial national-security case for American control over Greenland.",
+      "url": "https://www.youtube.com/watch?v=qo2-q4AFh_g"
+    },
+    {
+      "title": "Jamie Dimon on AI, Trump, and the Future of the Global Economy at WEF 2026",
+      "guest": "Jamie Dimon, Chairman & CEO of JPMorgan Chase",
+      "host": "Zanny Minton Beddoes, Editor-in-Chief of The Economist",
+      "date": "2026-02-16",
+      "summary": "A wide-ranging conversation on how AI, U.S. economic policy under President Trump, global geopolitics, and structural inequality are reshaping growth, jobs, and financial stability, and what governments and businesses must do to adapt without breaking social cohesion.",
+      "url": "https://www.youtube.com/watch?v=hnLTD4D4wxY"
+    },
+    {
+      "title": "Dumb Money Live: Our Biggest Trade Ever (and what we're buying next)",
+      "guest": "Dave, Chris, and Jordan (Dumb Money team)",
+      "host": "Dave, Chris, and Jordan (Dumb Money team)",
+      "date": "2026-02-16",
+      "summary": "The hosts review their highly successful Nvidia trade, explain the logic behind it, and discuss the new trading opportunities—especially focusing on \"social arb\" investing, cutting through noise, and spotting the next big market move.",
+      "url": "https://www.youtube.com/watch?v=E6QjMPa3KcM&t=576s"
+    },
+    {
+      "title": "Elon Musk on DOGE, Optimus, Starlink Smartphones, Evolving with AI, Why the West is Imploding",
+      "guest": "Elon Musk",
+      "host": "The All-In Podcast team",
+      "date": "2026-02-16",
+      "summary": "Elon Musk discusses the development and future of Optimus humanoid robots, Starlink-enabled smartphones, breakthroughs in artificial intelligence (AI), the trajectory of Western societies, and humanity's future on Earth, the Moon, and Mars.",
+      "url": "https://www.youtube.com/watch?v=qeZqZBRA-6Q"
+    },
+    {
+      "title": "Macro Voices: Lyn Alden – What Will Stop This Train?",
+      "guest": "Lyn Alden",
+      "host": "Erik Townsend & Patrick Ceresna",
+      "date": "2026-02-16",
+      "summary": "Lyn Alden discusses the inevitability and consequences of the current US dollar-centric monetary system, public debt, and what could actually \"stop this train\"—the relentless fiscal deficits and monetary expansion.",
+      "url": "https://www.youtube.com/watch?v=ZFzgbUL9RVk"
+    }
+  ]
+}

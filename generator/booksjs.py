@@ -8,41 +8,6 @@ see the full content. These only hide, reorder and toggle.
 
 BOOKS_JS = r"""
 (function () {
-  /* ── Ticker tabs ─────────────────────────────────────────────────── */
-  var strip = document.querySelector('[data-ticker]');
-  if (strip) {
-    var tabs = [].slice.call(strip.querySelectorAll('[data-tab]'));
-    tabs.forEach(function (t) {
-      t.addEventListener('click', function () {
-        tabs.forEach(function (o) {
-          var on = o === t;
-          o.setAttribute('aria-selected', String(on));
-          var panel = document.getElementById('panel-' + o.getAttribute('data-tab'));
-          if (panel) panel.hidden = !on;
-        });
-        try { localStorage.setItem('nnn:tab', t.getAttribute('data-tab')); } catch (e) {}
-      });
-    });
-    try {
-      var saved = localStorage.getItem('nnn:tab');
-      if (saved) {
-        var want = tabs.filter(function (t) { return t.getAttribute('data-tab') === saved; })[0];
-        if (want) want.click();
-      }
-    } catch (e) {}
-
-    // Arrow-key navigation, expected of a role="tablist".
-    strip.addEventListener('keydown', function (e) {
-      var i = tabs.indexOf(document.activeElement);
-      if (i < 0) return;
-      var next = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : -1;
-      if (next < 0 || next >= tabs.length) return;
-      e.preventDefault();
-      tabs[next].focus();
-      tabs[next].click();
-    });
-  }
-
   /* ── Books ───────────────────────────────────────────────────────── */
   var root = document.querySelector('[data-book-filters]');
   if (!root) return;

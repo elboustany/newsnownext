@@ -23,8 +23,8 @@ FILTER_JS = r"""
   var sessions = root.querySelector('#f-sessions');
   var countEl  = root.querySelector('#f-count');
   var clearBtn = root.querySelector('#f-clear');
-  var regionBtns = [].slice.call(root.querySelectorAll('[data-region-btn]'));
-  var topicBtns  = [].slice.call(root.querySelectorAll('[data-topic-btn]'));
+  var regionSel = root.querySelector('#f-region');
+  var topicSel  = root.querySelector('#f-topic');
 
   // Must stay `section[data-region]`. Each <li> also carries data-region so the
   // region filter can test it directly, and a bare [data-region] selector
@@ -54,12 +54,8 @@ FILTER_JS = r"""
   try {
     var saved = JSON.parse(localStorage.getItem(KEY) || '{}');
     var regions = {}, topics = {};
-    [].slice.call(root.querySelectorAll('[data-region-btn]')).forEach(function (b) {
-      regions[b.getAttribute('data-region-btn')] = 1;
-    });
-    [].slice.call(root.querySelectorAll('[data-topic-btn]')).forEach(function (b) {
-      topics[b.getAttribute('data-topic-btn')] = 1;
-    });
+    [].slice.call(regionSel.options).forEach(function (o) { if (o.value) regions[o.value] = 1; });
+    [].slice.call(topicSel.options).forEach(function (o) { if (o.value) topics[o.value] = 1; });
     if (saved.sort === 'newest' || saved.sort === 'oldest') state.sort = saved.sort;
     if ([0, 6, 12, 24].indexOf(Number(saved.window)) > -1) state.window = Number(saved.window);
     if (regions[saved.region]) state.region = saved.region;
@@ -179,16 +175,8 @@ FILTER_JS = r"""
     q.value = state.q;
     sortSel.value = state.sort;
     if (winSel) winSel.value = String(state.window);
-    if (sessions) sessions.checked = state.sessions;
-    document.body.setAttribute('data-sessions', state.sessions ? '1' : '0');
-    regionBtns.forEach(function (b) {
-      b.setAttribute('aria-pressed',
-        String(state.region === (b.getAttribute('data-region-btn') || null)));
-    });
-    topicBtns.forEach(function (b) {
-      b.setAttribute('aria-pressed',
-        String(state.topic === (b.getAttribute('data-topic-btn') || null)));
-    });
+    regionSel.value = state.region || '';
+    topicSel.value = state.topic || '';
   }
 
   var timer;
@@ -216,20 +204,11 @@ FILTER_JS = r"""
     save();
   });
 
-  regionBtns.forEach(function (b) {
-    b.addEventListener('click', function () {
-      var v = b.getAttribute('data-region-btn') || null;
-      state.region = state.region === v ? null : v;
-      syncControls(); apply(); save();
-    });
+  regionSel.addEventListener('change', function () {
+    state.region = regionSel.value || null; apply(); save();
   });
-
-  topicBtns.forEach(function (b) {
-    b.addEventListener('click', function () {
-      var v = b.getAttribute('data-topic-btn') || null;
-      state.topic = state.topic === v ? null : v;
-      syncControls(); apply(); save();
-    });
+  topicSel.addEventListener('change', function () {
+    state.topic = topicSel.value || null; apply(); save();
   });
 
   clearBtn.addEventListener('click', function () {

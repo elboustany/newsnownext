@@ -71,6 +71,49 @@ TABS = [
     ]),
 ]
 
+# CNBC's public quote service returns every instrument in one keyless call and,
+# unlike Yahoo, does not rate-limit server-side. Yahoo stays as a fallback.
+CNBC_SYMBOLS = {
+    "^GSPC": ".SPX", "^IXIC": ".IXIC", "^DJI": ".DJI", "^VIX": ".VIX",
+    "^FTSE": ".FTSE", "^GDAXI": ".GDAXI", "^FCHI": ".FCHI", "^STOXX50E": ".STOXX50E",
+    "^IRX": "US3M", "^FVX": "US5Y", "^TNX": "US10Y", "^TYX": "US30Y",
+    "GC=F": "@GC.1", "SI=F": "@SI.1", "CL=F": "@CL.1", "NG=F": "@NG.1",
+}
+CNBC = ("https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol"
+        "?symbols={}&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1"
+        "&output=json&events=1")
+
+
+def _num(v):
+    """CNBC formats numbers for humans: '7,489.72', '4.678%', 'UNCH'."""
+    if v is None:
+        return None
+    t = str(v).replace(",", "").replace("%", "").strip()
+    if t in ("", "UNCH", "N/A", "--"):
+        return 0.0
+    try:
+        return float(t)
+    except ValueError:
+        return None
+
+
+def _cnbc_quotes():
+    """One call for every symbol. Returns {our_symbol: (price, prev)}."""
+    raw = _get(CNBC.format("|".join(CNBC_SYMBOLS.values())), tries=2)
+    rows = raw.get("FormattedQuoteResult", {}).get("FormattedQuote", [])
+    back = {v: k for k, v in CNBC_SYMBOLS.items()}
+    out = {}
+    for q in rows:
+        ours = back.get(q.get("symbol"))
+        if not ours:
+            continue
+        last, change = _num(q.get("last")), _num(q.get("change"))
+        if last is None or change is None:
+            continue
+        out[ours] = (last, last - change)      # derive previous close
+    return out
+
+
 # The 18 pairs on the live forex page, in its order.
 PAIRS = [
     "EUR/USD", "USD/JPY", "GBP/USD", "USD/TRY", "USD/CHF", "USD/CAD",
@@ -156,15 +199,23 @@ def fetch_quotes(cache):
             print(f"  market: FMP failed ({e}); falling back to Yahoo")
 
     if not fresh:
-        ok = 0
-        for sym in symbols:
+        try:
+            fresh = _cnbc_quotes()
+            print(f"  market: {len(fresh)}/{len(symbols)} via CNBC")
+        except Exception as e:                      # noqa: BLE001
+            print(f"  market: CNBC failed ({e}); falling back to Yahoo")
+
+    if len(fresh) < len(symbols):
+        ok = len(fresh)
+        for sym in [s for s in symbols if s not in fresh]:
             try:
                 fresh[sym] = _yahoo_quote(sym)
                 ok += 1
             except Exception:                       # noqa: BLE001 - cache covers it
                 pass
             time.sleep(0.7)                         # be polite; avoids burst 429s
-        print(f"  market: {ok}/{len(symbols)} via Yahoo")
+        if ok < len(symbols):
+            print(f"  market: {ok}/{len(symbols)} after Yahoo fallback")
 
     out = {}
     for sym in symbols:

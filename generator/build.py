@@ -39,6 +39,7 @@ from theme import CSS
 import market
 from filterjs import FILTER_JS
 from booksjs import BOOKS_JS
+from pagesjs import PAGES_JS
 
 HERE = Path(__file__).resolve().parent
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
@@ -152,6 +153,17 @@ def parse_feed(raw, src, region):
 
 def collect(cfg):
     items, failures = [], []
+    for c in cfg.get("world", []):
+        src = {"id": f"world-{c['slug']}", "label": c["title"], "via": "Google News",
+               "url": c["url"]}
+        try:
+            got = parse_feed(fetch(src["url"]), src, {"id": "world", "title": "World"})
+            for g in got:
+                g["world_slug"] = c["slug"]
+            items.extend(got)
+        except Exception:                           # noqa: BLE001 - reported in the tally
+            failures.append(f"World/{c['title']}")
+
     for region in cfg["regions"]:
         for src in region["sources"]:
             try:
@@ -243,9 +255,24 @@ NAV = [
     ("/", "News"),
     ("/books/", "Books"),
     ("/forex/", "Forex"),
+    ("/world-news/", "World News"),
+    ("/podcasts/", "Podcasts"),
     ("/topics/", "Topics"),
     ("/recap/", "Daily recap"),
+    ("/contact/", "Contact"),
+    ("/preferences/", "Preferences"),
+    ("/read-later/", "Read Later"),
+    ("/portfolio/", "Portfolio"),
 ]
+
+PROMO = ("""<div class="promo" id="promo"><div class="promo-in">"""
+         """<span class="tag">AD</span>"""
+         """<strong>Market Intelligence Pro</strong>"""
+         """<span class="muted">Exclusive market insights and trading signals</span>"""
+         """<a href="/contact/">Learn more &rarr;</a>"""
+         """<button class="close" id="promo-x" type="button" """
+         """aria-label="Dismiss">&times;</button>"""
+         """</div></div>""")
 
 
 def money(v, dp=2):
@@ -261,12 +288,12 @@ def dir_class(v):
 
 
 def ticker_strip(mkt):
-    """The four-tab quote strip that sits under the nav on every page.
+    """The quote tape under the nav, on every page.
 
-    Server-rendered for all four tabs; the tab buttons only toggle visibility,
+    All four tabs are server-rendered and the buttons only toggle visibility,
     so it works with JavaScript off and a crawler sees every number.
     """
-    if not mkt:
+    if not mkt or not mkt.get("quotes"):
         return ""
     tabs, panels = [], []
     for i, (tid, label, rows) in enumerate(mkt["tabs"]):
@@ -277,32 +304,24 @@ def ticker_strip(mkt):
             f'data-tab="{tid}">{esc(label)}</button>')
 
         cards = []
-        for sym, name, code in rows:
+        for sym, name, _code in rows:
             q = mkt["quotes"].get(sym)
             if not q:
-                cards.append(
-                    f'<div class="quote"><div class="quote-top">'
-                    f'<span class="quote-name">{esc(name)}</span></div>'
-                    f'<span class="quote-badge">{esc(code)}</span>'
-                    f'<p class="quote-missing">Unavailable</p></div>')
+                cards.append(f'<div class="quote"><span class="quote-name">{esc(name)}</span>'
+                             f'<span class="quote-missing">n/a</span></div>')
                 continue
             dp = 2 if abs(q["price"]) >= 10 else 4
-            cls = dir_class(q["change"])
-            live = "Delayed" if q["stale"] else "Live"
             cards.append(
-                f'<div class="quote{" stale" if q["stale"] else ""}">'
-                f'<div class="quote-top"><span class="quote-name">{esc(name)}</span>'
-                f'<span class="quote-live">{live}</span></div>'
-                f'<span class="quote-badge">{esc(code)}</span>'
-                f'<div class="quote-price">{money(q["price"], dp)}</div>'
-                f'<div class="quote-chg {cls}">{signed(q["change"], dp)} '
-                f'({signed(q["pct"], 2, "%")})</div>'
-                f'</div>')
+                f'<div class="quote{" stale" if q["stale"] else ""}" '
+                f'title="{esc(name)}{" (last known)" if q["stale"] else ""}">'
+                f'<span class="quote-name">{esc(name)}</span>'
+                f'<span class="quote-price">{money(q["price"], dp)}</span>'
+                f'<span class="quote-chg {dir_class(q["change"])}">'
+                f'{signed(q["pct"], 2, "%")}</span></div>')
 
         panels.append(
             f'<div class="quotes" role="tabpanel" id="panel-{tid}" '
-            f'aria-labelledby="tab-{tid}"{"" if first else " hidden"}>'
-            f'{"".join(cards)}</div>')
+            f'aria-labelledby="tab-{tid}"{"" if first else " hidden"}>{"".join(cards)}</div>')
 
     return (f'<div class="ticker"><div class="ticker-in">'
             f'<div class="tabs" role="tablist" data-ticker>{"".join(tabs)}</div>'
@@ -338,6 +357,8 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
 {extra_head}
 </head>
 <body{body_attrs}>
+{PROMO}
+<div class="chrome">
 <nav class="nav">
   <div class="nav-in">
     <a class="logo" href="/" aria-label="{esc(cfg['site_name'])} home">
@@ -347,6 +368,7 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
   </div>
 </nav>
 {ticker}
+</div>
 <div class="wrap">
 {body}
 <footer class="foot">
@@ -361,62 +383,47 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
 
 
 def filter_bar(cfg, regions_present):
-    region_chips = "".join(
-        f'<button class="chip" type="button" data-region-btn="{esc(r["id"])}" '
-        f'aria-pressed="false">{esc(r["title"])}</button>'
-        for r in cfg["regions"] if r["id"] in regions_present
-    )
-    topic_chips = "".join(
-        f'<button class="chip" type="button" data-topic-btn="{esc(t["slug"])}" '
-        f'aria-pressed="false">{esc(t["title"])}</button>'
-        for t in cfg["topics"]
-    )
-    topic_links = " · ".join(
-        f'<a href="/topics/{esc(t["slug"])}.html">{esc(t["title"])}</a>'
-        for t in cfg["topics"]
-    )
+    """One line: search, region, order, count.
+
+    Region was eight chips and order was a block below it; together they pushed
+    the first headline off the fold. Both are menus now.
+    """
+    regions = "".join(
+        f'<option value="{esc(r["id"])}">{esc(r["title"])}</option>'
+        for r in cfg["regions"] if r["id"] in regions_present)
+    topics = "".join(
+        f'<option value="{esc(t["slug"])}">{esc(t["title"])}</option>'
+        for t in cfg["topics"])
     return f"""
 <div class="filters" data-filters hidden>
-  <div class="frow">
-    <div class="fsearch">
-      <label class="sr-only" for="f-q">Filter headlines</label>
-      <input id="f-q" type="search" autocomplete="off" spellcheck="false"
-             placeholder="Filter headlines…  (press / )">
-    </div>
-    <label class="sr-only" for="f-sort">Order</label>
-    <select id="f-sort" class="fsel">
-      <option value="newest">Newest first</option>
-      <option value="oldest">Oldest first</option>
-    </select>
+  <div class="fsearch">
+    <label class="sr-only" for="f-q">Filter headlines</label>
+    <input id="f-q" type="search" autocomplete="off" spellcheck="false"
+           placeholder="Search headlines…">
   </div>
-
-  <div class="frow">
-    <span class="flabel">Region</span>
-    {region_chips}
-  </div>
-
-  <details class="more">
-    <summary>More filters</summary>
-    <div class="frow">
-      <span class="flabel">Topic</span>
-      {topic_chips}
-    </div>
-    <div class="frow">
-      <span class="flabel">Since</span>
-      <label class="sr-only" for="f-window">Time window</label>
-      <select id="f-window" class="fsel">
-        <option value="0">Any time</option>
-        <option value="6">Last 6 hours</option>
-        <option value="12">Last 12 hours</option>
-        <option value="24">Last 24 hours</option>
-      </select>
-    </div>
-    <p class="fcount" style="margin-top:10px">Full pages: {topic_links} · <a href="/recap/">Daily recap</a></p>
-  </details>
-
+  <label class="sr-only" for="f-region">Region</label>
+  <select id="f-region" class="fsel">
+    <option value="">All regions</option>{regions}
+  </select>
+  <label class="sr-only" for="f-topic">Topic</label>
+  <select id="f-topic" class="fsel">
+    <option value="">All topics</option>{topics}
+  </select>
+  <label class="sr-only" for="f-window">Time</label>
+  <select id="f-window" class="fsel">
+    <option value="0">Any time</option>
+    <option value="6">Last 6h</option>
+    <option value="12">Last 12h</option>
+    <option value="24">Last 24h</option>
+  </select>
+  <label class="sr-only" for="f-sort">Order</label>
+  <select id="f-sort" class="fsel">
+    <option value="newest">Newest</option>
+    <option value="oldest">Oldest</option>
+  </select>
   <p class="fcount">
     <span id="f-count">—</span>
-    <button class="linkbtn" id="f-clear" type="button" hidden>Clear filters</button>
+    <button class="linkbtn" id="f-clear" type="button" hidden>Clear</button>
   </p>
 </div>
 """
@@ -576,9 +583,143 @@ def books_page(cfg, mkt, base, out):
         ticker=ticker_strip(mkt),
         extra_head=(f'<script type="application/ld+json">{ld}</script>'
                     + breadcrumbs(base, [("Books", "/books/")])),
-        scripts='<script src="/assets/books.js" defer></script>',
+        scripts=('<script src="/assets/books.js" defer></script>'
+                 '<script src="/assets/pages.js" defer></script>'),
     ))
     return f"{base}/books/"
+
+
+
+def podcasts_page(cfg, mkt, base, out):
+    """Curated episode summaries — the only wholly original text on the site,
+    and therefore the page most worth indexing."""
+    data = json.loads((HERE / "data" / "podcasts.json").read_text(encoding="utf-8"))
+    eps = data["episodes"]
+
+    cards = []
+    for e in eps:
+        when = datetime.fromisoformat(e["date"])
+        cards.append(
+            f'<article class="pod" data-pod '
+            f'data-hay="{esc((e["title"] + " " + e["guest"] + " " + e["host"] + " " + e["summary"]).lower())}" '
+            f'data-ts="{int(when.timestamp())}">'
+            f'<h2>{esc(e["title"])}</h2>'
+            f'<p class="pod-meta"><strong>Guest</strong> {esc(e["guest"])}'
+            f'<span class="dot">&middot;</span><strong>Host</strong> {esc(e["host"])}'
+            f'<span class="dot">&middot;</span>'
+            f'<time datetime="{e["date"]}">{when.strftime("%d %B %Y")}</time></p>'
+            f'<p class="pod-sum">{esc(e["summary"])}</p>'
+            f'<a class="pod-link" href="{esc(e["url"])}" rel="noopener" target="_blank">'
+            f'Listen to the full episode &rarr;</a></article>')
+
+    ld = json.dumps({
+        "@context": "https://schema.org", "@type": "ItemList",
+        "name": "Podcast summaries",
+        "itemListElement": [
+            {"@type": "ListItem", "position": i + 1,
+             "item": {"@type": "PodcastEpisode", "name": e["title"],
+                      "datePublished": e["date"], "abstract": e["summary"],
+                      "url": e["url"]}}
+            for i, e in enumerate(eps)],
+    })
+
+    body = (
+        '<div class="page-head"><h1>Podcast summaries</h1>'
+        f'<p class="standfirst">{len(eps)} curated insights from top business and '
+        'technology podcasts — what was actually said, in a paragraph.</p></div>'
+        '<div class="filters" data-pod-filters hidden>'
+        '<div class="fsearch"><label class="sr-only" for="p-q">Filter episodes</label>'
+        '<input id="p-q" type="search" autocomplete="off" '
+        'placeholder="Search guests, hosts or topics…"></div>'
+        '<label class="sr-only" for="p-sort">Order</label>'
+        '<select id="p-sort" class="fsel">'
+        '<option value="new">Newest first</option>'
+        '<option value="old">Oldest first</option></select>'
+        '<p class="fcount"><span id="p-count"></span></p></div>'
+        '<p class="empty" id="p-empty" hidden>No episodes match that search.</p>'
+        f'<div class="pods" id="pod-list">{"".join(cards)}</div>')
+
+    write(out / "podcasts" / "index.html", shell(
+        cfg, title=f"Podcast summaries — business and tech insights — {cfg['site_name']}",
+        description=("Curated summaries of the best business, macro and technology "
+                     "podcasts: guest, host and the argument in one paragraph."),
+        canonical=f"{base}/podcasts/", body=body, current="/podcasts/",
+        ticker=ticker_strip(mkt),
+        extra_head=(f'<script type="application/ld+json">{ld}</script>'
+                    + breadcrumbs(base, [("Podcasts", "/podcasts/")])),
+        scripts='<script src="/assets/pages.js" defer></script>',
+    ))
+    return f"{base}/podcasts/"
+
+
+WORLD = [
+    ("United States", "us", "US"), ("United Kingdom", "uk", "GB"),
+    ("China", "china", "CN"), ("France", "france", "FR"),
+    ("Germany", "germany", "DE"), ("Switzerland", "switzerland", "CH"),
+    ("Japan", "japan", "JP"), ("India", "india", "IN"),
+    ("Brazil", "brazil", "BR"), ("Canada", "canada", "CA"),
+    ("Australia", "australia", "AU"), ("Israel", "israel", "IL"),
+    ("United Arab Emirates", "uae", "AE"), ("Singapore", "singapore", "SG"),
+    ("South Africa", "south-africa", "ZA"), ("Mexico", "mexico", "MX"),
+    ("Italy", "italy", "IT"), ("Spain", "spain", "ES"),
+    ("Turkey", "turkey", "TR"), ("South Korea", "south-korea", "KR"),
+]
+
+
+def world_page(cfg, mkt, base, out, world_items):
+    """Local coverage by country. A grid rather than a clickable map: the map
+    itself is invisible to search engines, and this renders every headline."""
+    cards = []
+    for name, slug, cc in WORLD:
+        rows = world_items.get(slug, [])
+        if not rows:
+            continue
+        lis = []
+        for it in rows[:8]:
+            when = parse_date(it["ts"])
+            lis.append(
+                f'<li data-item data-src="{esc(it["source"])}" data-region="{esc(slug)}" '
+                f'data-ts="{when.timestamp():.0f}">'
+                f'<a href="{esc(it["link"])}" rel="nofollow noopener" target="_blank">'
+                f'{esc(it["title"])}</a>'
+                f'<time datetime="{when.isoformat()}">{esc(stamp(when))}</time></li>')
+        cards.append(
+            f'<section class="card" data-region="{esc(slug)}">'
+            f'<div class="card-head"><h2>{esc(name)}</h2>'
+            f'<span class="card-count" data-card-count>{len(rows[:8])}</span></div>'
+            f'<div class="src" data-source="{esc(slug)}">'
+            f'<ul class="items">{"".join(lis)}</ul></div></section>')
+
+    body = (
+        '<div class="page-head"><h1>World News</h1>'
+        '<p class="standfirst">Local reporting from around the globe, in English, '
+        'straight from each country&rsquo;s own desks.</p></div>'
+        + ('<div class="grid">' + "".join(cards) + '</div>' if cards else
+           '<p class="empty">Country feeds are temporarily unavailable.</p>'))
+
+    write(out / "world-news" / "index.html", shell(
+        cfg, title=f"World News — local reporting by country — {cfg['site_name']}",
+        description=("Local English-language news by country: the United States, "
+                     "China, France, Germany, Japan, India, Brazil and more."),
+        canonical=f"{base}/world-news/", body=body, current="/world-news/",
+        ticker=ticker_strip(mkt),
+        extra_head=breadcrumbs(base, [("World News", "/world-news/")]),
+    ))
+    return f"{base}/world-news/"
+
+
+def simple_page(cfg, mkt, base, out, *, path, title, heading, description,
+                body_html, current, index=True):
+    write(out / path.strip("/") / "index.html", shell(
+        cfg, title=title, description=description,
+        canonical=f"{base}{path}", current=current, noindex=not index,
+        ticker=ticker_strip(mkt),
+        body=(f'<div class="prose"><div class="page-head"><h1>{esc(heading)}</h1>'
+              f'<p class="standfirst">{esc(description)}</p></div>{body_html}</div>'),
+        extra_head=breadcrumbs(base, [(heading, path)]),
+        scripts='<script src="/assets/pages.js" defer></script>',
+    ))
+    return f"{base}{path}"
 
 
 def breadcrumbs(base, trail):
@@ -630,6 +771,7 @@ def build(cfg, items, out: Path, mkt=None):
     write(out / "assets" / "site.css", CSS.strip())
     write(out / "assets" / "filter.js", FILTER_JS.strip())
     write(out / "assets" / "books.js", BOOKS_JS.strip())
+    write(out / "assets" / "pages.js", PAGES_JS.strip())
 
     buckets = by_source(items, cfg)
     wire = merged(items)
@@ -662,13 +804,73 @@ def build(cfg, items, out: Path, mkt=None):
         canonical=f"{base}/", body=home_body, current="/",
         ticker=ticker_strip(mkt),
         extra_head=f"<script>window.__TOPICS__={topic_json};</script>",
-        scripts='<script src="/assets/filter.js" defer></script>',
+        scripts=('<script src="/assets/filter.js" defer></script>'
+                 '<script src="/assets/pages.js" defer></script>'),
     ))
     urls.append((f"{base}/", datetime.now(timezone.utc)))
 
-    if mkt:
-        urls.append((forex_page(cfg, mkt, base, out), datetime.now(timezone.utc)))
-    urls.append((books_page(cfg, mkt, base, out), datetime.now(timezone.utc)))
+    now = datetime.now(timezone.utc)
+    if mkt and mkt.get("fx"):
+        urls.append((forex_page(cfg, mkt, base, out), now))
+    urls.append((books_page(cfg, mkt, base, out), now))
+    urls.append((podcasts_page(cfg, mkt, base, out), now))
+
+    world_items = {}
+    for it in items:
+        slug = it.get("world_slug")
+        if slug:
+            world_items.setdefault(slug, []).append(it)
+    for slug in world_items:
+        world_items[slug].sort(key=lambda i: i["ts"], reverse=True)
+    if world_items:
+        urls.append((world_page(cfg, mkt, base, out, world_items), now))
+
+    urls.append((simple_page(
+        cfg, mkt, base, out, path="/contact/", current="/contact/",
+        title=f"Contact — {cfg['site_name']}", heading="Contact",
+        description="Get in touch about the feed, a source, or advertising.",
+        body_html=(
+            '<div class="note"><p>Suggest a source, report a broken feed, or ask '
+            'about advertising and partnerships.</p>'
+            '<p><strong>Email</strong> '
+            '<a href="mailto:hello@newsnownext.org">hello@newsnownext.org</a></p></div>'
+            '<h2>Adding a source</h2>'
+            '<p>Tell us the outlet and, if you have it, the RSS URL. We link out to '
+            'publishers and never reproduce article text, so most desks are happy to '
+            'be included.</p>'
+            '<h2>Corrections</h2>'
+            '<p>Headlines belong to the publishers that wrote them. If a headline is '
+            'wrong, it is fastest to contact the source directly &mdash; but tell us '
+            'too and we will drop it from the wire.</p>')), now))
+
+    urls.append((simple_page(
+        cfg, mkt, base, out, path="/preferences/", current="/preferences/",
+        title=f"News preferences — {cfg['site_name']}", heading="Preferences",
+        description="Choose which regions and sources appear on your feed.",
+        body_html=(
+            '<p>These settings live in this browser only. Nothing is uploaded and '
+            'there is no account.</p>'
+            '<div id="prefs-app" data-prefs></div>'
+            '<noscript><p class="empty">Preferences need JavaScript. The feed itself '
+            'works without it.</p></noscript>')), now))
+
+    urls.append((simple_page(
+        cfg, mkt, base, out, path="/read-later/", current="/read-later/",
+        title=f"Read later — {cfg['site_name']}", heading="Read Later",
+        description="Headlines you saved to come back to.", index=False,
+        body_html=(
+            '<div id="later-app" data-later></div>'
+            '<noscript><p class="empty">Saved headlines need JavaScript.</p></noscript>')), now))
+
+    urls.append((simple_page(
+        cfg, mkt, base, out, path="/portfolio/", current="/portfolio/",
+        title=f"Portfolio — {cfg['site_name']}", heading="Portfolio",
+        description="Track your holdings against the wire.", index=False,
+        body_html=(
+            '<div class="note"><p><strong>Coming soon.</strong> Portfolio tracking '
+            'needs an account, which needs a backend. It is not part of this build.</p>'
+            '<p>Everything else on the site works without signing in, and always '
+            'will.</p></div>')), now))
 
     # ── Topic pages ──────────────────────────────────────────────────
     for topic in cfg["topics"]:
@@ -690,7 +892,7 @@ def build(cfg, items, out: Path, mkt=None):
                   f'<h1>{esc(topic["title"])}</h1>'
                   f'<p class="standfirst">{esc(topic["description"])}</p></div>'
                   f'{note_html}{wire_list(hits)}</div>'),
-            current="/topics/", noindex=not note,
+            ticker=ticker_strip(mkt), current="/topics/", noindex=not note,
         ))
         if note:
             urls.append((canonical, datetime.now(timezone.utc)))
@@ -703,7 +905,7 @@ def build(cfg, items, out: Path, mkt=None):
     write(out / "topics" / "index.html", shell(
         cfg, title=f"Topics — {cfg['site_name']}",
         description="Financial news by topic: oil, crypto, rates, equities, China and tech.",
-        canonical=f"{base}/topics/", current="/topics/",
+        canonical=f"{base}/topics/", current="/topics/", ticker=ticker_strip(mkt),
         body=('<div class="prose"><div class="page-head"><h1>Topics</h1>'
               '<p class="standfirst">The wire, filtered to one subject and kept for 72 hours.</p>'
               f'</div><ul class="cards">{cards_html}</ul></div>'),
@@ -735,7 +937,7 @@ def build(cfg, items, out: Path, mkt=None):
         cfg, title=f"Market recap, {pretty} — {cfg['site_name']}",
         description=(synopsis[:155] if synopsis
                      else f"Every headline that crossed the wire on {pretty}."),
-        canonical=canonical, current="/recap/", noindex=not synopsis,
+        canonical=canonical, ticker=ticker_strip(mkt), current="/recap/", noindex=not synopsis,
         body=('<div class="prose"><div class="page-head">'
               f'<h1>Market recap, {esc(pretty)}</h1>'
               '<p class="standfirst">What crossed the wire today, in order.</p></div>'
@@ -755,7 +957,7 @@ def build(cfg, items, out: Path, mkt=None):
     write(out / "recap" / "index.html", shell(
         cfg, title=f"Daily market recaps — {cfg['site_name']}",
         description="An archive of daily financial market recaps.",
-        canonical=f"{base}/recap/", current="/recap/",
+        canonical=f"{base}/recap/", ticker=ticker_strip(mkt), current="/recap/",
         body=('<div class="prose"><div class="page-head"><h1>Daily recaps</h1>'
               '<p class="standfirst">A short written summary of each trading day.</p>'
               f'</div><ul class="cards">{links}</ul></div>'),

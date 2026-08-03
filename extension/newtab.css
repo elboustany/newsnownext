@@ -23,6 +23,8 @@
   --logo-next:#ef4444;
   --radius:8px;
   --sans:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mag:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E");
+  --caret:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%2365758b' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 /* No dark scheme on purpose. The live site is light-only, and a page that
@@ -40,28 +42,100 @@ body{
 }
 a{color:inherit}
 
-/* ── Nav ───────────────────────────────────────────────────────────── */
+
+/* ── Promo banner ──────────────────────────────────────────────────── */
+
+.promo{
+  background:linear-gradient(90deg,#059669,#2563eb);
+  color:#fff;font-size:13px;
+}
+.promo-in{
+  max-width:1320px;margin:0 auto;padding:9px 20px;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+.promo .tag{
+  background:rgba(255,255,255,.22);border-radius:4px;padding:2px 7px;
+  font-size:10px;font-weight:700;letter-spacing:.06em;
+}
+.promo strong{font-weight:600}
+.promo .muted{opacity:.85}
+.promo a{color:#fff;margin-left:auto;font-weight:500;text-decoration:none;white-space:nowrap}
+.promo a:hover{text-decoration:underline}
+.promo .close{
+  background:none;border:0;color:#fff;opacity:.8;cursor:pointer;
+  font-size:16px;line-height:1;padding:0 2px;
+}
+.promo .close:hover{opacity:1}
+
+/* ── Sticky chrome ─────────────────────────────────────────────────── */
+
+/* Nav and ticker travel together, so the menu and the tape are on every
+   page and stay put while the wire scrolls. */
+.chrome{position:sticky;top:0;z-index:50}
 
 .nav{background:var(--navbar);color:var(--navbar-fg)}
 .nav-in{
-  max-width:1320px;margin:0 auto;padding:14px 20px;
-  display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  max-width:1320px;margin:0 auto;padding:10px 20px;
+  display:flex;align-items:center;gap:18px;
 }
 .logo{
-  font-weight:900;font-size:22px;line-height:.95;letter-spacing:-.02em;
-  text-decoration:none;display:block;
+  font-weight:900;font-size:17px;line-height:.92;letter-spacing:-.02em;
+  text-decoration:none;flex:none;
 }
 .logo span{display:block}
 .logo .l1{color:var(--logo-news)}
 .logo .l2{color:var(--logo-now)}
 .logo .l3{color:var(--logo-next)}
-.nav-links{display:flex;gap:22px;flex-wrap:wrap;align-items:center}
-.nav-links a{
-  color:var(--navbar-fg);text-decoration:none;font-size:15px;font-weight:500;
-  padding:4px 0;border-bottom:2px solid transparent;
+
+.nav-links{
+  display:flex;gap:2px;align-items:center;margin-left:auto;
+  overflow-x:auto;scrollbar-width:none;
 }
-.nav-links a:hover{border-bottom-color:var(--logo-news)}
-.nav-links a[aria-current]{border-bottom-color:var(--logo-news)}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-links a{
+  color:#cbd5e1;text-decoration:none;font-size:14px;font-weight:500;
+  padding:7px 11px;border-radius:6px;white-space:nowrap;
+}
+.nav-links a:hover{color:#fff;background:rgba(255,255,255,.10)}
+.nav-links a[aria-current]{color:#fff;background:rgba(255,255,255,.16)}
+
+/* ── Ticker ────────────────────────────────────────────────────────── */
+
+.ticker{background:var(--card);border-bottom:1px solid var(--border)}
+.ticker-in{
+  max-width:1320px;margin:0 auto;padding:0 20px;
+  display:flex;align-items:stretch;gap:14px;
+}
+.tabs{display:flex;gap:2px;align-items:center;flex:none;padding:7px 0}
+.tab{
+  font:inherit;font-size:12px;font-weight:600;padding:5px 9px;border-radius:6px;
+  border:0;background:transparent;color:var(--muted-foreground);cursor:pointer;white-space:nowrap;
+}
+.tab:hover{background:var(--muted);color:var(--foreground)}
+.tab[aria-selected="true"]{background:#1f2937;color:#fff}
+.tab:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+
+.quotes{
+  display:flex;gap:0;overflow-x:auto;scrollbar-width:none;flex:1;
+  border-left:1px solid var(--border);
+}
+.quotes::-webkit-scrollbar{display:none}
+.quote{
+  display:flex;align-items:baseline;gap:7px;padding:9px 14px;white-space:nowrap;
+  border-right:1px solid var(--border);
+}
+.quote-name{font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--muted-foreground)}
+.quote-price{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.quote-chg{font-size:12px;font-weight:500;font-variant-numeric:tabular-nums}
+.quote.stale .quote-name::after{content:"·";margin-left:4px;color:#f59e0b}
+.up{color:#059669}.down{color:#dc2626}.flat{color:var(--muted-foreground)}
+.quote-missing{font-size:12px;color:var(--muted-foreground)}
+
+@media(max-width:900px){
+  .ticker-in{flex-direction:column;gap:0;padding:0 12px}
+  .tabs{overflow-x:auto;padding:6px 0}
+  .quotes{border-left:0;border-top:1px solid var(--border)}
+}
 
 /* ── Shell ─────────────────────────────────────────────────────────── */
 
@@ -72,25 +146,49 @@ h1{font-size:26px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
 
 /* ── Filter bar ────────────────────────────────────────────────────── */
 
+/* One line. Search, a region menu and an order menu — that is the whole
+   primary surface. Anything more lived in a block that ate half the screen
+   before the reader saw a single headline. */
 .filters{
-  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
-  padding:12px;margin:16px 0 20px;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  margin:14px 0 16px;
 }
-.frow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.frow + .frow{margin-top:10px}
-.fsearch{position:relative;flex:1 1 300px;min-width:200px}
+.fsearch{position:relative;flex:1 1 260px;min-width:180px}
 .fsearch input{
-  width:100%;font:inherit;font-size:15px;color:var(--foreground);
-  background:var(--input);border:1px solid var(--border);border-radius:var(--radius);
-  padding:9px 12px;
+  width:100%;font:inherit;font-size:14px;color:var(--foreground);
+  background:var(--card);border:1px solid var(--border);border-radius:999px;
+  padding:9px 14px 9px 36px;
+}
+.fsearch::before{
+  content:"";position:absolute;left:13px;top:50%;width:13px;height:13px;
+  transform:translateY(-50%);pointer-events:none;opacity:.55;
+  background:currentColor;
+  -webkit-mask:var(--mag) center/contain no-repeat;
+  mask:var(--mag) center/contain no-repeat;
 }
 .fsearch input::placeholder{color:var(--muted-foreground)}
-.fsearch input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(36,99,235,.14)}
-select.fsel{
-  font:inherit;font-size:14px;color:var(--foreground);background:var(--card);
-  border:1px solid var(--border);border-radius:var(--radius);padding:9px 10px;cursor:pointer;
+.fsearch input:focus{
+  outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(36,99,235,.13);
 }
-select.fsel:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(36,99,235,.14)}
+select.fsel{
+  font:inherit;font-size:13px;font-weight:500;color:var(--foreground);
+  background:var(--card);border:1px solid var(--border);border-radius:999px;
+  padding:9px 30px 9px 13px;cursor:pointer;appearance:none;
+  background-image:var(--caret);background-repeat:no-repeat;
+  background-position:right 11px center;background-size:9px;
+}
+select.fsel:hover{border-color:var(--muted-foreground)}
+select.fsel:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(36,99,235,.13)}
+
+.fcount{
+  font-size:13px;color:var(--muted-foreground);margin:0;
+  display:flex;gap:10px;align-items:center;white-space:nowrap;
+}
+.linkbtn{
+  font:inherit;font-size:13px;background:none;border:0;padding:0;
+  color:var(--primary);cursor:pointer;
+}
+.linkbtn:hover{text-decoration:underline}
 
 .chip{
   font:inherit;font-size:13px;font-weight:500;
@@ -100,33 +198,17 @@ select.fsel:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px 
 .chip:hover{border-color:var(--primary);color:var(--primary)}
 .chip[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:#fff}
 .chip:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .flabel{
   font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--muted-foreground);margin-right:2px;
+  color:var(--muted-foreground);
 }
+.frow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.frow + .frow{margin-top:8px}
 
-/* The extras live behind this. Closed by default: the primary controls are
-   search, region and order — everything else is opt-in. */
-details.more{margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
-details.more > summary{
-  cursor:pointer;font-size:13px;font-weight:500;color:var(--primary);
-  list-style:none;display:inline-flex;align-items:center;gap:6px;
+@media(max-width:700px){
+  .fcount{width:100%;order:9}
 }
-details.more > summary::-webkit-details-marker{display:none}
-details.more > summary::after{content:"▾";font-size:11px}
-details.more[open] > summary::after{content:"▴"}
-details.more .frow{margin-top:10px}
-
-.fcount{
-  font-size:13px;color:var(--muted-foreground);margin:10px 0 0;
-  display:flex;gap:12px;align-items:center;flex-wrap:wrap;
-}
-.linkbtn{
-  font:inherit;font-size:13px;background:none;border:0;padding:0;
-  color:var(--primary);cursor:pointer;text-decoration:underline;
-}
-.linkbtn:hover{color:var(--primary-hover)}
 
 /* ── Region cards ──────────────────────────────────────────────────── */
 
@@ -209,6 +291,24 @@ ol.wire mark{background:rgba(36,99,235,.16);color:inherit;border-radius:2px;padd
 .cards h2 a{color:var(--primary);text-decoration:none}
 .cards h2 a:hover{text-decoration:underline}
 .cards p{margin:0;color:var(--muted-foreground);font-size:14px}
+
+/* ── Podcasts ──────────────────────────────────────────────────────── */
+
+.pods{display:grid;gap:14px;margin-top:16px;max-width:900px}
+.pod{
+  border:1px solid var(--border);border-radius:var(--radius);background:var(--card);
+  padding:18px 20px;
+}
+.pod h2{font-size:18px;font-weight:700;margin:0 0 6px;line-height:1.3}
+.pod-meta{
+  font-size:13px;color:var(--muted-foreground);margin:0 0 10px;
+  display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;
+}
+.pod-meta strong{color:var(--foreground);font-weight:600;margin-right:3px}
+.pod-meta .dot{opacity:.5}
+.pod-sum{margin:0 0 12px;font-size:15px;line-height:1.6}
+.pod-link{font-size:14px;font-weight:500;color:var(--primary);text-decoration:none}
+.pod-link:hover{text-decoration:underline}
 
 /* ── Foot ──────────────────────────────────────────────────────────── */
 
