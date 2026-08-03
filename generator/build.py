@@ -28,6 +28,7 @@ import html
 import json
 import re
 import sys
+import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
@@ -35,12 +36,17 @@ from email.utils import parsedate_to_datetime, format_datetime
 from pathlib import Path
 
 from theme import CSS
+import market
 from filterjs import FILTER_JS
+from booksjs import BOOKS_JS
 
 HERE = Path(__file__).resolve().parent
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36 NewsNowNextBuilder/2.0")
-CACHE = HERE / ".cache" / "items.json"
+# Keyed on output_dir so the offline self-test (which writes site-test/) cannot
+# clobber the production pull. They shared one path and it silently did.
+def cache_path(cfg):
+    return HERE / ".cache" / f"items-{cfg['output_dir']}.json"
 
 NS = {
     "atom": "http://www.w3.org/2005/Atom",
@@ -235,13 +241,76 @@ def stamp(dt):
 
 NAV = [
     ("/", "News"),
+    ("/books/", "Books"),
+    ("/forex/", "Forex"),
     ("/topics/", "Topics"),
     ("/recap/", "Daily recap"),
 ]
 
 
+def money(v, dp=2):
+    return f"{v:,.{dp}f}"
+
+
+def signed(v, dp=2, suffix=""):
+    return f"{v:+,.{dp}f}{suffix}"
+
+
+def dir_class(v):
+    return "up" if v > 0 else "down" if v < 0 else "flat"
+
+
+def ticker_strip(mkt):
+    """The four-tab quote strip that sits under the nav on every page.
+
+    Server-rendered for all four tabs; the tab buttons only toggle visibility,
+    so it works with JavaScript off and a crawler sees every number.
+    """
+    if not mkt:
+        return ""
+    tabs, panels = [], []
+    for i, (tid, label, rows) in enumerate(mkt["tabs"]):
+        first = i == 0
+        tabs.append(
+            f'<button class="tab" type="button" role="tab" id="tab-{tid}" '
+            f'aria-controls="panel-{tid}" aria-selected="{"true" if first else "false"}" '
+            f'data-tab="{tid}">{esc(label)}</button>')
+
+        cards = []
+        for sym, name, code in rows:
+            q = mkt["quotes"].get(sym)
+            if not q:
+                cards.append(
+                    f'<div class="quote"><div class="quote-top">'
+                    f'<span class="quote-name">{esc(name)}</span></div>'
+                    f'<span class="quote-badge">{esc(code)}</span>'
+                    f'<p class="quote-missing">Unavailable</p></div>')
+                continue
+            dp = 2 if abs(q["price"]) >= 10 else 4
+            cls = dir_class(q["change"])
+            live = "Delayed" if q["stale"] else "Live"
+            cards.append(
+                f'<div class="quote{" stale" if q["stale"] else ""}">'
+                f'<div class="quote-top"><span class="quote-name">{esc(name)}</span>'
+                f'<span class="quote-live">{live}</span></div>'
+                f'<span class="quote-badge">{esc(code)}</span>'
+                f'<div class="quote-price">{money(q["price"], dp)}</div>'
+                f'<div class="quote-chg {cls}">{signed(q["change"], dp)} '
+                f'({signed(q["pct"], 2, "%")})</div>'
+                f'</div>')
+
+        panels.append(
+            f'<div class="quotes" role="tabpanel" id="panel-{tid}" '
+            f'aria-labelledby="tab-{tid}"{"" if first else " hidden"}>'
+            f'{"".join(cards)}</div>')
+
+    return (f'<div class="ticker"><div class="ticker-in">'
+            f'<div class="tabs" role="tablist" data-ticker>{"".join(tabs)}</div>'
+            f'{"".join(panels)}</div></div>')
+
+
 def shell(cfg, *, title, description, canonical, body, noindex=False,
-          current="/", extra_head="", body_attrs="", scripts=""):
+          current="/", extra_head="", body_attrs="", scripts="", ticker=""):
     links = "".join(
         '<a href="{}"{}>{}</a>'.format(
             href, ' aria-current="page"' if href == current else "", esc(label))
@@ -277,6 +346,7 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
     <div class="nav-links">{links}</div>
   </div>
 </nav>
+{ticker}
 <div class="wrap">
 {body}
 <footer class="foot">
@@ -391,6 +461,136 @@ def region_card(region, buckets):
     ), total
 
 
+
+def forex_page(cfg, mkt, base, out):
+    """The 18-pair table, matching the live site's columns exactly."""
+    fx = mkt.get("fx") or {}
+    spans = mkt.get("spans", [])
+    heads = "".join(f"<th>{esc(x)}</th>" for x in spans)
+    rows = []
+    for pair in mkt.get("pairs", []):
+        v = fx.get(pair)
+        if not v:
+            continue
+        dp = 4 if v["rate"] < 100 else 4
+        cells = []
+        for span in spans:
+            ch = v["changes"].get(span)
+            if ch is None:
+                cells.append('<td class="flat">n/a</td>')
+            else:
+                cells.append(f'<td class="{dir_class(ch)}">{signed(ch, 2, "%")}</td>')
+        rows.append(
+            f'<tr><td><span class="fx-pair">{esc(pair)}</span>'
+            f'<span class="fx-rate">{money(v["rate"], dp)}</span></td>'
+            f'{"".join(cells)}</tr>')
+
+    asof = market.load_cache().get("fx_date")
+    note = (f'<p class="standfirst">European Central Bank reference rates'
+            f'{f", as of {esc(asof)}" if asof else ""}. '
+            f'ECB publishes once per business day, so moves are day-over-day '
+            f'rather than intraday.</p>')
+
+    body = (
+        '<div class="page-head"><h1>Forex</h1>'
+        '<p class="standfirst">Major currency pairs and how far they have moved.</p></div>'
+        + ('<div class="tablewrap"><table class="fx"><thead><tr><th>Pair</th>'
+           f'{heads}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>' + note
+           if rows else
+           '<p class="empty">Rates are temporarily unavailable. '
+           'The next build will restore them.</p>')
+    )
+    write(out / "forex" / "index.html", shell(
+        cfg, title=f"Forex — major currency pairs — {cfg['site_name']}",
+        description=("Live major forex pairs with daily, weekly, monthly, "
+                     "year-to-date, one-year and three-year moves."),
+        canonical=f"{base}/forex/", body=body, current="/forex/",
+        ticker=ticker_strip(mkt),
+        extra_head=breadcrumbs(base, [("Forex", "/forex/")]),
+    ))
+    return f"{base}/forex/"
+
+
+def books_page(cfg, mkt, base, out):
+    """The 120-title reading list, with the client's affiliate tag preserved."""
+    data = json.loads((HERE / "data" / "books.json").read_text(encoding="utf-8"))
+    tag = data["affiliate_tag"]
+    books = sorted(data["books"], key=lambda b: b[0].lower())
+
+    chips = "".join(
+        f'<button class="chip" type="button" data-book-cat="{esc(c)}" '
+        f'aria-pressed="false">{esc(c)}</button>'
+        for c in data["categories"])
+
+    cards = []
+    for title, author, year, cat in books:
+        q = urllib.parse.quote(f"{title} {author}")
+        href = f"https://amazon.com/s?k={q}&tag={tag}"
+        cards.append(
+            f'<article class="book" data-book data-cat="{esc(cat)}" '
+            f'data-year="{year}" data-title="{esc(title.lower())}">'
+            f'<span class="book-cat">{esc(cat)}</span>'
+            f'<h3>{esc(title)}</h3>'
+            f'<p class="byline">{esc(author)} &middot; {year}</p>'
+            f'<a class="buy" href="{esc(href)}" rel="nofollow sponsored noopener" '
+            f'target="_blank">Buy on Amazon &rarr;</a></article>')
+
+    ld = json.dumps({
+        "@context": "https://schema.org", "@type": "ItemList",
+        "name": "Best Finance & Business Books",
+        "numberOfItems": len(books),
+        "itemListElement": [
+            {"@type": "ListItem", "position": i + 1,
+             "item": {"@type": "Book", "name": t, "author": {"@type": "Person", "name": a},
+                      "datePublished": str(y)}}
+            for i, (t, a, y, _) in enumerate(books)
+        ],
+    })
+
+    body = (
+        '<div class="page-head"><h1>Best Finance &amp; Business Books</h1>'
+        f'<p class="standfirst">{len(books)} titles, curated by {esc(cfg["site_name"])}. '
+        'Affiliate links — we may earn a commission.</p></div>'
+        '<div class="filters" data-book-filters hidden>'
+        '<div class="frow"><div class="fsearch">'
+        '<label class="sr-only" for="b-q">Filter books</label>'
+        '<input id="b-q" type="search" autocomplete="off" placeholder="Filter by title or author…">'
+        '</div><label class="sr-only" for="b-sort">Order</label>'
+        '<select id="b-sort" class="fsel">'
+        '<option value="az">A–Z</option><option value="new">Newest first</option>'
+        '<option value="old">Oldest first</option></select></div>'
+        f'<div class="frow"><span class="flabel">Category</span>'
+        f'<nav class="chips">{chips}</nav></div>'
+        '<p class="fcount"><span id="b-count"></span>'
+        '<button class="linkbtn" id="b-clear" type="button" hidden>Clear filters</button></p>'
+        '</div>'
+        '<p class="empty" id="b-empty" hidden>No books match those filters.</p>'
+        f'<div class="books" id="book-grid">{"".join(cards)}</div>'
+    )
+
+    write(out / "books" / "index.html", shell(
+        cfg, title=f"{len(books)} best finance and business books — {cfg['site_name']}",
+        description=("A curated reading list of finance, investing, economics and "
+                     "business books, filterable by category and sortable by year."),
+        canonical=f"{base}/books/", body=body, current="/books/",
+        ticker=ticker_strip(mkt),
+        extra_head=(f'<script type="application/ld+json">{ld}</script>'
+                    + breadcrumbs(base, [("Books", "/books/")])),
+        scripts='<script src="/assets/books.js" defer></script>',
+    ))
+    return f"{base}/books/"
+
+
+def breadcrumbs(base, trail):
+    items = [{"@type": "ListItem", "position": 1, "name": "Home", "item": f"{base}/"}]
+    for i, (name, path) in enumerate(trail, start=2):
+        items.append({"@type": "ListItem", "position": i, "name": name,
+                      "item": f"{base}{path}"})
+    ld = json.dumps({"@context": "https://schema.org", "@type": "BreadcrumbList",
+                     "itemListElement": items})
+    return f'<script type="application/ld+json">{ld}</script>'
+
+
 def wire_list(items, mark_sessions=False):
     """Merged chronological list, used on topic and recap pages."""
     out, current_day = [], None
@@ -422,12 +622,14 @@ def write(path: Path, content: str):
     print(f"  wrote {path.name}")
 
 
-def build(cfg, items, out: Path):
+def build(cfg, items, out: Path, mkt=None):
     base = cfg["base_url"].rstrip("/")
+    mkt = mkt or {}
     urls = []
 
     write(out / "assets" / "site.css", CSS.strip())
     write(out / "assets" / "filter.js", FILTER_JS.strip())
+    write(out / "assets" / "books.js", BOOKS_JS.strip())
 
     buckets = by_source(items, cfg)
     wire = merged(items)
@@ -458,10 +660,15 @@ def build(cfg, items, out: Path):
         description=("Financial and world news from every major desk on one page: "
                      "US, UK, China, France, Switzerland and the Middle East."),
         canonical=f"{base}/", body=home_body, current="/",
+        ticker=ticker_strip(mkt),
         extra_head=f"<script>window.__TOPICS__={topic_json};</script>",
         scripts='<script src="/assets/filter.js" defer></script>',
     ))
     urls.append((f"{base}/", datetime.now(timezone.utc)))
+
+    if mkt:
+        urls.append((forex_page(cfg, mkt, base, out), datetime.now(timezone.utc)))
+    urls.append((books_page(cfg, mkt, base, out), datetime.now(timezone.utc)))
 
     # ── Topic pages ──────────────────────────────────────────────────
     for topic in cfg["topics"]:
@@ -597,25 +804,30 @@ def main():
         out = HERE / out
 
     if args.no_fetch:
-        if not CACHE.exists():
+        cache_file = cache_path(cfg)
+        if not cache_file.exists():
             sys.exit("No cache yet — run once without --no-fetch.")
-        raw = json.loads(CACHE.read_text(encoding="utf-8"))
+        raw = json.loads(cache_file.read_text(encoding="utf-8"))
         print(f"Using cached pull: {len(raw)} items")
     else:
         print("Fetching feeds…")
         raw, failed = collect(cfg)
         if not raw:
             sys.exit("Every feed failed. Nothing to build.")
-        CACHE.parent.mkdir(parents=True, exist_ok=True)
-        CACHE.write_text(json.dumps(raw), encoding="utf-8")
+        cache_file = cache_path(cfg)
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        cache_file.write_text(json.dumps(raw), encoding="utf-8")
         if failed:
             print(f"\nNote: {len(failed)} source(s) unavailable: {', '.join(failed)}")
 
     items = within(raw, cfg["window_hours"])
     print(f"\n{len(items)} headlines in the last {cfg['window_hours']}h")
 
+    print("Market data…")
+    mkt = market.collect(offline=args.no_fetch)
+
     print("Building…")
-    count, shown, (has_syn, day) = build(cfg, items, out)
+    count, shown, (has_syn, day) = build(cfg, items, out, mkt)
 
     print(f"\nDone. {shown} headlines on the home page, "
           f"{count} indexable URL(s) in {out}")

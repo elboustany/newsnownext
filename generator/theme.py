@@ -69,6 +69,78 @@ a{color:inherit}
 .nav-links a:hover{border-bottom-color:var(--logo-news)}
 .nav-links a[aria-current]{border-bottom-color:var(--logo-news)}
 
+/* ── Ticker strip ──────────────────────────────────────────────────── */
+
+.ticker{background:var(--muted);border-bottom:1px solid var(--border)}
+.ticker-in{max-width:1320px;margin:0 auto;padding:14px 20px 16px}
+.tabs{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:12px}
+.tab{
+  font:inherit;font-size:13px;font-weight:500;padding:6px 14px;border-radius:999px;
+  border:1px solid transparent;background:transparent;color:var(--muted-foreground);cursor:pointer;
+}
+.tab:hover{color:var(--foreground);background:var(--card)}
+.tab[aria-selected="true"]{background:#1f2937;color:#fff}
+.tab:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+.quotes{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:900px){.quotes{grid-template-columns:repeat(4,1fr)}}
+.quote{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:12px 14px;min-width:0;
+}
+.quote-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.quote-name{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-foreground)}
+.quote-live{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted-foreground)}
+.quote-live::before{content:"";width:6px;height:6px;border-radius:50%;background:#10b981}
+.quote.stale .quote-live::before{background:#f59e0b}
+.quote-badge{
+  display:inline-block;font-size:10px;font-weight:700;color:#fff;
+  padding:2px 6px;border-radius:4px;background:var(--primary);margin-bottom:4px;
+}
+.quote-price{font-size:20px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.quote-chg{font-size:13px;font-weight:500;font-variant-numeric:tabular-nums;margin-top:2px}
+.up{color:#059669}.down{color:#dc2626}.flat{color:var(--muted-foreground)}
+.quote-at{font-size:11px;color:var(--muted-foreground);margin-top:4px}
+.quote-missing{color:var(--muted-foreground);font-size:13px}
+
+/* ── Forex table ───────────────────────────────────────────────────── */
+
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--card)}
+table.fx{border-collapse:collapse;width:100%;min-width:640px}
+table.fx th,table.fx td{padding:11px 14px;text-align:right;font-size:14px;white-space:nowrap}
+table.fx th{
+  background:var(--muted);font-size:11px;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--muted-foreground);border-bottom:1px solid var(--border);
+}
+table.fx th:first-child,table.fx td:first-child{text-align:left}
+table.fx tbody tr{border-bottom:1px solid var(--border)}
+table.fx tbody tr:last-child{border-bottom:0}
+table.fx tbody tr:hover{background:var(--muted)}
+table.fx td{font-variant-numeric:tabular-nums}
+.fx-pair{font-weight:600}
+.fx-rate{color:var(--muted-foreground);font-weight:400;margin-left:8px}
+
+/* ── Books ─────────────────────────────────────────────────────────── */
+
+.books{display:grid;gap:12px;grid-template-columns:1fr;margin-top:18px}
+@media(min-width:700px){.books{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1100px){.books{grid-template-columns:repeat(3,1fr)}}
+.book{
+  border:1px solid var(--border);border-radius:var(--radius);background:var(--card);
+  padding:14px 16px;display:flex;flex-direction:column;gap:6px;
+}
+.book-cat{
+  font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--source);
+}
+.book h3{font-size:15px;font-weight:600;margin:0;line-height:1.3}
+.book .byline{font-size:13px;color:var(--muted-foreground);margin:0}
+.book a.buy{
+  font-size:13px;font-weight:500;color:var(--primary);text-decoration:none;margin-top:auto;
+}
+.book a.buy:hover{text-decoration:underline}
+.book mark{background:rgba(36,99,235,.16);color:inherit;border-radius:2px;padding:0 1px}
+
 /* ── Shell ─────────────────────────────────────────────────────────── */
 
 .wrap{max-width:1320px;margin:0 auto;padding:20px 20px 64px}

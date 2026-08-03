@@ -92,10 +92,17 @@ def _get(url, timeout=20, tries=3):
             req = urllib.request.Request(url, headers={"User-Agent": UA})
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            # 429 means this IP is throttled; it will not clear in a few
+            # seconds, and retrying 16 symbols x 3 turned a build into minutes.
+            # Give up on this symbol immediately and let the cache cover it.
+            if e.code == 429:
+                raise
+            last = e
         except Exception as e:                      # noqa: BLE001 - retried below
             last = e
-            if attempt < tries - 1:
-                time.sleep(1.5 * (attempt + 1))     # back off; Yahoo throttles bursts
+        if attempt < tries - 1:
+            time.sleep(1.5 * (attempt + 1))
     raise last
 
 
