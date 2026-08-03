@@ -1,0 +1,15 @@
+# Generated output — rebuilt by build.py, never edit by hand
+generator/site/
+generator/site-test/
+generator/.cache/
+
+# Built store uploads
+dist/*.zip
+
+# Written per day; keep the template, ignore nothing else here by default.
+# (Synopsis and notes files ARE tracked — they're the original content that
+# makes pages indexable, and losing them un-indexes the site.)
+
+.DS_Store
+__pycache__/
+*.pyc

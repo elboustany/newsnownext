@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New Tab</title>
+<link rel="stylesheet" href="newtab.css">
+</head>
+<body>
+<div class="frame">
+
+  <header class="masthead">
+    <a class="wordmark" href="https://www.newsnownext.org/" title="Open newsnownext.org">
+      <span class="wordmark-a">NEWS</span><span class="wordmark-b">NOW</span><span class="wordmark-a">NEXT</span>
+    </a>
+
+    <div class="clockset">
+      <div class="clock" id="clock" aria-live="off">--:--:--</div>
+      <div class="clock-zone" id="clockZone">UTC</div>
+    </div>
+
+    <div class="sessions" id="sessionState" aria-label="Market sessions"></div>
+  </header>
+
+  <nav class="sources" id="sources" aria-label="Filter by source"></nav>
+
+  <main class="wire" id="wire" aria-live="polite" aria-busy="true">
+    <p class="state" id="state">Loading the wire…</p>
+  </main>
+
+  <footer class="footrule">
+    <span id="status">—</span>
+    <button class="refresh" id="refresh" type="button">Refresh</button>
+  </footer>
+
+</div>
+<script type="module" src="newtab.js"></script>
+</body>
+</html>

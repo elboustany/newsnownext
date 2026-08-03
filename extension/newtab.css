@@ -1,0 +1,293 @@
+/* NewsNowNext — Market Wire
+   Palette: cool newsprint. Ink on grey-green paper, two signal colours
+   borrowed from the tape (teal = pre-open/quiet, rust = session live).      */
+
+:root {
+  --paper:        #E9EBE4;
+  --paper-raised: #F3F5EE;
+  --ink:          #16191A;
+  --ink-soft:     #5C6259;
+  --ink-faint:    #8B9086;
+  --rule:         #C9CDC0;
+  --rule-strong:  #A9AE9E;
+  --signal:       #B23A2E;
+  --quiet:        #1F6F63;
+  --focus:        #1F6F63;
+
+  --display: "Helvetica Neue Condensed", "HelveticaNeue-CondensedBold",
+             "Arial Narrow", "Roboto Condensed", Helvetica, Arial, sans-serif;
+  --body:    ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
+  --data:    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --spine: 88px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper:        #14171A;
+    --paper-raised: #1B1F22;
+    --ink:          #E7E9E3;
+    --ink-soft:     #9AA096;
+    --ink-faint:    #6B7168;
+    --rule:         #2C3136;
+    --rule-strong:  #454B4F;
+    --signal:       #D9614F;
+    --quiet:        #4FA694;
+    --focus:        #4FA694;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.frame {
+  max-width: 1080px;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 0 32px 64px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Masthead ─────────────────────────────────────────────────────────── */
+
+.masthead {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: 24px;
+  padding: 40px 0 18px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.wordmark {
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.wordmark-b { color: var(--signal); }
+.wordmark:hover .wordmark-b { color: var(--ink); }
+
+.clockset { justify-self: start; display: flex; align-items: baseline; gap: 8px; }
+.clock {
+  font-family: var(--data);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+.clock-zone {
+  font-family: var(--data);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+}
+
+.sessions { display: flex; gap: 18px; justify-self: end; }
+.session {
+  font-family: var(--data);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.session::before {
+  content: "";
+  width: 6px; height: 6px;
+  border: 1px solid var(--ink-faint);
+  border-radius: 50%;
+}
+.session.open { color: var(--signal); }
+.session.open::before { background: var(--signal); border-color: var(--signal); }
+
+/* ── Source filter ────────────────────────────────────────────────────── */
+
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 14px 0 20px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.chip {
+  font-family: var(--data);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  border-radius: 2px;
+}
+.chip:hover { border-color: var(--ink); color: var(--ink); }
+.chip[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+.chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* ── The wire ─────────────────────────────────────────────────────────── */
+
+.wire { flex: 1; padding-top: 4px; }
+
+.state {
+  font-family: var(--data);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  padding: 48px 0;
+}
+
+/* Session rule: the signature device. A labelled hairline dropped into the
+   feed wherever the stream crosses an exchange open or close. */
+.session-rule {
+  display: grid;
+  grid-template-columns: var(--spine) 1fr;
+  align-items: center;
+  gap: 0;
+  margin: 22px 0 14px;
+}
+.session-rule .t {
+  font-family: var(--data);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--signal);
+  padding-right: 16px;
+  text-align: right;
+}
+.session-rule .l {
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--signal);
+  position: relative;
+  padding-right: 12px;
+}
+.session-rule .l::after {
+  content: "";
+  position: absolute;
+  left: calc(100% + 0px);
+  right: -100vw;
+  top: 50%;
+  border-top: 1px solid var(--signal);
+  opacity: 0.45;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: var(--spine) 1fr;
+  gap: 0;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--rule);
+  animation: rise 220ms ease-out both;
+}
+
+.item .t {
+  font-family: var(--data);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+  padding-right: 16px;
+  text-align: right;
+  padding-top: 3px;
+  border-right: 1px solid var(--rule);
+}
+
+.item .body { padding-left: 16px; min-width: 0; }
+
+.item a.h {
+  font-family: var(--display);
+  font-size: 19px;
+  line-height: 1.25;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  display: block;
+}
+.item a.h:hover { text-decoration: underline; text-underline-offset: 3px; }
+.item a.h:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+
+.item .meta {
+  margin-top: 5px;
+  font-family: var(--data);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.item .src { color: var(--ink-soft); }
+.item .via { opacity: 0.75; }
+
+.item.fresh .t { color: var(--signal); }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── Foot ─────────────────────────────────────────────────────────────── */
+
+.footrule {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 26px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--data);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.refresh {
+  font: inherit;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: none;
+  border: 1px solid var(--rule-strong);
+  color: var(--ink-soft);
+  padding: 5px 12px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+.refresh:hover { border-color: var(--ink); color: var(--ink); }
+.refresh:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  :root { --spine: 58px; }
+  .frame { padding: 0 18px 48px; }
+  .masthead { grid-template-columns: 1fr auto; row-gap: 10px; padding-top: 26px; }
+  .sessions { grid-column: 1 / -1; justify-self: start; flex-wrap: wrap; gap: 12px; }
+  .wordmark { font-size: 24px; }
+  .item a.h { font-size: 17px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item { animation: none; }
+}

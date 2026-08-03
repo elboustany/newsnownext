@@ -1,0 +1,55 @@
+{
+  "site_name": "NewsNowNext",
+  "base_url": "https://www.newsnownext.org",
+  "output_dir": "site",
+  "window_hours": 72,
+  "max_per_topic": 60,
+  "feeds": [
+    { "id": "reuters", "label": "Reuters", "via": "Google News", "url": "https://news.google.com/rss/search?q=when:1d+site:reuters.com+(markets+OR+economy+OR+stocks)&hl=en-US&gl=US&ceid=US:en" },
+    { "id": "bloomberg", "label": "Bloomberg", "via": "Google News", "url": "https://news.google.com/rss/search?q=when:1d+site:bloomberg.com+(markets+OR+economy+OR+stocks)&hl=en-US&gl=US&ceid=US:en" },
+    { "id": "cnbc", "label": "CNBC", "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114" },
+    { "id": "marketwatch", "label": "MarketWatch", "url": "https://feeds.content.dowjones.io/public/rss/mw_topstories" },
+    { "id": "yahoo", "label": "Yahoo Finance", "url": "https://finance.yahoo.com/news/rssindex" },
+    { "id": "zerohedge", "label": "ZeroHedge", "url": "https://feeds.feedburner.com/zerohedge/feed" },
+    { "id": "investing", "label": "Investing.com", "url": "https://www.investing.com/rss/news.rss" },
+    { "id": "ft", "label": "Financial Times", "url": "https://www.ft.com/rss/home/international" }
+  ],
+  "topics": [
+    {
+      "slug": "oil",
+      "title": "Oil and energy",
+      "description": "Crude, gas and energy market headlines from across the wire, updated through the day.",
+      "keywords": ["oil", "crude", "brent", "wti", "opec", "natural gas", "lng", "refinery", "barrel", "pipeline", "energy prices"]
+    },
+    {
+      "slug": "crypto",
+      "title": "Crypto",
+      "description": "Bitcoin, ether and digital asset headlines pulled from every major finance desk.",
+      "keywords": ["bitcoin", "btc", "ethereum", "ether", "crypto", "stablecoin", "binance", "coinbase", "defi", "digital asset", "tokenised", "tokenized"]
+    },
+    {
+      "slug": "rates",
+      "title": "Central banks and rates",
+      "description": "Fed, ECB, BoE and Bank of Japan decisions, minutes and speeches as they cross the wire.",
+      "keywords": ["fed", "federal reserve", "fomc", "ecb", "bank of england", "bank of japan", "boj", "interest rate", "rate cut", "rate hike", "inflation", "cpi", "yield", "treasury", "bond"]
+    },
+    {
+      "slug": "equities",
+      "title": "Equities",
+      "description": "Stock market moves, earnings and index headlines across US, European and Asian sessions.",
+      "keywords": ["stocks", "shares", "equities", "s&p", "nasdaq", "dow", "ftse", "dax", "nikkei", "earnings", "ipo", "buyback", "index", "wall street"]
+    },
+    {
+      "slug": "china",
+      "title": "China and Asia",
+      "description": "Chinese economic data, policy moves and Asian market headlines in one place.",
+      "keywords": ["china", "chinese", "beijing", "pboc", "yuan", "renminbi", "hong kong", "japan", "yen", "korea", "india", "asia"]
+    },
+    {
+      "slug": "ai-and-tech",
+      "title": "AI and tech",
+      "description": "The technology stories moving markets: chips, AI spending, platform earnings and regulation.",
+      "keywords": ["ai", "artificial intelligence", "chip", "semiconductor", "nvidia", "openai", "data centre", "data center", "cloud", "apple", "microsoft", "meta", "alphabet", "tesla"]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "NewsNowNext \u2014 Market Wire",
+  "short_name": "NewsNowNext",
+  "version": "1.0.0",
+  "description": "Every new tab becomes a live financial wire. Bloomberg, Reuters, CNBC, MarketWatch and more, on one timeline.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://news.google.com/*",
+    "https://search.cnbc.com/*",
+    "https://feeds.content.dowjones.io/*",
+    "https://finance.yahoo.com/*",
+    "https://feeds.feedburner.com/*",
+    "https://www.investing.com/*",
+    "https://www.ft.com/*",
+    "https://www.newsnownext.org/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

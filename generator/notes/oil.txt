@@ -1,0 +1,19 @@
+Oil is the market where the gap between a headline and its meaning is widest.
+A supply disruption story that crosses at 03:00 London time and the same story
+reported again after the New York open are not the same event: the first moves
+Brent, the second usually just records that it moved. This page keeps a rolling
+72 hours of crude, natural gas, refining and OPEC headlines from eight desks in
+the order they actually broke, so that distinction stays visible.
+
+What lands here: Brent and WTI price moves, OPEC and OPEC+ policy, inventory and
+rig-count data, LNG and European gas, refinery outages, pipeline and shipping
+disruption, and the sanctions and geopolitical stories that reprice the barrel
+before any of the above catches up.
+
+What to watch for when reading it: the same story appearing from three sources
+inside twenty minutes usually means a wire pickup rather than three confirmations,
+and a price move with no headline above it is worth more attention than a headline
+with no move under it.
+
+Headlines link straight to the publisher. Nothing is reproduced here beyond the
+headline itself.

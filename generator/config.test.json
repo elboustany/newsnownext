@@ -1,0 +1,27 @@
+{
+  "_comment": "Offline self-test. Feeds are local fixture files (no scheme = path relative to build.py). One is deliberately malformed: the build must report it and carry on. Writes to site-test/ so it never clobbers a real build.",
+  "site_name": "NewsNowNext",
+  "base_url": "https://www.newsnownext.org",
+  "output_dir": "site-test",
+  "window_hours": 876000,
+  "max_per_topic": 60,
+  "feeds": [
+    { "id": "fixture-a", "label": "Fixture Wire A", "url": "fixtures/good-a.xml" },
+    { "id": "fixture-b", "label": "Fixture Wire B", "url": "fixtures/good-b.xml" },
+    { "id": "fixture-broken", "label": "Fixture Broken", "url": "fixtures/broken.xml" }
+  ],
+  "topics": [
+    {
+      "slug": "oil",
+      "title": "Oil and energy",
+      "description": "Crude, gas and energy market headlines from across the wire, updated through the day.",
+      "keywords": ["oil", "crude", "brent", "wti", "opec", "natural gas", "lng", "refinery", "barrel", "pipeline", "energy prices"]
+    },
+    {
+      "slug": "equities",
+      "title": "Equities",
+      "description": "Stock market moves, earnings and index headlines across US, European and Asian sessions.",
+      "keywords": ["stocks", "shares", "equities", "s&p", "nasdaq", "dow", "ftse", "dax", "nikkei", "earnings", "ipo", "buyback", "index", "wall street"]
+    }
+  ]
+}
