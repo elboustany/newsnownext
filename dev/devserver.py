@@ -153,6 +153,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         types = {".html": "text/html; charset=utf-8", ".css": "text/css",
                  ".js": "application/javascript", ".json": "application/json",
                  ".png": "image/png", ".xml": "application/xml",
+                 ".webmanifest": "application/manifest+json",
+                 ".ics": "text/calendar; charset=utf-8",
                  ".txt": "text/plain; charset=utf-8"}
         self._send(path.read_bytes(), types.get(path.suffix, "application/octet-stream"))
 

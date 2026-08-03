@@ -31,7 +31,9 @@ FILTER_JS = r"""
   // therefore matches every headline as if it were a card — which then hides
   // all of them, because an <li> contains no [data-item] descendants.
   var cards = [].slice.call(document.querySelectorAll('section[data-region]'));
-  var srcs  = [].slice.call(document.querySelectorAll('[data-source]'));
+  // .src scope matters: bookmark buttons also carry data-* attributes, and
+  // a bare attribute selector once matched 247 buttons and crashed apply().
+  var srcs  = [].slice.call(document.querySelectorAll('.src[data-source]'));
   var items = [].slice.call(document.querySelectorAll('[data-item]'));
 
   var TOPICS = window.__TOPICS__ || {};
@@ -44,6 +46,8 @@ FILTER_JS = r"""
     li._raw = a.textContent;
     li._hay = (a.textContent + ' ' + (li.getAttribute('data-src') || '')).toLowerCase();
     li._ts = +li.getAttribute('data-ts') || 0;
+    var block = li.closest('[data-source]');
+    li._sid = block ? block.getAttribute('data-source') : '';
   });
 
   /* ── persistence ──────────────────────────────────────────────── */
@@ -61,6 +65,15 @@ FILTER_JS = r"""
     if (regions[saved.region]) state.region = saved.region;
     if (topics[saved.topic]) state.topic = saved.topic;
     state.sessions = saved.sessions === true;
+    state.hiddenSources = Array.isArray(saved.hiddenSources)
+      ? saved.hiddenSources.filter(function (x) { return typeof x === 'string'; })
+      : [];
+    state.pins = Array.isArray(saved.pins)
+      ? saved.pins.filter(function (x) { return typeof x === 'string'; })
+      : [];
+    state.follows = Array.isArray(saved.follows)
+      ? saved.follows.filter(function (x) { return typeof x === 'string'; })
+      : [];
   } catch (e) {}
 
   // Deep link: /?q=yen pre-fills the search. Used by the assistant and by
@@ -71,11 +84,14 @@ FILTER_JS = r"""
   } catch (e) {}
 
   function save() {
+    // Merge, never overwrite: the preferences page stores pins, hidden
+    // sources and followed keywords under the same key.
     try {
-      localStorage.setItem(KEY, JSON.stringify({
-        region: state.region, topic: state.topic,
-        sort: state.sort, window: state.window, sessions: state.sessions
-      }));
+      var cur = JSON.parse(localStorage.getItem(KEY) || '{}');
+      cur.region = state.region; cur.topic = state.topic;
+      cur.sort = state.sort; cur.window = state.window;
+      cur.sessions = state.sessions;
+      localStorage.setItem(KEY, JSON.stringify(cur));
     } catch (e) {}
   }
 
@@ -124,7 +140,9 @@ FILTER_JS = r"""
 
     items.forEach(function (li) {
       var ok = true;
-      if (state.region && li.getAttribute('data-region') !== state.region) ok = false;
+      if (state.hiddenSources.length &&
+          state.hiddenSources.indexOf(li._sid) > -1) ok = false;
+      if (ok && state.region && li.getAttribute('data-region') !== state.region) ok = false;
       if (ok && cutoff && li._ts * 1000 < cutoff) ok = false;
       if (ok && !topicHit(li)) ok = false;
       if (ok && t.length) {
@@ -229,6 +247,61 @@ FILTER_JS = r"""
       e.preventDefault(); q.focus(); q.select();
     }
   });
+
+  // Favourite regions float to the top of the grid, in the order pinned.
+  if (state.pins.length) {
+    var grid = document.querySelector('.grid');
+    if (grid) {
+      state.pins.slice().reverse().forEach(function (id) {
+        var card = grid.querySelector('section[data-region="' + id + '"]');
+        if (card) grid.insertBefore(card, grid.firstChild);
+      });
+    }
+  }
+
+  // "For you": followed keywords matched against the whole wire, hottest
+  // first, with a badge when the trending engine shows desk consensus.
+  (function () {
+    var box = document.getElementById('foryou');
+    if (!box || !state.follows.length) return;
+    var res = state.follows.map(function (kw) {
+      return { kw: kw, re: new RegExp('(?<![a-z0-9])' + esc(kw) + '(?![a-z0-9])', 'i') };
+    });
+    var hot = {};
+    [].slice.call(document.querySelectorAll(
+      '[data-trend-group="all"] .tcard')).forEach(function (c) {
+      var a = c.querySelector('.thl');
+      var m = c.querySelector('.tmeta');
+      if (a && m && /desks/.test(m.textContent)) hot[a.getAttribute('href')] = true;
+    });
+    var seen = {}, matches = [];
+    items.forEach(function (li) {
+      if (state.hiddenSources.indexOf(li._sid) > -1) return;
+      for (var i = 0; i < res.length; i++) {
+        if (res[i].re.test(li._raw)) {
+          var href = li._a.getAttribute('href');
+          if (seen[href]) return;
+          seen[href] = true;
+          matches.push({ li: li, href: href });
+          return;
+        }
+      }
+    });
+    if (!matches.length) return;
+    matches.sort(function (a, b) { return b.li._ts - a.li._ts; });
+    var html = '<h2>For you <span class="fy-kw">' +
+      state.follows.map(escHtml).join(' · ') + '</span></h2><ul>';
+    matches.slice(0, 6).forEach(function (m) {
+      html += '<li><a href="' + m.href + '" rel="nofollow noopener" ' +
+        'target="_blank">' + escHtml(m.li._raw) + '</a>' +
+        '<span class="fy-src">' + escHtml(m.li.getAttribute('data-src') || '') +
+        '</span>' + (hot[m.href] ? '<span class="fy-hot">desks agree</span>' : '') +
+        '</li>';
+    });
+    html += '</ul><a class="linkbtn fy-edit" href="/preferences/">Edit keywords</a>';
+    box.innerHTML = html;
+    box.hidden = false;
+  })();
 
   syncControls();
   reorder();

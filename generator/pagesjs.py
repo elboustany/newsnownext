@@ -287,7 +287,7 @@ PAGES_JS = r"""
           b.setAttribute('aria-pressed', 'false');
         } else {
           list.unshift({ title: b.getAttribute('data-title'), link: link,
-                         source: b.getAttribute('data-source') });
+                         source: b.getAttribute('data-bm-source') });
           b.setAttribute('aria-pressed', 'true');
         }
         writeList(list);
@@ -338,41 +338,137 @@ PAGES_JS = r"""
 
   /* ── Preferences ─────────────────────────────────────────────────── */
   var prefs = document.querySelector('[data-prefs]');
-  if (prefs) {
+  if (prefs && window.__PREFS_META__) {
+    var META = window.__PREFS_META__;
     var KEY = 'nnn:filters';
-    var REGIONS = [
-      ['markets', 'Markets'], ['us', 'US News'], ['uk', 'UK News'],
-      ['blogs', 'Blogs'], ['china', 'China News'], ['france', 'France News'],
-      ['switzerland', 'Switzerland News'], ['middleeast', 'Middle East News']
-    ];
-    var saved = {};
-    try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
+    function readP() {
+      try { return JSON.parse(localStorage.getItem(KEY) || '{}'); }
+      catch (e) { return {}; }
+    }
+    function writeP(patch) {
+      var cur = readP();
+      for (var k in patch) cur[k] = patch[k];
+      try { localStorage.setItem(KEY, JSON.stringify(cur)); } catch (e) {}
+      var msg = document.getElementById('pref-msg');
+      if (msg) msg.textContent = 'Saved.';
+    }
+    var st = readP();
+    st.pins = Array.isArray(st.pins) ? st.pins : [];
+    st.hiddenSources = Array.isArray(st.hiddenSources) ? st.hiddenSources : [];
+    st.follows = Array.isArray(st.follows) ? st.follows : [];
 
-    var html = '<div class="frow" style="margin:14px 0"><span class="flabel">Default region</span>' +
-      '<nav class="chips" id="pref-regions">' +
-      '<button class="chip" type="button" data-r="" aria-pressed="' +
-        String(!saved.region) + '">All</button>';
-    REGIONS.forEach(function (r) {
-      html += '<button class="chip" type="button" data-r="' + r[0] + '" aria-pressed="' +
-        String(saved.region === r[0]) + '">' + escHtml(r[1]) + '</button>';
-    });
-    html += '</nav></div><p class="fcount" id="pref-msg"></p>';
-    prefs.innerHTML = html;
+    function chipRow(id, title) {
+      return '<div class="frow" style="margin:14px 0 4px">' +
+        '<span class="flabel">' + title + '</span></div>' +
+        '<nav class="chips" id="' + id + '"></nav>';
+    }
+    prefs.innerHTML =
+      chipRow('pref-region', 'Default region') +
+      chipRow('pref-pins', 'Favourite regions — shown first on the feed') +
+      chipRow('pref-sources', 'Sources — click to hide from your feed') +
+      '<div class="frow" style="margin:14px 0 4px">' +
+      '<span class="flabel">Followed keywords — build your "For you" strip</span></div>' +
+      '<form id="pref-kw-form" class="frow" style="gap:8px">' +
+      '<input id="pref-kw" type="text" placeholder="e.g. yen, opec, nvidia" ' +
+      'style="font:inherit;font-size:14px;padding:8px 12px;border:1px solid ' +
+      'var(--border);border-radius:999px" autocomplete="off">' +
+      '<button class="chip" type="submit">Add</button></form>' +
+      '<nav class="chips" id="pref-kws" style="margin-top:8px"></nav>' +
+      '<p class="fcount" id="pref-msg" style="margin-top:14px"></p>';
 
-    var msg = document.getElementById('pref-msg');
-    [].slice.call(prefs.querySelectorAll('[data-r]')).forEach(function (b) {
-      b.addEventListener('click', function () {
-        var v = b.getAttribute('data-r') || null;
-        var s = {};
-        try { s = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
-        s.region = v;
-        try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
-        [].slice.call(prefs.querySelectorAll('[data-r]')).forEach(function (o) {
-          o.setAttribute('aria-pressed', String((o.getAttribute('data-r') || null) === v));
+    function draw() {
+      var reg = document.getElementById('pref-region');
+      reg.innerHTML = '';
+      [{ id: '', title: 'All' }].concat(META.regions).forEach(function (r) {
+        var b = document.createElement('button');
+        b.className = 'chip'; b.type = 'button'; b.textContent = r.title;
+        b.setAttribute('aria-pressed', String((st.region || '') === r.id));
+        b.addEventListener('click', function () {
+          st.region = r.id || null; writeP({ region: st.region }); draw();
         });
-        msg.textContent = 'Saved. The feed will open on ' +
-          (v ? b.textContent : 'all regions') + '.';
+        reg.appendChild(b);
       });
+
+      var pins = document.getElementById('pref-pins');
+      pins.innerHTML = '';
+      META.regions.forEach(function (r) {
+        var i = st.pins.indexOf(r.id);
+        var b = document.createElement('button');
+        b.className = 'chip'; b.type = 'button';
+        b.textContent = (i > -1 ? (i + 1) + '. ' : '') + r.title;
+        b.setAttribute('aria-pressed', String(i > -1));
+        b.addEventListener('click', function () {
+          var j = st.pins.indexOf(r.id);
+          if (j > -1) st.pins.splice(j, 1); else st.pins.push(r.id);
+          writeP({ pins: st.pins }); draw();
+        });
+        pins.appendChild(b);
+      });
+
+      var srcs = document.getElementById('pref-sources');
+      srcs.innerHTML = '';
+      META.sources.forEach(function (x) {
+        var hid = st.hiddenSources.indexOf(x.id) > -1;
+        var b = document.createElement('button');
+        b.className = 'chip'; b.type = 'button';
+        b.textContent = (hid ? '✕ ' : '') + x.label;
+        b.title = x.region;
+        b.setAttribute('aria-pressed', String(hid));
+        b.addEventListener('click', function () {
+          var j = st.hiddenSources.indexOf(x.id);
+          if (j > -1) st.hiddenSources.splice(j, 1); else st.hiddenSources.push(x.id);
+          writeP({ hiddenSources: st.hiddenSources }); draw();
+        });
+        srcs.appendChild(b);
+      });
+
+      var kws = document.getElementById('pref-kws');
+      kws.innerHTML = '';
+      st.follows.forEach(function (k) {
+        var b = document.createElement('button');
+        b.className = 'chip'; b.type = 'button';
+        b.setAttribute('aria-pressed', 'true');
+        b.textContent = k + ' ✕';
+        b.addEventListener('click', function () {
+          st.follows = st.follows.filter(function (x) { return x !== k; });
+          writeP({ follows: st.follows }); draw();
+        });
+        kws.appendChild(b);
+      });
+    }
+    document.getElementById('pref-kw-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = document.getElementById('pref-kw').value.trim().toLowerCase();
+      if (v && st.follows.indexOf(v) === -1 && st.follows.length < 12) {
+        st.follows.push(v); writeP({ follows: st.follows });
+      }
+      document.getElementById('pref-kw').value = '';
+      draw();
+    });
+    draw();
+  }
+
+  /* ── Service worker (PWA: instant open, offline fallback) ────────── */
+  if ('serviceWorker' in navigator &&
+      (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    navigator.serviceWorker.register('/sw.js').catch(function () {});
+  }
+
+  /* ── Newsletter placeholder form ─────────────────────────────────── */
+  var nlp = document.querySelector('[data-nl-placeholder]');
+  if (nlp) {
+    nlp.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = nlp.querySelector('input').value.trim();
+      if (!v) return;
+      try {
+        var l = JSON.parse(localStorage.getItem('nnn:nl-intent') || '[]');
+        if (l.indexOf(v) === -1) l.push(v);
+        localStorage.setItem('nnn:nl-intent', JSON.stringify(l));
+      } catch (err) {}
+      nlp.outerHTML = '<div class="note"><p><strong>Noted.</strong> Sending '
+        + 'starts once the list provider is connected — your address is kept '
+        + 'in this browser until then.</p></div>';
     });
   }
 

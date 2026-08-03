@@ -80,6 +80,23 @@ that loop. This bug has been introduced once already.
 
 **Bump `version` in `extension/manifest.json` on every store resubmission.**
 
+## The ultimate version (branch note)
+
+`v1.0-parity` (tag + `parity-version` branch) is the closest match to the live
+site. `main` is the ultimate version on top of it: Today's Brief on the home
+page fed by the synopsis file, house-ad banner selling the newsletter,
+/newsletter/ page (set `newsletter_signup_url` in config.json to go live),
+`dev/gen-digest.py` renders the send-ready email, trending gained
+Consensus/Exclusives groups and cross-build velocity via
+.cache/trending-history.json, bookmarks on every headline, webcal calendar
+feed at /events/calendar.ics, PWA (manifest + sw.js + offline page), and
+Preferences that actually personalise the feed (default region, pinned
+region order, hidden sources, followed keywords -> the For You strip).
+
+Bookmark buttons use data-bm-* attributes ON PURPOSE: they once carried
+data-source and the filter's [data-source] selector matched 247 buttons and
+crashed apply(). Same lesson as data-region. Keep selectors structural.
+
 ## State, as of 2026-08-03
 
 22 sources across 8 regions, all verified live; 248 headlines on the home page.

@@ -252,6 +252,39 @@ def _tokens(title):
             if len(w) > 2 and w not in STOP}
 
 
+TREND_HISTORY = HERE / ".cache" / "trending-history.json"
+
+
+def _cluster_key(toks):
+    return "-".join(sorted(toks)[:6])
+
+
+def _load_trend_history():
+    try:
+        return json.loads(TREND_HISTORY.read_text(encoding="utf-8"))
+    except Exception:                               # noqa: BLE001 - fresh start
+        return {}
+
+
+def _update_trend_history(clusters):
+    """Persist desk counts across builds so the next build can say a story
+    went from one desk to five. Runs on a 30-minute cron in production, so
+    the history accumulates on its own."""
+    hist = _load_trend_history()
+    now = datetime.now(timezone.utc).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
+    hist = {k: v for k, v in hist.items() if v.get("updated", "") >= cutoff}
+    for c in clusters:
+        k = _cluster_key(c["toks"])
+        prev = hist.get(k)
+        c["first_seen"] = prev["first_seen"] if prev else now
+        c["prev_desks"] = prev["desks"] if prev else None
+        hist[k] = {"first_seen": c["first_seen"], "desks": len(c["sources"]),
+                   "updated": now}
+    TREND_HISTORY.parent.mkdir(parents=True, exist_ok=True)
+    TREND_HISTORY.write_text(json.dumps(hist), encoding="utf-8")
+
+
 def trending_clusters(items, hours=24):
     """Group near-duplicate stories across desks.
 
@@ -276,6 +309,7 @@ def trending_clusters(items, hours=24):
             clusters.append({"toks": toks, "rep": it, "sources": {it["source"]}})
 
     clusters.sort(key=lambda c: (len(c["sources"]), c["rep"]["ts"]), reverse=True)
+    _update_trend_history(clusters)
     return clusters
 
 
@@ -293,13 +327,32 @@ def trending_section(cfg, items):
     def card(rank, c):
         it = c["rep"]
         n = len(c["sources"])
-        desks = (f'<p class="tmeta">Covered by {n} desks</p>' if n > 1 else "")
+        # The signal, stated plainly — and its first derivative when the
+        # cross-build history shows the story accelerating.
+        bits = []
+        if n >= 3:
+            bits.append(f"{n} desks agree")
+        elif n == 2:
+            bits.append("2 desks on it")
+        else:
+            bits.append(f"Only {esc(it['source'])} has this")
+        if c.get("prev_desks") and n > c["prev_desks"]:
+            bits.append(f"&#8599; up from {c['prev_desks']}")
+        try:
+            first = parse_date(c.get("first_seen"))
+            age_h = (datetime.now(timezone.utc) - first).total_seconds() / 3600
+            if age_h < 6:
+                bits.append(f"broke {max(1, int(age_h))}h ago" if age_h >= 1
+                            else "just broke")
+        except Exception:                           # noqa: BLE001 - cosmetic
+            pass
+        desks = f'<p class="tmeta">{" &middot; ".join(bits)}</p>'
         return (
             f'<article class="tcard">'
             f'<div class="ttop"><span class="tnum">#{rank}</span>'
             f'<button class="bm" type="button" aria-pressed="false" '
             f'aria-label="Read later" data-bm data-title="{esc(it["title"])}" '
-            f'data-link="{esc(it["link"])}" data-source="{esc(it["source"])}">'
+            f'data-link="{esc(it["link"])}" data-bm-source="{esc(it["source"])}">'
             f'{BOOKMARK_SVG}</button></div>'
             f'<a class="thl" href="{esc(it["link"])}" rel="nofollow noopener" '
             f'target="_blank">{esc(it["title"])}</a>'
@@ -314,6 +367,24 @@ def trending_section(cfg, items):
     groups = [group("all", clusters, False)]
     chips = ['<button class="chip" type="button" data-trend-chip="all" '
              'aria-pressed="true">All</button>']
+
+    # Consensus: what every desk agrees matters. Exclusives: what exactly one
+    # desk is reporting right now — the closest thing a wire has to a scoop.
+    consensus = [c for c in clusters if len(c["sources"]) >= 3]
+    if len(consensus) >= 2:
+        groups.append(group("consensus", consensus, True))
+        chips.append('<button class="chip" type="button" '
+                     'data-trend-chip="consensus" aria-pressed="false">'
+                     'Consensus</button>')
+    now_utc = datetime.now(timezone.utc)
+    exclusives = [c for c in clusters
+                  if len(c["sources"]) == 1
+                  and (now_utc - parse_date(c["rep"]["ts"])).total_seconds() < 6 * 3600]
+    if len(exclusives) >= 2:
+        groups.append(group("exclusives", exclusives, True))
+        chips.append('<button class="chip" type="button" '
+                     'data-trend-chip="exclusives" aria-pressed="false">'
+                     'Exclusives</button>')
     for slug, label in TREND_LABELS:
         topic = by_slug.get(slug)
         if not topic:
@@ -385,11 +456,13 @@ BOOKMARK_SVG = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
                 'aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10'
                 'a2 2 0 0 1 2 2z"/></svg>')
 
+# A house ad, not a fake one: the banner sells the site's own asset — the
+# daily brief and its mailing list — until the slot is sold to a real sponsor.
 PROMO = ("""<div class="promo" id="promo"><div class="promo-in">"""
-         """<span class="tag">AD</span>"""
-         """<strong>Market Intelligence Pro</strong>"""
-         """<span class="muted">Exclusive market insights and trading signals</span>"""
-         """<a href="/contact/">Learn more &rarr;</a>"""
+         """<span class="tag">NEW</span>"""
+         """<strong>The Morning Brief</strong>"""
+         """<span class="muted">The trading day in one written paragraph &mdash; in your inbox before the open</span>"""
+         """<a href="/newsletter/">Subscribe free &rarr;</a>"""
          """<button class="close" id="promo-x" type="button" """
          """aria-label="Dismiss">&times;</button>"""
          """</div></div>""")
@@ -534,6 +607,8 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap">
 <link rel="stylesheet" href="/assets/site.css">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#374151">
 {extra_head}
 </head>
 <body{body_attrs}>
@@ -656,6 +731,10 @@ def region_card(region, buckets):
                 f'<li data-item data-src="{esc(it["source"])}" '
                 f'data-region="{esc(region["id"])}" '
                 f'data-ts="{when.timestamp():.0f}">'
+                f'<button class="bm bm-sm" type="button" aria-pressed="false" '
+                f'aria-label="Read later" data-bm data-title="{esc(it["title"])}" '
+                f'data-link="{esc(it["link"])}" data-bm-source="{esc(it["source"])}">'
+                f'{BOOKMARK_SVG}</button>'
                 f'<a href="{esc(it["link"])}" rel="nofollow noopener" target="_blank">'
                 f'{esc(it["title"])}</a>'
                 f'<time datetime="{when.isoformat()}">{esc(stamp(when))}</time>'
@@ -881,6 +960,26 @@ def events_page(cfg, mkt, base, out):
             "description": e["note"],
         })
 
+    ics_lines = ["BEGIN:VCALENDAR", "VERSION:2.0",
+                 "PRODID:-//NewsNowNext//Economic Calendar//EN",
+                 "X-WR-CALNAME:US Economic Calendar - NewsNowNext",
+                 "X-WR-TIMEZONE:UTC"]
+    for local, e in future:
+        utc = local.astimezone(timezone.utc)
+        end = utc + timedelta(hours=1)
+        ics_lines += ["BEGIN:VEVENT",
+                      f"UID:{utc.strftime('%Y%m%dT%H%M%SZ')}-"
+                      f"{re.sub(r'[^A-Za-z0-9]', '', e['name'])[:24]}@newsnownext.org",
+                      f"DTSTAMP:{utc.strftime('%Y%m%dT%H%M%SZ')}",
+                      f"DTSTART:{utc.strftime('%Y%m%dT%H%M%SZ')}",
+                      f"DTEND:{end.strftime('%Y%m%dT%H%M%SZ')}",
+                      "SUMMARY:" + e["name"].replace(",", "\\,"),
+                      "DESCRIPTION:" + e["note"].replace(",", "\\,"),
+                      "END:VEVENT"]
+    ics_lines.append("END:VCALENDAR")
+    write(out / "events" / "calendar.ics", "\r\n".join(ics_lines))
+    host = base.split("//", 1)[-1]
+
     chips = ['<button class="chip" type="button" data-ev-chip="all" '
              'aria-pressed="true">All</button>'] + [
         f'<button class="chip" type="button" data-ev-chip="{k}" '
@@ -899,7 +998,9 @@ def events_page(cfg, mkt, base, out):
         '<p class="standfirst">The US releases that move markets, in order. '
         'All times Eastern.</p></div>'
         f'<div class="filters" data-ev-filters>{"".join(chips)}'
-        '<p class="fcount"><span id="ev-count-all"></span></p></div>'
+        '<p class="fcount"><span id="ev-count-all"></span>'
+        f'<a class="linkbtn" href="webcal://{esc(host)}/events/calendar.ics">'
+        'Subscribe to this calendar</a></p></div>'
         f'<div class="prose evlist">{"".join(rows)}</div>'
         '<p class="intro"><p>Dates follow the official release calendars and are '
         'maintained by hand; the occasional reschedule is possible. '
@@ -1007,6 +1108,10 @@ def world_page(cfg, mkt, base, out, world_items):
             lis.append(
                 f'<li data-item data-src="{esc(it["source"])}" data-region="{esc(slug)}" '
                 f'data-ts="{when.timestamp():.0f}">'
+                f'<button class="bm bm-sm" type="button" aria-pressed="false" '
+                f'aria-label="Read later" data-bm data-title="{esc(it["title"])}" '
+                f'data-link="{esc(it["link"])}" data-bm-source="{esc(it["source"])}">'
+                f'{BOOKMARK_SVG}</button>'
                 f'<a href="{esc(it["link"])}" rel="nofollow noopener" target="_blank">'
                 f'{esc(it["title"])}</a>'
                 f'<time datetime="{when.isoformat()}">{esc(stamp(when))}</time></li>')
@@ -1072,9 +1177,14 @@ def wire_list(items, mark_sessions=False):
         via = f' via {esc(it["via"])}' if it.get("via") else ""
         out.append(
             f'<li><time datetime="{when.isoformat()}">{esc(stamp(when))}</time>'
-            f'<div><a href="{esc(it["link"])}" rel="nofollow noopener" target="_blank">'
+            f'<div class="wire-body">'
+            f'<a href="{esc(it["link"])}" rel="nofollow noopener" target="_blank">'
             f'{esc(it["title"])}</a>'
-            f'<span class="src-tag">{esc(it["source"])}{via}</span></div></li>'
+            f'<span class="src-tag">{esc(it["source"])}{via}</span></div>'
+            f'<button class="bm bm-sm" type="button" aria-pressed="false" '
+            f'aria-label="Read later" data-bm data-title="{esc(it["title"])}" '
+            f'data-link="{esc(it["link"])}" data-bm-source="{esc(it["source"])}">'
+            f'{BOOKMARK_SVG}</button></li>'
         )
     if current_day is not None:
         out.append("</ol>")
@@ -1100,6 +1210,76 @@ def build(cfg, items, out: Path, mkt=None):
         (out / "assets").mkdir(parents=True, exist_ok=True)
         (out / "assets" / "og.png").write_bytes(og_src.read_bytes())
         print("  wrote og.png")
+    write(out / "manifest.webmanifest", json.dumps({
+        "name": cfg["site_name"],
+        "short_name": cfg["site_name"],
+        "description": cfg.get("tagline", ""),
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#ffffff",
+        "theme_color": "#374151",
+        "icons": [
+            {"src": "/assets/icon-192.png", "sizes": "192x192", "type": "image/png"},
+            {"src": "/assets/icon-512.png", "sizes": "512x512", "type": "image/png"},
+        ],
+    }, indent=1))
+
+    # Cache-first for the shell, network-first for pages: the app opens
+    # instantly and still works on the subway, showing the last pull.
+    sw_version = datetime.now(timezone.utc).strftime("%Y%m%d%H%M")
+    write(out / "sw.js", """
+var CACHE = 'nnn-%s';
+var SHELL = ['/', '/assets/site.css', '/assets/pages.js', '/assets/filter.js',
+             '/offline.html', '/assets/icon-192.png'];
+self.addEventListener('install', function (e) {
+  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); })
+    .then(function () { return self.skipWaiting(); }));
+});
+self.addEventListener('activate', function (e) {
+  e.waitUntil(caches.keys().then(function (keys) {
+    return Promise.all(keys.filter(function (k) { return k !== CACHE; })
+      .map(function (k) { return caches.delete(k); }));
+  }).then(function () { return self.clients.claim(); }));
+});
+self.addEventListener('fetch', function (e) {
+  var url = new URL(e.request.url);
+  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  if (url.pathname.startsWith('/assets/')) {
+    e.respondWith(caches.match(e.request).then(function (hit) {
+      return hit || fetch(e.request).then(function (res) {
+        var copy = res.clone();
+        caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
+        return res;
+      });
+    }));
+    return;
+  }
+  e.respondWith(fetch(e.request).then(function (res) {
+    var copy = res.clone();
+    caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
+    return res;
+  }).catch(function () {
+    return caches.match(e.request).then(function (hit) {
+      return hit || caches.match('/offline.html');
+    });
+  }));
+});
+""".strip() % sw_version)
+
+    for icon in ("icon-192.png", "icon-512.png"):
+        src = HERE / "static" / icon
+        if src.exists():
+            (out / "assets" / icon).write_bytes(src.read_bytes())
+
+    write(out / "offline.html", shell(
+        cfg, title=f"Offline — {cfg['site_name']}",
+        description="You are offline.", canonical=f"{base}/offline.html",
+        noindex=True,
+        body=('<div class="prose"><div class="page-head"><h1>You&rsquo;re offline</h1>'
+              '<p class="standfirst">The wire needs a connection. Pages you have '
+              'already visited are cached and still open.</p></div></div>'),
+    ))
+
     logo_dir = HERE / "static" / "logos"
     if logo_dir.is_dir():
         dest = out / "assets" / "logos"
@@ -1139,12 +1319,30 @@ def build(cfg, items, out: Path, mkt=None):
                  "query-input": "required name=search_term_string"}},
         ],
     })
+    today = datetime.now(timezone.utc).date()
+    syn_path = HERE / "synopsis" / f"{today.isoformat()}.txt"
+    brief_html = ""
+    if syn_path.exists():
+        syn = syn_path.read_text(encoding="utf-8").strip()
+        first_para = syn.split("\n\n")[0].strip()
+        brief_html = (
+            '<section class="brief">'
+            '<div class="brief-head"><h2>Today&rsquo;s Brief</h2>'
+            f'<span class="brief-date">{today.strftime("%d %B %Y")}</span></div>'
+            f'<p>{esc(first_para)}</p>'
+            f'<p class="brief-links"><a href="/recap/{today.isoformat()}.html">'
+            'Read the full brief &rarr;</a>'
+            '<a href="/newsletter/">Get it by email &rarr;</a></p>'
+            '</section>')
+
     home_body = (
         '<div class="page-head">'
         f'<h1>{esc(cfg["site_name"])} — {esc(cfg.get("tagline", "financial news"))}</h1>'
         '<p class="standfirst">Every desk on one page, newest first. '
         'Headlines link straight to the publisher.</p>'
         '</div>'
+        + brief_html
+        + '<section class="foryou" id="foryou" hidden></section>'
         + trending_section(cfg, wire)
         + filter_bar(cfg, present)
         + '<p class="empty" id="f-empty" hidden>Nothing matches those filters.</p>'
@@ -1180,6 +1378,43 @@ def build(cfg, items, out: Path, mkt=None):
     if world_items:
         urls.append((world_page(cfg, mkt, base, out, world_items), now))
 
+    signup = cfg.get("newsletter_signup_url", "")
+    if signup:
+        form = (f'<form class="nl-form" method="post" action="{esc(signup)}" '
+                'target="_blank">'
+                '<label class="sr-only" for="nl-email">Email address</label>'
+                '<input id="nl-email" name="email" type="email" required '
+                'placeholder="you@example.com">'
+                '<button class="nl-btn" type="submit">Subscribe free</button></form>')
+    else:
+        form = ('<form class="nl-form" data-nl-placeholder>'
+                '<label class="sr-only" for="nl-email">Email address</label>'
+                '<input id="nl-email" type="email" required '
+                'placeholder="you@example.com">'
+                '<button class="nl-btn" type="submit">Subscribe free</button></form>'
+                '<p class="intro"><p>Sending starts once the list provider is '
+                'connected &mdash; set <code>newsletter_signup_url</code> in '
+                'config.json. Addresses entered now are kept in this browser '
+                'only.</p></p>')
+    urls.append((simple_page(
+        cfg, mkt, base, out, path="/newsletter/", current="/newsletter/",
+        title=f"The Morning Brief — {cfg['site_name']}",
+        heading="The Morning Brief",
+        description=("The trading day in one written paragraph, in your inbox "
+                     "before the open. Free."),
+        body_html=(
+            '<div class="note"><p><strong>One paragraph. Every trading day. '
+            'Before the open.</strong></p>'
+            '<p>What actually moved, why the desks disagreed about it, and the '
+            'one number to watch &mdash; written by a person, not scraped. The '
+            'same brief that appears on the front page, delivered.</p></div>'
+            + form +
+            '<h2>What you get</h2>'
+            '<p>The daily brief, the top consensus story across our 22 desks, '
+            'and the next market-moving event from the '
+            '<a href="/events/">economic calendar</a>. Nothing else. '
+            'Unsubscribe any time.</p>')), now))
+
     urls.append((simple_page(
         cfg, mkt, base, out, path="/contact/", current="/contact/",
         title=f"Contact — {cfg['site_name']}", heading="Contact",
@@ -1198,6 +1433,11 @@ def build(cfg, items, out: Path, mkt=None):
             'wrong, it is fastest to contact the source directly &mdash; but tell us '
             'too and we will drop it from the wire.</p>')), now))
 
+    prefs_meta = json.dumps({
+        "regions": [{"id": r["id"], "title": r["title"]} for r in cfg["regions"]],
+        "sources": [{"id": src["id"], "label": src["label"], "region": r["title"]}
+                    for r in cfg["regions"] for src in r["sources"]],
+    })
     urls.append((simple_page(
         cfg, mkt, base, out, path="/preferences/", current="/preferences/",
         title=f"News preferences — {cfg['site_name']}", heading="Preferences",
@@ -1205,6 +1445,7 @@ def build(cfg, items, out: Path, mkt=None):
         body_html=(
             '<p>These settings live in this browser only. Nothing is uploaded and '
             'there is no account.</p>'
+            f'<script>window.__PREFS_META__={prefs_meta};</script>'
             '<div id="prefs-app" data-prefs></div>'
             '<noscript><p class="empty">Preferences need JavaScript. The feed itself '
             'works without it.</p></noscript>')), now))

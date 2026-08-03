@@ -244,6 +244,51 @@ a{color:inherit}
   .logo{font-size:20px}
 }
 
+/* ── Today's Brief + For You ───────────────────────────────────────── */
+
+.brief{
+  background:var(--card);border:1px solid var(--border);border-left:4px solid var(--primary);
+  border-radius:var(--radius);padding:16px 20px;margin:14px 0 4px;max-width:900px;
+}
+.brief-head{display:flex;align-items:baseline;gap:12px}
+.brief-head h2{font-size:16px;font-weight:800;margin:0;letter-spacing:-.01em}
+.brief-date{font-size:12px;color:var(--muted-foreground);font-weight:600}
+.brief p{margin:8px 0 0;font-size:14.5px;line-height:1.6}
+.brief-links{display:flex;gap:18px;flex-wrap:wrap}
+.brief-links a{color:var(--primary);text-decoration:none;font-size:13.5px;font-weight:600}
+.brief-links a:hover{text-decoration:underline}
+
+.foryou{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px 18px;margin:12px 0 4px;
+}
+.foryou h2{font-size:14px;font-weight:700;margin:0 0 2px;display:flex;gap:8px;align-items:center}
+.foryou .fy-kw{font-size:11.5px;color:var(--muted-foreground);font-weight:500}
+.foryou ul{list-style:none;margin:8px 0 0;padding:0}
+.foryou li{padding:5px 0;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.foryou a{color:var(--primary);text-decoration:none;font-size:14px;font-weight:500}
+.foryou a:hover{text-decoration:underline}
+.fy-src{font-size:12px;color:var(--muted-foreground)}
+.fy-hot{
+  font-size:10.5px;font-weight:700;color:#9a3412;background:#ffedd5;
+  border-radius:5px;padding:1px 7px;
+}
+.foryou .fy-edit{font-size:12.5px}
+
+/* ── Newsletter ────────────────────────────────────────────────────── */
+
+.nl-form{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+.nl-form input{
+  flex:1 1 240px;font:inherit;font-size:15px;padding:11px 14px;
+  border:1px solid var(--border);border-radius:var(--radius);background:var(--input);
+}
+.nl-form input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(36,99,235,.13)}
+.nl-btn{
+  font:inherit;font-size:15px;font-weight:600;color:#fff;background:var(--primary);
+  border:0;border-radius:var(--radius);padding:11px 20px;cursor:pointer;
+}
+.nl-btn:hover{background:var(--primary-hover)}
+
 /* ── Trending ──────────────────────────────────────────────────────── */
 
 .trend{
@@ -284,6 +329,9 @@ a{color:inherit}
   display:inline-flex;border-radius:6px;
 }
 .bm svg{width:17px;height:17px;fill:none}
+.bm-sm{opacity:.35}
+.bm-sm svg{width:14px;height:14px}
+.bm-sm:hover,.bm-sm[aria-pressed="true"]{opacity:1}
 .bm:hover{color:#f97316}
 .bm[aria-pressed="true"]{color:#f97316}
 .bm[aria-pressed="true"] svg{fill:#f97316}
@@ -462,7 +510,8 @@ select.fsel:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px 
 .src h3 .via{color:var(--muted-foreground);font-weight:400;font-size:11px}
 
 ul.items{list-style:none;margin:0;padding:0}
-ul.items li{padding:5px 0}
+ul.items li{padding:5px 24px 5px 0;position:relative}
+ul.items .bm-sm{position:absolute;right:-2px;top:5px}
 ul.items a{
   color:var(--primary);text-decoration:none;font-size:14px;font-weight:500;
   line-height:1.375;display:block;
@@ -498,9 +547,10 @@ body[data-sessions="1"] .session-rule{display:flex}
 }
 ol.wire{list-style:none;margin:0;padding:0}
 ol.wire li{
-  display:grid;grid-template-columns:78px 1fr;gap:12px;
+  display:grid;grid-template-columns:78px 1fr auto;gap:12px;align-items:start;
   padding:11px 0;border-bottom:1px solid var(--border);
 }
+ol.wire .wire-body{min-width:0}
 ol.wire time{font-size:12px;color:var(--muted-foreground);padding-top:2px}
 ol.wire a{color:var(--primary);text-decoration:none;font-size:15px;font-weight:500;line-height:1.4}
 ol.wire a:hover{text-decoration:underline}
