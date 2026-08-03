@@ -93,11 +93,13 @@ a{color:inherit}
 .logo .l2{color:var(--logo-now)}
 .logo .l3{color:var(--logo-next)}
 
+/* No overflow scrolling here: a scroll container clips its absolutely-
+   positioned children, which silently hid the dropdown panels. Four items
+   wrap fine on small screens. */
 .nav-links{
   display:flex;gap:4px;align-items:center;margin-left:auto;
-  overflow-x:auto;scrollbar-width:none;
+  flex-wrap:wrap;justify-content:flex-end;
 }
-.nav-links::-webkit-scrollbar{display:none}
 .nav-links a{
   color:#e5e7eb;text-decoration:none;font-size:15px;font-weight:500;
   padding:8px 11px;border-radius:6px;white-space:nowrap;
