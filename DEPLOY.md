@@ -40,9 +40,16 @@ The build ships a `_worker.js` (Pages advanced mode) with two jobs:
 - A failed build publishes nothing; the previous deployment stays live and
   GitHub emails the repo owner. The sanity gate refuses to publish a home
   page with fewer than 50 headlines.
-- The daily routine that stays human: `generator/synopsis/YYYY-MM-DD.txt`
-  (the Morning Brief; without it the day's recap is noindex), and topping
-  up `generator/data/events.json` when the build warns it is running low.
+- The Morning Brief is written at `newsnownext.org/brief-admin` (private,
+  unlinked, passphrase-gated - the passphrase is the `BRIEF_KEY` variable
+  on the Pages project, and briefs land in the `BRIEFS` KV namespace).
+  Saving shows it on the home page within a minute; the hourly build
+  pulls the last week of briefs from KV into `generator/synopsis/` so the
+  recap pages become indexable. A `synopsis/YYYY-MM-DD.txt` committed to
+  the repo still works and wins over KV. Without a brief the day's recap
+  stays noindex.
+- Topping up `generator/data/events.json` when the build warns it is
+  running low stays a human job.
 
 ## Switches still off
 

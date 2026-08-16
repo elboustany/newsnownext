@@ -1594,10 +1594,42 @@ function fromRailway(res) {
   return res && res.status < 500 && !res.headers.get('x-railway-fallback');
 }
 
+// The daily brief, written from /brief-admin and stored in KV so the
+// client never needs GitHub. The hourly build pulls it back out and
+// bakes it into the page and the recap.
+function briefJson(obj, status, cache) {
+  return new Response(JSON.stringify(obj), {status: status || 200,
+    headers: {'content-type': 'application/json',
+              'cache-control': cache || 'no-store'}});
+}
+
+async function brief(request, env, url) {
+  if (!env.BRIEFS) {
+    return briefJson({error: 'storage not configured'}, 503);
+  }
+  if (request.method === 'GET') {
+    var d = url.searchParams.get('date') || '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return briefJson({error: 'bad date'}, 400);
+    var text = await env.BRIEFS.get('brief:' + d);
+    return briefJson({date: d, text: text || ''}, 200, 'public, max-age=60');
+  }
+  if (request.method === 'POST') {
+    if (!env.BRIEF_KEY) return briefJson({error: 'no key configured'}, 503);
+    var b;
+    try { b = await request.json(); } catch (e) { return briefJson({error: 'bad json'}, 400); }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(b.date || '')) return briefJson({error: 'bad date'}, 400);
+    if ((b.key || '') !== env.BRIEF_KEY) return briefJson({error: 'wrong passphrase'}, 401);
+    await env.BRIEFS.put('brief:' + b.date, String(b.text || '').slice(0, 6000));
+    return briefJson({ok: true, date: b.date});
+  }
+  return briefJson({error: 'method'}, 405);
+}
+
 export default {
   async fetch(request, env, ctx) {
     var url = new URL(request.url);
     if (url.pathname === '/api/quotes') return quotes(ctx);
+    if (url.pathname === '/api/brief') return brief(request, env, url);
     if (url.pathname.startsWith('/api/')) {
       var r = await railway(request, url);
       return r || new Response('{"error":"backend unreachable"}', {
@@ -1642,6 +1674,109 @@ export default {
         if src.exists():
             (out / rel).parent.mkdir(parents=True, exist_ok=True)
             (out / rel).write_bytes(src.read_bytes())
+
+    # The client's private brief editor: unlinked, noindexed, passphrase-
+    # gated writes. He types the day's paragraph here instead of GitHub;
+    # it lands in KV via /api/brief, shows on the home page immediately,
+    # and the next build bakes it into the recap.
+    write(out / "brief-admin" / "index.html", """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Morning Brief editor</title>
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<style>
+  body{font-family:Inter,-apple-system,system-ui,sans-serif;background:#f4f5f7;
+       color:#111827;margin:0;padding:24px;display:flex;justify-content:center}
+  .box{width:100%;max-width:680px;background:#fff;border:1px solid #e5e7eb;
+       border-radius:12px;padding:24px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:#6b7280;font-size:13.5px;margin:0 0 18px}
+  label{display:block;font-size:13px;font-weight:600;margin:14px 0 5px}
+  input,textarea{width:100%;font:inherit;font-size:15px;border:1px solid #d1d5db;
+       border-radius:8px;padding:10px 12px;box-sizing:border-box}
+  textarea{min-height:220px;line-height:1.6;resize:vertical}
+  input:focus,textarea:focus{outline:none;border-color:#2463eb;
+       box-shadow:0 0 0 3px rgba(36,99,235,.15)}
+  button{font:inherit;font-size:15px;font-weight:600;color:#fff;background:#2463eb;
+       border:0;border-radius:8px;padding:11px 22px;margin-top:16px;cursor:pointer}
+  button:hover{background:#1d4ed8}
+  button:disabled{opacity:.6}
+  .msg{font-size:14px;margin-top:12px;min-height:1.4em}
+  .ok{color:#059669}.err{color:#dc2626}
+  .count{font-size:12px;color:#9ca3af;text-align:right;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>Morning Brief</h1>
+  <p class="sub">One written paragraph about the trading day. Saving shows it
+  on the home page within a minute and in the daily recap within the hour.</p>
+  <label for="d">Day</label>
+  <input id="d" type="date">
+  <label for="t">The brief</label>
+  <textarea id="t" placeholder="What today is about, in your own words&hellip;"></textarea>
+  <div class="count" id="count"></div>
+  <label for="k">Passphrase</label>
+  <input id="k" type="password" autocomplete="current-password">
+  <button id="save" type="button">Save</button>
+  <p class="msg" id="msg"></p>
+</div>
+<script>
+(function () {
+  var d = document.getElementById('d'), t = document.getElementById('t');
+  var k = document.getElementById('k'), msg = document.getElementById('msg');
+  var save = document.getElementById('save'), count = document.getElementById('count');
+  function ny() {
+    var p = new Intl.DateTimeFormat('en-CA', {timeZone: 'America/New_York',
+      year: 'numeric', month: '2-digit', day: '2-digit'}).format(new Date());
+    return p;
+  }
+  d.value = ny();
+  try { k.value = localStorage.getItem('nnn:briefkey') || ''; } catch (e) {}
+  function load() {
+    msg.textContent = ''; msg.className = 'msg';
+    fetch('/api/brief?date=' + d.value).then(function (r) {
+      return r.ok ? r.json() : null;
+    }).then(function (b) {
+      t.value = (b && b.text) || '';
+      tick();
+    }).catch(function () {});
+  }
+  function tick() { count.textContent = t.value.length ? t.value.length + ' characters' : ''; }
+  t.addEventListener('input', tick);
+  d.addEventListener('change', load);
+  save.addEventListener('click', function () {
+    msg.textContent = 'Saving…'; msg.className = 'msg';
+    save.disabled = true;
+    fetch('/api/brief', {method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({date: d.value, text: t.value, key: k.value})
+    }).then(function (r) { return r.json().then(function (b) { return {s: r.status, b: b}; }); })
+      .then(function (res) {
+        save.disabled = false;
+        if (res.s === 200) {
+          msg.textContent = 'Saved. It is on the home page now and in the recap within the hour.';
+          msg.className = 'msg ok';
+          try { localStorage.setItem('nnn:briefkey', k.value); } catch (e) {}
+        } else {
+          msg.textContent = res.b && res.b.error === 'wrong passphrase'
+            ? 'Wrong passphrase.' : 'Could not save (' + ((res.b && res.b.error) || res.s) + ').';
+          msg.className = 'msg err';
+        }
+      }).catch(function () {
+        save.disabled = false;
+        msg.textContent = 'Network problem - try again.'; msg.className = 'msg err';
+      });
+  });
+  load();
+})();
+</script>
+</body>
+</html>
+""")
 
     write(out / "offline.html", shell(
         cfg, title=f"Offline - {cfg['site_name']}",
@@ -1696,30 +1831,32 @@ export default {
     })
     today = datetime.now(timezone.utc).date()
     syn_path = HERE / "synopsis" / f"{today.isoformat()}.txt"
-    brief_html = ""
-    if syn_path.exists():
-        syn = syn_path.read_text(encoding="utf-8").strip()
-        paras = [x.strip() for x in syn.split("\n\n") if x.strip()]
-        first = f"<p>{esc(paras[0])}</p>"
-        rest = "".join(f"<p>{esc(x)}</p>" for x in paras[1:])
-        more = (f'<div class="brief-more" id="brief-more" hidden>{rest}</div>'
-                '<button class="linkbtn" id="brief-expand" type="button" '
-                'aria-expanded="false">Read the full brief &darr;</button>'
-                if rest else "")
-        brief_html = (
-            '<section class="brief" data-brief>'
-            '<div class="brief-head">'
-            '<span class="brief-mark" aria-hidden="true">&#9998;</span>'
-            '<h2>Today&rsquo;s Brief</h2>'
-            f'<span class="brief-date">{today.strftime("%A %d %B %Y")}</span>'
-            '<button class="tcollapse" id="brief-collapse" type="button" '
-            'aria-expanded="true" aria-label="Collapse brief">&#9650;</button>'
-            '</div>'
-            f'<div class="brief-body" id="brief-body">{first}{more}'
-            f'<p class="brief-links">'
-            f'<a href="/recap/{today.isoformat()}.html">Open as a page &rarr;</a>'
-            '<a href="/newsletter/">Get it by email &rarr;</a></p>'
-            '</div></section>')
+    syn = syn_path.read_text(encoding="utf-8").strip() if syn_path.exists() else ""
+    paras = [x.strip() for x in syn.split("\n\n") if x.strip()]
+    first = f"<p>{esc(paras[0])}</p>" if paras else ""
+    rest = "".join(f"<p>{esc(x)}</p>" for x in paras[1:])
+    more = (f'<div class="brief-more" id="brief-more" hidden>{rest}</div>'
+            '<button class="linkbtn" id="brief-expand" type="button" '
+            'aria-expanded="false">Read the full brief &darr;</button>'
+            if rest else "")
+    # The section always renders (hidden while empty) so a brief saved
+    # from /brief-admin can appear immediately via /api/brief, before the
+    # next build bakes it in.
+    brief_html = (
+        f'<section class="brief" data-brief data-brief-date="{today.isoformat()}"'
+        f'{" hidden" if not paras else ""}>'
+        '<div class="brief-head">'
+        '<span class="brief-mark" aria-hidden="true">&#9998;</span>'
+        '<h2>Today&rsquo;s Brief</h2>'
+        f'<span class="brief-date">{today.strftime("%A %d %B %Y")}</span>'
+        '<button class="tcollapse" id="brief-collapse" type="button" '
+        'aria-expanded="true" aria-label="Collapse brief">&#9650;</button>'
+        '</div>'
+        f'<div class="brief-body" id="brief-body">{first}{more}'
+        f'<p class="brief-links">'
+        f'<a href="/recap/{today.isoformat()}.html">Open as a page &rarr;</a>'
+        '<a href="/newsletter/">Get it by email &rarr;</a></p>'
+        '</div></section>')
 
     # The h1 exists for crawlers; the live site shows no heading above the
     # wire and the client wants that look kept, so it is visually hidden.

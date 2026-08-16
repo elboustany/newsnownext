@@ -431,6 +431,22 @@ PAGES_JS = r"""
 
   /* ── Today's Brief: collapse + read-more ────────────────────────── */
   var brief = document.querySelector('[data-brief]');
+  // A brief saved from /brief-admin lives in KV until the next build
+  // bakes it in; if the page shipped without one, ask the API.
+  if (brief && brief.hidden) {
+    fetch('/api/brief?date=' + brief.getAttribute('data-brief-date'))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.text || !d.text.trim()) return;
+        var body = document.getElementById('brief-body');
+        d.text.trim().split(/\n\n+/).reverse().forEach(function (p) {
+          var el = document.createElement('p');
+          el.textContent = p.trim();
+          body.insertBefore(el, body.firstChild);
+        });
+        brief.hidden = false;
+      }).catch(function () {});
+  }
   if (brief) {
     var bBody = document.getElementById('brief-body');
     var bColl = document.getElementById('brief-collapse');
