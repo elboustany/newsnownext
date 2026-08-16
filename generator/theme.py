@@ -51,33 +51,42 @@ a{color:inherit}
 
 /* ── Promo banner ──────────────────────────────────────────────────── */
 
-.promo{
-  background:linear-gradient(90deg,#059669,#2563eb);
-  color:#fff;font-size:13px;
+/* Both banners sampled off the live site: yellow AD chip, white copy, a
+   non-linking "learn more" on the right, dismissible. Top slot green to
+   blue above the nav; bottom slot blue to purple fixed to the viewport. */
+.promo,.botbar{color:#fff;font-size:13px}
+.promo{background:linear-gradient(90deg,#16a34a,#2563eb)}
+.botbar{
+  background:linear-gradient(90deg,#2563eb,#9333ea);
+  position:fixed;left:0;right:0;bottom:0;z-index:55;
+  box-shadow:0 -4px 14px rgba(16,24,40,.18);
 }
 .promo-in{
-  max-width:1320px;margin:0 auto;padding:9px 20px;
-  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  max-width:1320px;margin:0 auto;padding:12px 24px;
+  display:flex;align-items:center;gap:10px;
 }
-.promo .tag{
-  background:rgba(255,255,255,.22);border-radius:4px;padding:2px 7px;
-  font-size:10px;font-weight:700;letter-spacing:.06em;
+.promo .tag,.botbar .tag{
+  background:#eab308;color:#000;border-radius:4px;padding:3px 8px;
+  font-size:11px;font-weight:700;flex:none;
 }
-.promo strong{font-weight:600}
-.promo .muted{opacity:.85}
-.promo a{color:#fff;margin-left:auto;font-weight:500;text-decoration:none;white-space:nowrap}
-.promo a:hover{text-decoration:underline}
-.promo .close{
+.promo strong,.botbar strong{font-weight:600;white-space:nowrap}
+.promo .muted,.botbar .muted{
+  opacity:.95;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.promo .learn,.botbar .learn{margin-left:auto;font-size:12px;white-space:nowrap;opacity:.9}
+.promo .close,.botbar .close{
   background:none;border:0;color:#fff;opacity:.8;cursor:pointer;
-  font-size:16px;line-height:1;padding:0 2px;
+  font-size:16px;line-height:1;padding:0 2px;flex:none;
 }
-.promo .close:hover{opacity:1}
-/* One line on phones: name and link only, or the banner eats the screen. */
+.promo .close:hover,.botbar .close:hover{opacity:1}
+/* Room for the AI pill and back-to-top above the fixed bottom banner. */
+body.has-botbar .ai-fab,body.has-botbar .totop{bottom:66px}
+body.has-botbar .ai-panel{bottom:122px}
 @media(max-width:640px){
-  .promo{font-size:12.5px}
-  .promo .muted{display:none}
-  .promo-in{padding:8px 14px;gap:8px;flex-wrap:nowrap;min-width:0}
-  .promo strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .promo,.botbar{font-size:12.5px}
+  .promo .muted,.promo .learn,.botbar .muted,.botbar .learn{display:none}
+  .promo-in{padding:9px 14px;gap:8px;min-width:0}
+  .promo .close,.botbar .close{margin-left:auto}
 }
 
 /* ── Sticky chrome ─────────────────────────────────────────────────── */
@@ -100,21 +109,20 @@ a{color:inherit}
 .logo .l2{color:var(--logo-now)}
 .logo .l3{color:var(--logo-next)}
 
-/* No overflow scrolling here: a scroll container clips its absolutely-
-   positioned children, which silently hid the dropdown panels. Four items
-   wrap fine on small screens. */
+/* The live site's bar: nine flat text links, 16px, no pills, no dropdowns.
+   Hover goes white; the current page gets white only. Below the breakpoint
+   the hamburger takes over (no overflow scrolling here - a scroll container
+   clips absolutely-positioned children like the clock popover). */
 .nav-links{
-  display:flex;gap:4px;align-items:center;margin-left:auto;
-  flex-wrap:wrap;justify-content:flex-end;
+  display:flex;gap:16px;align-items:center;margin-left:auto;
 }
 .nav-links a{
-  color:#e5e7eb;text-decoration:none;font-size:15px;font-weight:500;
-  padding:8px 11px;border-radius:6px;white-space:nowrap;
-  display:inline-flex;align-items:center;gap:6px;
+  color:#e5e7eb;text-decoration:none;font-size:16px;font-weight:500;
+  white-space:nowrap;display:inline-flex;align-items:center;gap:6px;
 }
-.nav-links a:hover{color:#fff;background:rgba(255,255,255,.10)}
-.nav-links a[aria-current]{color:#fff;background:rgba(255,255,255,.16)}
-.nav-links svg{width:15px;height:15px;flex:none}
+.nav-links a:hover{color:#fff}
+.nav-links a[aria-current]{color:#fff}
+.nav-links svg{width:16px;height:16px;flex:none}
 
 /* ── Nav dropdowns + market clocks ─────────────────────────────────── */
 
@@ -187,22 +195,21 @@ a{color:inherit}
   cursor:pointer;padding:2px 8px;opacity:.9;
 }
 .mnav-x:hover{opacity:1}
+/* Same plain links as the bar, stacked - the live site's phone menu. */
 .mnav-links{display:flex;flex-direction:column}
 .mnav-links a{
-  color:#e5e7eb;text-decoration:none;font-size:19px;font-weight:500;
-  padding:13px 4px;display:flex;align-items:center;gap:12px;
+  color:#e5e7eb;text-decoration:none;font-size:20px;font-weight:500;
+  padding:13px 4px;display:flex;align-items:center;gap:10px;
 }
-.mnav-links a svg{width:18px;height:18px;flex:none;opacity:.75}
+.mnav-links a svg{width:19px;height:19px;flex:none}
 .mnav-links a:hover,.mnav-links a[aria-current]{color:#fff}
-.mnav-links a[aria-current] svg{opacity:1}
 
-/* Below the breakpoint the dropdown row hands over to the hamburger; the
-   two-row wrapped nav it replaces ate a quarter of a phone screen. */
-@media(max-width:860px){
+/* Below the breakpoint the flat bar hands over to the hamburger, exactly
+   like the live site; nine links plus the logo need about 1000px. */
+@media(max-width:1000px){
   .nav-links{display:none}
   .burger{display:inline-flex}
-  .nav-in{padding:10px 16px;gap:12px}
-  .logo{font-size:20px}
+  .nav-in{padding:12px 16px;gap:12px}
 }
 
 /* ── Economic calendar ─────────────────────────────────────────────── */
@@ -247,15 +254,21 @@ a{color:inherit}
 
 /* ── Ticker - the quote-card band under the nav ────────────────────── */
 
-.ticker{background:#eceff3;border-bottom:1px solid var(--border);padding:16px 0 20px}
+/* Band metrics sampled off the live site: #e5e7eb ground, 12px pill tabs
+   4px apart, and compact 128px cards in a centred scrollable row. */
+.ticker{background:#e5e7eb;border-bottom:1px solid var(--border);padding:10px 0 12px}
 .ticker-in{max-width:1320px;margin:0 auto;padding:0 20px}
-.tabs{display:flex;justify-content:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.tab{
-  font:inherit;font-size:14px;font-weight:500;padding:7px 16px;border-radius:999px;
-  border:0;background:#fff;color:var(--foreground);cursor:pointer;white-space:nowrap;
-  box-shadow:0 1px 2px rgba(16,24,40,.06);
+.tabs{
+  display:flex;justify-content:center;gap:4px;margin-bottom:8px;
+  overflow-x:auto;scrollbar-width:none;
 }
-.tab:hover{background:var(--muted)}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  font:inherit;font-size:12px;font-weight:500;padding:4px 12px;border-radius:999px;
+  border:0;background:rgba(255,255,255,.6);color:#374151;cursor:pointer;
+  white-space:nowrap;flex:none;
+}
+.tab:hover{background:#fff}
 .tab[aria-selected="true"]{background:#1f2937;color:#fff}
 .tab:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 
@@ -268,74 +281,59 @@ a{color:inherit}
   display:grid !important;visibility:hidden;pointer-events:none;
 }
 .quotes{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,210px));
-  justify-content:center;gap:14px;grid-auto-rows:1fr;
+  display:grid;grid-auto-flow:column;grid-auto-columns:142px;
+  justify-content:center;gap:8px;grid-auto-rows:1fr;
+  overflow-x:auto;padding-bottom:2px;scrollbar-width:none;
 }
+.quotes::-webkit-scrollbar{display:none}
 .qcard{
-  background:var(--card);border:1px solid var(--border);border-radius:10px;
-  padding:12px 14px;box-shadow:0 1px 2px rgba(16,24,40,.05);
+  background:var(--card);border:1px solid rgba(209,213,219,.3);border-radius:8px;
+  padding:8px 10px;
 }
 .qtop{
-  display:flex;align-items:flex-start;justify-content:space-between;gap:8px;
-  min-height:20px;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:6px;
 }
+/* Single-line names keep every card - instrument or event - the same
+   height, so no tab can stretch the band. Long event names truncate. */
 .qname{
-  font-size:13px;font-weight:600;line-height:1.25;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
-  overflow:hidden;min-height:2.5em;
+  font-size:12px;font-weight:600;line-height:1.3;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .qlive{
-  display:inline-flex;align-items:center;gap:5px;flex:none;
-  font-size:11px;color:var(--muted-foreground);padding-top:1px;
+  display:inline-flex;align-items:center;gap:4px;flex:none;
+  font-size:11px;color:var(--muted-foreground);
 }
-.qlive i{width:7px;height:7px;border-radius:50%;background:#10b981}
-.qlive.delayed i{background:#f59e0b}
+.qlive i{width:6px;height:6px;border-radius:50%;background:#10b981}
 .qbadge{
-  display:inline-block;margin:7px 0 6px;font-size:11px;font-weight:700;color:#fff;
-  padding:2px 8px;border-radius:6px;letter-spacing:.02em;
+  display:inline-block;margin:5px 0 4px;font-size:11px;font-weight:700;color:#fff;
+  padding:1px 7px;border-radius:5px;letter-spacing:.02em;
 }
-.qprice{font-size:20px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.qchg{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:3px}
+.qprice{font-size:16px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.qchg{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
 .qtime{
-  font-size:12px;color:var(--muted-foreground);margin-top:5px;
-  display:flex;align-items:center;gap:5px;
+  font-size:11px;color:var(--muted-foreground);margin-top:3px;
+  display:flex;align-items:center;gap:4px;white-space:nowrap;
 }
 .qtime::before{content:"";width:5px;height:5px;border-radius:50%;background:#93c5fd}
 .up{color:#059669}.down{color:#dc2626}.flat{color:var(--muted-foreground)}
 .qmissing{font-size:13px;color:var(--muted-foreground);margin-top:8px}
 
 /* Event cards are quote cards: same skeleton (qtop/qbadge/qprice/qchg/
-   qtime), so switching tabs cannot change the band's height. The qname on
-   every card reserves two lines for the same reason: event names wrap,
-   and the reservation keeps instrument cards and event cards identical. */
+   qtime) and the same single-line qname, so instrument cards and event
+   cards are pixel-identical in height and no tab can resize the band. */
 .evc{text-decoration:none;color:inherit;display:block}
 .evc:hover .qname{color:var(--primary)}
 .evc .ev-badge{flex:none;font-size:9px;padding:2px 6px}
 
-/* Phones get the live site's pattern: one row of cards scrolling sideways
-   under one row of scrolling tab pills. A 2-up grid left half-empty cards
-   as tall as the deepest panel. The panels stay grid-stacked (see above),
-   so the Events tab still cannot resize the band. */
+/* On phones the same strips left-align and bleed to the screen edge so
+   the first card is never clipped behind centred overflow. */
 @media(max-width:640px){
-  .ticker{padding:12px 0 12px}
-  .tabs{
-    justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;
-    margin:0 -20px 10px;padding:0 20px 6px;scrollbar-width:none;
-  }
-  .tabs::-webkit-scrollbar{display:none}
-  .tab{padding:6px 13px;font-size:13px;flex:none}
+  .tabs{justify-content:flex-start;margin:0 -20px 8px;padding:0 20px}
   .quotes{
-    grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:188px;
-    justify-content:flex-start;gap:10px;overflow-x:auto;
-    margin:0 -20px;padding:0 20px 4px;
-    scroll-snap-type:x proximity;scrollbar-width:none;
+    justify-content:flex-start;margin:0 -20px;padding:0 20px 2px;
+    scroll-snap-type:x proximity;
   }
-  .quotes::-webkit-scrollbar{display:none}
   .qcard{scroll-snap-align:start}
-  /* Keep the event lines to one row each, or the tallest event card
-     stretches every panel (the band is as tall as its tallest tab). */
-  .qchg{font-size:12.5px}
-  .qtime{font-size:11px}
 }
 
 /* ── Today's Brief + For You ───────────────────────────────────────── */
@@ -635,15 +633,23 @@ select.fsel:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px 
 .flag{font-size:15px;margin-right:2px}
 .src h3 .via{color:var(--muted-foreground);font-weight:400;font-size:11px}
 
+/* The live site's row: headline left, timestamp right-aligned beside it,
+   bookmark at the far edge - not stacked. */
 ul.items{list-style:none;margin:0;padding:0}
-ul.items li{padding:5px 24px 5px 0;position:relative}
-ul.items .bm-sm{position:absolute;right:-2px;top:5px}
+ul.items li{
+  display:grid;grid-template-columns:1fr auto auto;gap:2px 10px;
+  align-items:start;padding:5px 0;
+}
+ul.items .bm-sm{margin-top:1px}
 ul.items a{
   color:var(--primary);text-decoration:none;font-size:14px;font-weight:500;
-  line-height:1.375;display:block;
+  line-height:1.375;display:block;min-width:0;
 }
 ul.items a:hover{color:var(--primary-hover);text-decoration:underline}
-ul.items time{display:block;font-size:12px;color:var(--muted-foreground);margin-top:2px}
+ul.items time{
+  font-size:12px;color:var(--muted-foreground);padding-top:2px;
+  white-space:nowrap;
+}
 ul.items mark{background:rgba(36,99,235,.16);color:inherit;border-radius:2px;padding:0 1px}
 
 /* Session markers: an opt-in extra, off unless the reader turns it on. */
@@ -837,14 +843,19 @@ ol.wire mark{background:rgba(36,99,235,.16);color:inherit;border-radius:2px;padd
 
 /* ── Foot ──────────────────────────────────────────────────────────── */
 
+/* The live site's footer: full-width navy, centred slate text, a hairline,
+   then the copyright pair. The links line is this build's one addition -
+   the pages that are not in the client's nav have to live somewhere. */
 .foot{
-  margin-top:36px;padding-top:16px;border-top:1px solid var(--border);
-  font-size:13px;color:var(--muted-foreground);text-align:center;
+  background:var(--navbar);color:#94a3b8;font-size:13px;text-align:center;
 }
+.foot-in{max-width:1320px;margin:0 auto;padding:32px 24px 84px}
 .foot p{margin:0 0 6px}
-.foot a{color:var(--primary);text-decoration:none}
-.foot a:hover{text-decoration:underline}
-.foot-tag{font-weight:500;color:var(--foreground)}
+.foot a{color:#cbd5e1;text-decoration:none}
+.foot a:hover{color:#fff;text-decoration:underline}
+.foot-tag{color:#94a3b8}
+.foot-links{font-size:12.5px}
+.foot-rule{border-top:1px solid #475569;margin:22px auto 20px;max-width:920px}
 
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 """

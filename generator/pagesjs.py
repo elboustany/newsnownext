@@ -197,7 +197,7 @@ PAGES_JS = r"""
     });
   }
 
-  /* ── Promo banner ────────────────────────────────────────────────── */
+  /* ── Ad banners (top slot + fixed bottom slot) ───────────────────── */
   var promo = document.getElementById('promo');
   var x = document.getElementById('promo-x');
   if (promo && x) {
@@ -207,6 +207,23 @@ PAGES_JS = r"""
     x.addEventListener('click', function () {
       promo.hidden = true;
       try { localStorage.setItem('nnn:promo', 'off'); } catch (e) {}
+    });
+  }
+  // The bottom bar starts hidden so dismissers never see it flash; the
+  // body class lifts the AI pill and back-to-top above it while shown.
+  var botbar = document.getElementById('botbar');
+  var botbarX = document.getElementById('botbar-x');
+  if (botbar && botbarX) {
+    var botOff = false;
+    try { botOff = localStorage.getItem('nnn:botbar') === 'off'; } catch (e) {}
+    if (!botOff) {
+      botbar.hidden = false;
+      document.body.classList.add('has-botbar');
+    }
+    botbarX.addEventListener('click', function () {
+      botbar.hidden = true;
+      document.body.classList.remove('has-botbar');
+      try { localStorage.setItem('nnn:botbar', 'off'); } catch (e) {}
     });
   }
 

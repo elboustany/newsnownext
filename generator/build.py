@@ -436,25 +436,21 @@ def stamp(dt):
     return f"{dt.strftime('%b')} {dt.day} {hour}:{dt.strftime('%M')} {ampm}"
 
 
+# The client's nav, verbatim: the live site shows these nine links flat, in
+# this order, with no dropdowns. The extra pages this build adds (economic
+# calendar, topics, recaps, newsletter) are linked from the footer and the
+# ticker's Events tab instead of changing the bar. Do not regroup this into
+# submenus again - that redesign was explicitly rejected.
 NAV = [
     ("link", "News", "/"),
-    ("menu", "Markets", [
-        ("/forex/", "Forex"),
-        ("/events/", "Economic Calendar"),
-        ("/topics/", "Topics"),
-        ("/recap/", "Daily recap"),
-    ]),
-    ("menu", "Discover", [
-        ("/world-news/", "World News"),
-        ("/podcasts/", "Podcasts"),
-        ("/books/", "Books"),
-    ]),
-    ("menu", "More", [
-        ("/read-later/", "Read Later"),
-        ("/preferences/", "Preferences"),
-        ("/portfolio/", "Portfolio"),
-        ("/contact/", "Contact"),
-    ]),
+    ("link", "Books", "/books/"),
+    ("link", "Forex", "/forex/"),
+    ("link", "World News", "/world-news/"),
+    ("link", "Podcasts", "/podcasts/"),
+    ("link", "Contact", "/contact/"),
+    ("link", "Preferences", "/preferences/"),
+    ("link", "Read Later", "/read-later/"),
+    ("link", "Portfolio", "/portfolio/"),
 ]
 
 # Market clocks in the navbar: label, IANA zone, open/close minutes local.
@@ -505,16 +501,27 @@ BOOKMARK_SVG = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
                 'aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10'
                 'a2 2 0 0 1 2 2z"/></svg>')
 
-# A house ad, not a fake one: the banner sells the site's own asset - the
-# daily brief and its mailing list - until the slot is sold to a real sponsor.
+# The client's two ad-slot banners, reproduced verbatim from the live site
+# (copy, em dash and all - his content, not ours to reword). They are
+# placeholder ads there too: plain text, no link, dismissible. The top one
+# rides above the nav; the bottom one is fixed to the viewport bottom.
 PROMO = ("""<div class="promo" id="promo"><div class="promo-in">"""
-         """<span class="tag">NEW</span>"""
-         """<strong>The Morning Brief</strong>"""
-         """<span class="muted">The trading day in one written paragraph - in your inbox before the open</span>"""
-         """<a href="/newsletter/">Subscribe free &rarr;</a>"""
+         """<span class="tag">AD</span>"""
+         """<strong>Market Intelligence Pro</strong>"""
+         """<span class="muted">&mdash; Get exclusive market insights and trading signals</span>"""
+         """<span class="learn">Click to learn more &rarr;</span>"""
          """<button class="close" id="promo-x" type="button" """
          """aria-label="Dismiss">&times;</button>"""
          """</div></div>""")
+
+BOTBAR = ("""<div class="botbar" id="botbar" hidden><div class="promo-in">"""
+          """<span class="tag">AD</span>"""
+          """<strong>Financial News Premium</strong>"""
+          """<span class="muted">&mdash; Get real-time market alerts and exclusive analysis</span>"""
+          """<span class="learn">Click to learn more &rarr;</span>"""
+          """<button class="close" id="botbar-x" type="button" """
+          """aria-label="Dismiss">&times;</button>"""
+          """</div></div>""")
 
 
 def money(v, dp=2):
@@ -577,8 +584,9 @@ def ticker_strip(mkt):
             dp = 2 if abs(q["price"]) >= 10 else 4
             cls = dir_class(q["change"])
             arrow = "&#8599;" if q["change"] > 0 else "&#8600;" if q["change"] < 0 else ""
-            live = ('<span class="qlive delayed"><i></i>DELAYED</span>' if q["stale"]
-                    else '<span class="qlive"><i></i>LIVE</span>')
+            # The live site says LIVE on every card regardless of quote age
+            # (its data is delayed too); match it, the as-of time tells the truth.
+            live = '<span class="qlive"><i></i>LIVE</span>'
             cards.append(
                 f'<div class="qcard">'
                 f'<div class="qtop"><span class="qname">{esc(name)}</span>{live}</div>'
@@ -648,40 +656,18 @@ def ticker_strip(mkt):
 
 def shell(cfg, *, title, description, canonical, body, noindex=False,
           current="/", extra_head="", body_attrs="", scripts="", ticker=""):
-    def nav_link(href, label):
-        icon = BOOKMARK_SVG if label == "Read Later" else NAV_ICONS.get(label, "")
-        return '<a href="{}"{}>{}{}</a>'.format(
-            href, ' aria-current="page"' if href == current else "",
-            icon, esc(label))
-
+    # Bar links are bare text like the live site; only Read Later carries
+    # its bookmark glyph, because that is exactly what the client's nav does.
     parts = []
     for kind, label, target in NAV:
-        if kind == "link":
-            # Top-level bar links stay bare text; icons belong to the
-            # dropdown items and the phone menu.
-            parts.append('<a href="{}"{}>{}</a>'.format(
-                target, ' aria-current="page"' if target == current else "",
-                esc(label)))
-        else:
-            inside = any(href == current for href, _ in target)
-            items = "".join(nav_link(h, l) for h, l in target)
-            parts.append(
-                f'<div class="menu" data-menu>'
-                f'<button class="menu-btn{" cur" if inside else ""}" type="button" '
-                f'aria-expanded="false" aria-haspopup="true">{esc(label)}'
-                f'<span class="caret" aria-hidden="true">&#9662;</span></button>'
-                f'<div class="menu-pop" hidden>{items}</div></div>')
+        icon = BOOKMARK_SVG if label == "Read Later" else ""
+        parts.append('<a href="{}"{}>{}{}</a>'.format(
+            target, ' aria-current="page"' if target == current else "",
+            icon, esc(label)))
     links = "".join(parts)
 
     # The phone menu is the old site's pattern: a hamburger opening a
-    # full-screen overlay with every destination as one flat list. The
-    # desktop dropdowns stay untouched; CSS swaps which one is visible.
-    mobile_links = []
-    for kind, label, target in NAV:
-        if kind == "link":
-            mobile_links.append(nav_link(target, label))
-        else:
-            mobile_links.extend(nav_link(h, l) for h, l in target)
+    # full-screen overlay with the same nine links as one flat list.
     mnav = (
         '<button class="burger" id="burger" type="button" aria-label="Open menu" '
         'aria-expanded="false" aria-controls="mnav">'
@@ -696,7 +682,7 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
         '<span class="l3">NEXT</span></span>'
         '<button class="mnav-x" id="mnav-x" type="button" aria-label="Close menu">'
         '&times;</button></div>'
-        f'<nav class="mnav-links">{"".join(mobile_links)}</nav></div>')
+        f'<nav class="mnav-links">{links}</nav></div>')
 
     clock_rows = "".join(
         f'<div class="clock-row" data-tz="{tz}" data-open="{o}" data-close="{c}">'
@@ -789,17 +775,21 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
     <button class="chip" type="button" data-ai-q="yen">Yen</button>
   </div>
 </div>
-<footer class="foot">
-  <p class="foot-tag">Never refresh, never miss - real-time news feed</p>
-  <p class="foot-links"><a href="/topics/">Topics</a> &middot;
-     <a href="/recap/">Daily recap</a> &middot;
-     <a href="/feed.xml">RSS</a> &middot;
-     <a href="/contact/">Contact</a></p>
-  <p>&copy; 2026 {esc(cfg['site_name'])}. All Rights Reserved.
-     Headlines link out to their publishers - article text is never
-     reproduced here.</p>
-</footer>
 </div>
+<footer class="foot">
+  <div class="foot-in">
+    <p class="foot-tag">Never refresh, never miss - real-time news feed</p>
+    <p class="foot-links"><a href="/topics/">Topics</a> &middot;
+       <a href="/recap/">Daily recap</a> &middot;
+       <a href="/events/">Economic calendar</a> &middot;
+       <a href="/newsletter/">Newsletter</a> &middot;
+       <a href="/feed.xml">RSS</a></p>
+    <div class="foot-rule"></div>
+    <p>&copy; 2026 {esc(cfg['site_name'])}. All Rights Reserved.</p>
+    <p>Content may not be reproduced without permission.</p>
+  </div>
+</footer>
+{BOTBAR}
 <script src="/assets/pages.js" defer></script>
 {scripts}
 </body>
@@ -868,13 +858,13 @@ def region_card(region, buckets):
                 f'<li data-item data-src="{esc(it["source"])}" '
                 f'data-region="{esc(region["id"])}" '
                 f'data-ts="{when.timestamp():.0f}">'
+                f'<a href="{esc(it["link"])}" rel="nofollow noopener" target="_blank">'
+                f'{esc(it["title"])}</a>'
+                f'<time datetime="{when.isoformat()}">{esc(stamp(when))}</time>'
                 f'<button class="bm bm-sm" type="button" aria-pressed="false" '
                 f'aria-label="Read later" data-bm data-title="{esc(it["title"])}" '
                 f'data-link="{esc(it["link"])}" data-bm-source="{esc(it["source"])}">'
                 f'{BOOKMARK_SVG}</button>'
-                f'<a href="{esc(it["link"])}" rel="nofollow noopener" target="_blank">'
-                f'{esc(it["title"])}</a>'
-                f'<time datetime="{when.isoformat()}">{esc(stamp(when))}</time>'
                 f'</li>'
             )
         via = f' <span class="via">via {esc(src["via"])}</span>' if src.get("via") else ""
@@ -1300,13 +1290,13 @@ def world_page(cfg, mkt, base, out, world_items):
             lis.append(
                 f'<li data-item data-src="{esc(it["source"])}" data-region="{esc(slug)}" '
                 f'data-ts="{when.timestamp():.0f}">'
+                f'<a href="{esc(it["link"])}" rel="nofollow noopener" target="_blank">'
+                f'{esc(it["title"])}</a>'
+                f'<time datetime="{when.isoformat()}">{esc(stamp(when))}</time>'
                 f'<button class="bm bm-sm" type="button" aria-pressed="false" '
                 f'aria-label="Read later" data-bm data-title="{esc(it["title"])}" '
                 f'data-link="{esc(it["link"])}" data-bm-source="{esc(it["source"])}">'
-                f'{BOOKMARK_SVG}</button>'
-                f'<a href="{esc(it["link"])}" rel="nofollow noopener" target="_blank">'
-                f'{esc(it["title"])}</a>'
-                f'<time datetime="{when.isoformat()}">{esc(stamp(when))}</time></li>')
+                f'{BOOKMARK_SVG}</button></li>')
         cards.append(
             f'<section class="card" data-region="{esc(slug)}">'
             f'<div class="card-head"><h2><span class="flag">{flag}</span> {esc(name)}</h2>'
@@ -1553,10 +1543,12 @@ self.addEventListener('fetch', function (e) {
             '<a href="/newsletter/">Get it by email &rarr;</a></p>'
             '</div></section>')
 
+    # The h1 exists for crawlers; the live site shows no heading above the
+    # wire and the client wants that look kept, so it is visually hidden.
     home_body = (
-        '<div class="page-head">'
+        '<div class="sr-only">'
         f'<h1>{esc(cfg["site_name"])} - {esc(cfg.get("tagline", "financial news"))}</h1>'
-        '<p class="standfirst">Every desk on one page, newest first. '
+        '<p>Every desk on one page, newest first. '
         'Headlines link straight to the publisher.</p>'
         '</div>'
         + '<section class="foryou" id="foryou" hidden></section>'

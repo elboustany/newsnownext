@@ -49,6 +49,16 @@ structure were sampled off the running site. The client's first reaction to a
 redesign was that it was too different - visual invention is not wanted here.
 All tokens live in `generator/theme.py`; nothing else defines a colour.
 
+**The nav stays flat and verbatim.** Nine links, this order: News, Books,
+Forex, World News, Podcasts, Contact, Preferences, Read Later (bookmark
+icon), Portfolio. A regroup into Markets/Discover/More dropdowns was shipped
+once and the client rejected it in three messages ("Ne change pas le design /
+Ni les boutons / Ni le contenu"). Extra pages link from the footer and the
+ticker's Events tab. Both AD banners (Market Intelligence Pro on top,
+Financial News Premium fixed at the bottom) are his placeholder ads,
+reproduced verbatim including the em dashes - do not reword or replace them,
+and the home page shows no visible h1 (it is sr-only, for crawlers).
+
 **No dark mode.** The live site is light-only. A page that flips to dark on a
 dark-mode machine is the exact mismatch this build exists to avoid.
 
