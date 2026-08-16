@@ -1235,85 +1235,95 @@ def events_page(cfg, mkt, base, out):
     return f"{base}/events/"
 
 
-def podcasts_page(cfg, mkt, base, out):
-    """Curated episode summaries - the only wholly original text on the site,
-    and therefore the page most worth indexing."""
-    data = json.loads((HERE / "data" / "podcasts.json").read_text(encoding="utf-8"))
-    eps = data["episodes"]
+PODCASTS_API = "https://newsnownext-production.up.railway.app/api/podcasts"
 
-    tmap = {}
-    tmap_path = HERE / "static" / "podcasts" / "map.json"
-    if tmap_path.exists():
-        tmap = json.loads(tmap_path.read_text(encoding="utf-8"))
+# The expandable sections of his card, in his order.
+POD_SECTIONS = [("Key Insights", "keyInsights"),
+                ("Actionable Takeaways", "actionableTakeaways"),
+                ("Contrarian Views", "contrarian"),
+                ("Final Thoughts", "finalThoughts")]
+
+
+def podcasts_page(cfg, mkt, base, out):
+    """His Podcast Summaries page, verbatim: title band, Guest/Host/date,
+    Main Topic, the four extra sections behind Show Full Summary, and the
+    Listen link. His backend keeps writing new summaries, so a production
+    build pulls the live list from his API; data/podcasts.json is the
+    committed seed and the fallback when the API is unreachable."""
+    eps = None
+    if cfg.get("output_dir", "site") == "site":
+        try:
+            req = urllib.request.Request(PODCASTS_API, headers={"User-Agent": UA})
+            with urllib.request.urlopen(req, timeout=15) as r:
+                fetched = json.loads(r.read().decode("utf-8"))
+            if isinstance(fetched, list) and fetched:
+                eps = fetched
+                print(f"  podcasts: {len(eps)} episodes from the live API")
+        except Exception as e:                      # noqa: BLE001 - fallback below
+            print(f"  podcasts API unreachable ({e}); using committed data")
+    if eps is None:
+        eps = json.loads((HERE / "data" / "podcasts.json").read_text(encoding="utf-8"))
+    eps.sort(key=lambda e: e.get("publishDate") or "", reverse=True)
+
+    def clean(s):
+        # His content verbatim - em dashes and all; the no-dash rule is for
+        # our own writing, not his.
+        return s or ""
 
     cards = []
     for e in eps:
-        when = datetime.fromisoformat(e["date"])
-        thumb = tmap.get(e["url"])
-        if thumb and (HERE / "static" / "podcasts" / thumb["file"]).exists():
-            play = ('<span class="pod-play" aria-hidden="true">&#9654;</span>'
-                    if thumb["kind"] == "youtube" else "")
-            kind = "Watch" if thumb["kind"] == "youtube" else "Read"
-            media = (f'<a class="pod-thumb" href="{esc(e["url"])}" '
-                     f'rel="noopener" target="_blank" tabindex="-1">'
-                     f'<img src="/assets/podcasts/{esc(thumb["file"])}" alt="" '
-                     f'loading="lazy">{play}'
-                     f'<span class="pod-kind">{kind}</span></a>')
-        else:
-            media = ""
+        try:
+            when = datetime.fromisoformat(
+                (e.get("publishDate") or "").replace("Z", "+00:00"))
+            date_line = f"{when.strftime('%B')} {when.day}, {when.year}"
+        except ValueError:
+            when, date_line = None, ""
+        full = "".join(
+            f'<h3 class="podc-h">{label}</h3>'
+            f'<p class="podc-p">{esc(clean(e.get(key)))}</p>'
+            for label, key in POD_SECTIONS if (e.get(key) or "").strip())
+        link = (e.get("episodeLink") or "").strip()
         cards.append(
-            f'<article class="pod" data-pod '
-            f'data-hay="{esc((e["title"] + " " + e["guest"] + " " + e["host"] + " " + e["summary"]).lower())}" '
-            f'data-ts="{int(when.timestamp())}">'
-            f'{media}'
-            f'<div class="pod-body">'
-            f'<h2><a href="{esc(e["url"])}" rel="noopener" target="_blank">'
-            f'{esc(e["title"])}</a></h2>'
-            # A solo episode lists the same name as guest and host; saying
-            # it twice reads like a data bug, so collapse to Host.
-            + (f'<p class="pod-meta"><strong>Host</strong> {esc(e["host"])}'
-               if e["guest"].strip().lower() == e["host"].strip().lower() else
-               f'<p class="pod-meta"><strong>Guest</strong> {esc(e["guest"])}'
-               f'<span class="dot">&middot;</span><strong>Host</strong> {esc(e["host"])}')
-            + f'<span class="dot">&middot;</span>'
-            f'<time datetime="{e["date"]}">{when.strftime("%d %B %Y")}</time></p>'
-            f'<p class="pod-sum" data-pod-sum>{esc(e["summary"])}</p>'
-            f'<div class="pod-foot">'
-            f'<button class="linkbtn" type="button" data-pod-more hidden>'
-            f'Show more</button>'
-            f'<a class="pod-link" href="{esc(e["url"])}" rel="noopener" '
-            f'target="_blank">Listen to the full episode &rarr;</a></div>'
-            f'</div></article>')
+            f'<article class="podc">'
+            f'<div class="podc-head"><h2>{esc(clean(e["title"]))}</h2></div>'
+            f'<div class="podc-body">'
+            + (f'<p class="podc-meta"><strong>Guest:</strong> '
+               f'{esc(clean(e["guest"]))}</p>' if (e.get("guest") or "").strip() else "")
+            + (f'<p class="podc-meta"><strong>Host:</strong> '
+               f'{esc(clean(e["host"]))}</p>' if (e.get("host") or "").strip() else "")
+            + (f'<p class="podc-date"><time datetime="{esc(e["publishDate"])}">'
+               f'{date_line}</time></p>' if date_line else "")
+            + f'<h3 class="podc-h">Main Topic</h3>'
+            f'<p class="podc-p">{esc(clean(e.get("mainTopic")))}</p>'
+            + (f'<div class="podc-full" hidden>{full}</div>'
+               f'<button class="podc-toggle" type="button" data-pod-toggle '
+               f'aria-expanded="false">Show Full Summary '
+               f'<span aria-hidden="true">&#9662;</span></button>' if full else "")
+            + (f'<a class="podc-link" href="{esc(link)}" rel="noopener" '
+               f'target="_blank">Listen to Full Episode '
+               f'<span aria-hidden="true">&#8599;</span></a>' if link else "")
+            + '</div></article>')
 
     ld = json.dumps({
         "@context": "https://schema.org", "@type": "ItemList",
-        "name": "Podcast summaries",
+        "name": "Podcast Summaries",
         "itemListElement": [
             {"@type": "ListItem", "position": i + 1,
-             "item": {"@type": "PodcastEpisode", "name": e["title"],
-                      "datePublished": e["date"], "abstract": e["summary"],
-                      "url": e["url"]}}
+             "item": {"@type": "PodcastEpisode", "name": clean(e["title"]),
+                      "datePublished": e.get("publishDate", ""),
+                      "abstract": clean(e.get("mainTopic")),
+                      "url": e.get("episodeLink", "")}}
             for i, e in enumerate(eps)],
     })
 
     body = (
-        '<div class="page-head"><h1>Podcast summaries</h1>'
-        f'<p class="standfirst">{len(eps)} curated insights from top business and '
-        'technology podcasts - what was actually said, in a paragraph.</p></div>'
-        '<div class="filters" data-pod-filters hidden>'
-        '<div class="fsearch"><label class="sr-only" for="p-q">Filter episodes</label>'
-        '<input id="p-q" type="search" autocomplete="off" '
-        'placeholder="Search guests, hosts or topics…"></div>'
-        '<label class="sr-only" for="p-sort">Order</label>'
-        '<select id="p-sort" class="fsel">'
-        '<option value="new">Newest first</option>'
-        '<option value="old">Oldest first</option></select>'
-        '<p class="fcount"><span id="p-count"></span></p></div>'
-        '<p class="empty" id="p-empty" hidden>No episodes match that search.</p>'
-        f'<div class="pods" id="pod-list">{"".join(cards)}</div>')
+        '<div class="page-head"><h1>Podcast Summaries</h1>'
+        '<p class="standfirst">Curated insights from top business and '
+        'technology podcasts</p></div>'
+        f'<div class="pods">{"".join(cards)}</div>')
 
     write(out / "podcasts" / "index.html", shell(
-        cfg, title=f"Podcast summaries - business and tech insights - {cfg['site_name']}",
+        cfg, title=f"Podcast Summaries - Business & Tech Insights - {cfg['site_name']}",
         description=("Curated summaries of the best business, macro and technology "
                      "podcasts: guest, host and the argument in one paragraph."),
         canonical=f"{base}/podcasts/", body=body, current="/podcasts/",

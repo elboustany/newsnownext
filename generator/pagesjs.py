@@ -525,61 +525,18 @@ PAGES_JS = r"""
     });
   }
 
-  /* ── Podcasts ────────────────────────────────────────────────────── */
-  var pf = document.querySelector('[data-pod-filters]');
-  if (pf) {
-    pf.hidden = false;
-    var pq = document.getElementById('p-q');
-    var ps = document.getElementById('p-sort');
-    var pc = document.getElementById('p-count');
-    var pe = document.getElementById('p-empty');
-    var list = document.getElementById('pod-list');
-    var pods = [].slice.call(list.querySelectorAll('[data-pod]'));
-
-    function papply() {
-      var terms = (pq.value.toLowerCase().match(/"[^"]+"|\S+/g) || [])
-        .map(function (t) { return t.replace(/^"|"$/g, '').trim(); }).filter(Boolean);
-      var shown = 0;
-      pods.forEach(function (p) {
-        var hay = p.getAttribute('data-hay');
-        var ok = terms.every(function (t) { return hay.indexOf(t) > -1; });
-        p.hidden = !ok;
-        if (ok) shown++;
-      });
-      pc.textContent = shown === pods.length
-        ? pods.length + ' episodes'
-        : shown + ' of ' + pods.length + ' episodes';
-      pe.hidden = shown > 0;
-    }
-    function psort() {
-      var asc = ps.value === 'old';
-      pods.slice().sort(function (a, b) {
-        var x = +a.getAttribute('data-ts'), y = +b.getAttribute('data-ts');
-        return asc ? x - y : y - x;
-      }).forEach(function (p) { list.appendChild(p); });
-    }
-    // Clamped summaries get a Show more toggle, but only when the clamp
-    // actually hides something.
-    pods.forEach(function (card) {
-      var sum = card.querySelector('[data-pod-sum]');
-      var btn = card.querySelector('[data-pod-more]');
-      if (!sum || !btn) return;
-      if (sum.scrollHeight > sum.clientHeight + 4) {
-        btn.hidden = false;
-        btn.addEventListener('click', function () {
-          var open = sum.classList.toggle('open');
-          btn.textContent = open ? 'Show less' : 'Show more';
-        });
-      }
+  /* ── Podcasts: his Show Full Summary toggle ──────────────────────── */
+  [].slice.call(document.querySelectorAll('[data-pod-toggle]')).forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var full = btn.parentElement.querySelector('.podc-full');
+      if (!full) return;
+      full.hidden = !full.hidden;
+      btn.setAttribute('aria-expanded', String(!full.hidden));
+      btn.innerHTML = full.hidden
+        ? 'Show Full Summary <span aria-hidden="true">&#9662;</span>'
+        : 'Hide Full Summary <span aria-hidden="true">&#9652;</span>';
     });
-
-    pq.addEventListener('input', papply);
-    pq.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') { pq.value = ''; papply(); }
-    });
-    ps.addEventListener('change', psort);
-    papply();
-  }
+  });
 
   /* ── Preferences ─────────────────────────────────────────────────── */
   var prefs = document.querySelector('[data-prefs]');

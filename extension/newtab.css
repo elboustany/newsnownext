@@ -723,49 +723,39 @@ ol.wire mark{background:rgba(36,99,235,.16);color:inherit;border-radius:2px;padd
 
 /* ── Podcasts ──────────────────────────────────────────────────────── */
 
-.pods{display:grid;gap:18px;margin-top:16px;grid-template-columns:1fr}
-@media(min-width:900px){.pods{grid-template-columns:repeat(2,1fr)}}
-.pod{
-  border:1px solid var(--border);border-radius:12px;background:var(--card);
-  overflow:hidden;display:flex;flex-direction:column;
+/* His card, sampled: grey title band, Guest/Host lines with bold labels,
+   muted date, Main Topic digest, the four extra sections behind Show
+   Full Summary, and the Listen link. No thumbnails - his page has none.
+   Grid is his: one column, two from 768, three from 1280. */
+.pods{display:grid;gap:16px;margin-top:16px;grid-template-columns:1fr}
+@media(min-width:768px){.pods{grid-template-columns:repeat(2,1fr);gap:24px}}
+@media(min-width:1280px){.pods{grid-template-columns:repeat(3,1fr)}}
+.podc{
+  border:1px solid var(--border);border-radius:8px;background:var(--card);
+  overflow:hidden;align-self:start;
 }
-.pod-thumb{position:relative;display:block;aspect-ratio:16/9;background:var(--muted)}
-.pod-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.pod-thumb::after{
-  content:"";position:absolute;inset:0;
-  background:linear-gradient(180deg,transparent 60%,rgba(16,24,40,.25));
+.podc-head{
+  background:var(--muted);padding:12px 16px;border-bottom:1px solid var(--border);
 }
-.pod-play{
-  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:52px;height:52px;border-radius:50%;z-index:1;
-  background:rgba(220,38,38,.92);color:#fff;font-size:19px;
-  display:flex;align-items:center;justify-content:center;padding-left:4px;
-  box-shadow:0 6px 18px rgba(16,24,40,.35);transition:transform .15s;
+.podc-head h2{font-size:16px;font-weight:600;margin:0;line-height:1.4}
+.podc-body{padding:16px}
+.podc-meta{font-size:14px;margin:0 0 4px;line-height:1.5}
+.podc-meta strong{font-weight:500}
+.podc-date{font-size:14px;color:var(--muted-foreground);margin:0 0 12px}
+.podc-h{font-size:14px;font-weight:500;margin:0 0 8px}
+.podc-p{
+  font-size:14px;color:var(--muted-foreground);margin:0 0 12px;line-height:1.55;
 }
-.pod-thumb:hover .pod-play{transform:translate(-50%,-50%) scale(1.08)}
-.pod-kind{
-  position:absolute;top:10px;right:10px;z-index:1;
-  font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-  background:rgba(16,24,40,.72);color:#fff;border-radius:6px;padding:3px 8px;
+.podc-toggle{
+  display:flex;gap:4px;align-items:center;font:inherit;font-size:14px;
+  color:#2563eb;background:none;border:0;padding:0;margin:0 0 12px;cursor:pointer;
 }
-.pod-body{padding:16px 18px;display:flex;flex-direction:column;flex:1}
-.pod h2{font-size:16.5px;font-weight:700;margin:0 0 7px;line-height:1.35}
-.pod h2 a{color:var(--foreground);text-decoration:none}
-.pod h2 a:hover{color:var(--primary)}
-.pod-meta{
-  font-size:12.5px;color:var(--muted-foreground);margin:0 0 10px;
-  display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;
+.podc-toggle:hover{color:#1d4ed8}
+.podc-link{
+  display:inline-flex;gap:4px;align-items:center;font-size:14px;
+  color:#2563eb;text-decoration:none;
 }
-.pod-meta strong{color:var(--foreground);font-weight:600;margin-right:3px}
-.pod-meta .dot{opacity:.5}
-.pod-sum{
-  margin:0 0 12px;font-size:14px;line-height:1.6;
-  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;
-}
-.pod-sum.open{display:block;-webkit-line-clamp:unset}
-.pod-foot{margin-top:auto;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
-.pod-link{font-size:13.5px;font-weight:600;color:var(--primary);text-decoration:none}
-.pod-link:hover{text-decoration:underline}
+.podc-link:hover{color:#1d4ed8;text-decoration:underline}
 
 /* ── Ask AI ────────────────────────────────────────────────────────── */
 
