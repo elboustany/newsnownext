@@ -1,17 +1,16 @@
-# Builds the site from live feeds and deploys it to Cloudflare Pages.
+# Builds the site from live feeds and publishes it to the `production`
+# branch. Cloudflare Pages watches that branch through its Git integration
+# and deploys whatever lands there, so this pipeline needs NO secrets at
+# all: the only credential involved is the runner's own ephemeral token.
 #
 # Runs every 30 minutes during market hours (Mon-Fri), every 3 hours on
 # weekends, on every push to main, and on demand from the Actions tab.
 #
-# Needs two repository secrets (Settings -> Secrets and variables -> Actions):
-#   CLOUDFLARE_API_TOKEN   - API token with "Cloudflare Pages: Edit"
-#   CLOUDFLARE_ACCOUNT_ID  - from any Cloudflare dashboard URL
-#
-# If a build fails (for example every feed is down), the deploy step is
-# skipped and the previous deployment stays live. GitHub emails the repo
-# owner about failed runs by default.
+# If a build fails (for example every feed is down), nothing is published
+# and the previous deployment stays live. GitHub emails the repo owner
+# about failed runs by default.
 
-name: Build and deploy site
+name: Build and publish site
 
 on:
   schedule:
@@ -26,10 +25,10 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  build-deploy:
+  build-publish:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -69,16 +68,22 @@ jobs:
         run: |
           test -s generator/site/index.html
           test -s generator/site/sitemap.xml
-          count=$(grep -c 'data-item' generator/site/index.html)
+          count=$(grep -o 'data-item' generator/site/index.html | wc -l)
           echo "home page items: $count"
           test "$count" -ge 50
 
-      - name: Deploy to Cloudflare Pages
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # A fresh orphan commit each run keeps the branch at exactly one
+      # commit, so the repo never grows from deploys.
+      - name: Publish to the production branch
         run: |
-          npx --yes wrangler@4 pages project create newsnownext \
-            --production-branch=main 2>/dev/null || true
-          npx --yes wrangler@4 pages deploy generator/site \
-            --project-name=newsnownext --branch=main --commit-dirty=true
+          cd generator/site
+          git init -q -b production
+          git config user.name "newsnownext-build"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -qm "Site build $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push -f \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            production
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
