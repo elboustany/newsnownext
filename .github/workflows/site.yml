@@ -13,9 +13,13 @@
 name: Build and publish site
 
 on:
+  # Cadence is set by Cloudflare Pages' free-plan quota of 500 builds per
+  # month: hourly on weekdays plus a light weekend touch lands around 450
+  # including content pushes. On the $5/month Workers Paid plan the quota is
+  # 5,000, and this can go back to "*/30 5-21 * * 1-5".
   schedule:
-    - cron: "*/30 5-21 * * 1-5"   # UTC: covers Tokyo close through NY close
-    - cron: "0 6-21/3 * * 0,6"    # weekends: light touch
+    - cron: "0 5-21 * * 1-5"      # UTC, hourly: Tokyo close through NY close
+    - cron: "0 6-21/3 * * 0,6"    # weekends: every 3 hours
   push:
     branches: [main]
   workflow_dispatch:

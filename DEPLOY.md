@@ -3,7 +3,9 @@
 The stack, chosen so that no API tokens exist anywhere:
 
 1. **GitHub** holds the code. A scheduled Action builds the site from live
-   feeds every 30 minutes during market hours (every 3 hours on weekends)
+   feeds hourly during market hours (every 3 hours on weekends; the cadence
+   is sized to Cloudflare Pages' free 500-builds/month quota, and can go to
+   every 30 minutes on the $5/month Workers Paid plan)
    and force-pushes the built output to the `production` branch as a
    single orphan commit. The only credential involved is the runner's own
    ephemeral token, so the repo needs no secrets.
