@@ -17,6 +17,20 @@ The stack, chosen so that no API tokens exist anywhere:
    project; DNS lives in the same Cloudflare account, so records and the
    certificate are managed automatically.
 
+## The worker
+
+The build ships a `_worker.js` (Pages advanced mode) with two jobs:
+
+- `/api/quotes` - live CNBC quotes cached ~15 seconds at the edge; the
+  ticker cards poll it every 15 seconds (CNBC blocks browser origins, so
+  the edge has to make the call). Pages Functions free tier is 100,000
+  requests/day; at one poll per 15s that is ~416 concurrent visitor-hours
+  per day before quotes stop refreshing (static pages are unaffected).
+- `/api/*` and `/portfolio` - proxied to the original Railway backend,
+  which still runs the client's login + watchlist system. If Railway is
+  cancelled or unreachable, the static portfolio page serves instead and
+  the rest of the site is untouched.
+
 ## Operating it
 
 - Content edits (a new synopsis, updated events.json): commit to `main`,

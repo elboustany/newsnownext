@@ -511,10 +511,15 @@ table.fx td.flat{color:var(--muted-foreground)}
   font-variant-numeric:tabular-nums;
 }
 
-.books{display:grid;gap:12px;grid-template-columns:1fr;margin-top:6px}
+/* His book card, sampled: vertical, a full-width 3:4 portrait cover in a
+   12px inset with 8px corners, then category in plain grey, semibold
+   title, author-bullet-year and the blue Amazon link. Grid runs
+   1/2/3/4/5 columns with 24px gaps, exactly his breakpoints. The shelf
+   headers are this build's one addition. */
+.books{display:grid;gap:24px;grid-template-columns:1fr;margin-top:6px}
 .bshelf{
   grid-column:1/-1;display:flex;align-items:center;gap:9px;
-  margin:18px 0 2px;padding-bottom:8px;border-bottom:1px solid var(--border);
+  margin:14px 0 -8px;padding-bottom:8px;border-bottom:1px solid var(--border);
   font-size:16px;font-weight:800;letter-spacing:-.01em;
 }
 .bshelf:first-child{margin-top:6px}
@@ -522,37 +527,34 @@ table.fx td.flat{color:var(--muted-foreground)}
 .bshelf-n{
   margin-left:auto;font-size:12px;font-weight:600;color:var(--muted-foreground);
 }
-@media(min-width:700px){.books{grid-template-columns:repeat(2,1fr)}}
-@media(min-width:1100px){.books{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:640px){.books{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:768px){.books{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1024px){.books{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:1280px){.books{grid-template-columns:repeat(5,1fr)}}
 .book{
-  border:1px solid var(--border);border-radius:var(--radius);background:var(--card);
-  padding:14px 16px;display:flex;gap:14px;align-items:flex-start;
+  border:1px solid var(--border);border-radius:12px;background:var(--card);
+  overflow:hidden;display:flex;flex-direction:column;
 }
 .bcover{
-  flex:none;width:58px;height:86px;border-radius:5px;position:relative;
+  display:block;margin:12px 12px 0;border-radius:8px;overflow:hidden;
+  aspect-ratio:3/4;background:var(--muted);
+}
+.bcover img{width:100%;height:100%;object-fit:cover;display:block}
+.bcover-ph{
   display:flex;align-items:center;justify-content:center;
-  color:#fff;font-weight:800;font-size:26px;font-family:Georgia,serif;
-  box-shadow:0 2px 5px rgba(16,24,40,.18);
+  color:#fff;font-weight:800;font-size:44px;font-family:Georgia,serif;
 }
-.bcover::before{
-  content:"";position:absolute;left:7px;top:0;bottom:0;width:1px;
-  background:rgba(255,255,255,.35);
-}
-.bcover.has-img{background:var(--muted);overflow:hidden}
-.bcover.has-img::before{display:none}
-.bcover.has-img img{width:100%;height:100%;object-fit:cover;display:block}
-.binfo{display:flex;flex-direction:column;gap:5px;min-width:0}
-.book-cat{
-  font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
-  color:var(--source);
-}
-.book h3{font-size:15px;font-weight:600;margin:0;line-height:1.3}
-.book .byline{font-size:13px;color:var(--muted-foreground);margin:0}
+.binfo{display:flex;flex-direction:column;gap:4px;padding:12px 16px 16px;min-width:0}
+.book-cat{font-size:13px;color:#64748b}
+.book h3{font-size:15px;font-weight:600;margin:2px 0 0;line-height:1.35}
+.book .byline{font-size:13px;color:#475569;margin:0}
 .book a.buy{
-  font-size:13px;font-weight:500;color:var(--primary);text-decoration:none;margin-top:2px;
+  font-size:13px;font-weight:500;color:#1d4ed8;text-decoration:none;margin-top:10px;
 }
 .book a.buy:hover{text-decoration:underline}
 .book mark{background:rgba(36,99,235,.16);color:inherit;border-radius:2px;padding:0 1px}
+.bfilters{margin-bottom:20px}
+.bfilters .fsearch{flex:1 1 280px}
 
 /* ── Shell ─────────────────────────────────────────────────────────── */
 

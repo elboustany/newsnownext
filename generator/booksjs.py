@@ -15,15 +15,12 @@ BOOKS_JS = r"""
 
   var q = root.querySelector('#b-q');
   var sort = root.querySelector('#b-sort');
-  var count = root.querySelector('#b-count');
-  var clear = root.querySelector('#b-clear');
-  var chips = [].slice.call(root.querySelectorAll('[data-book-cat]'));
+  var catSel = root.querySelector('#b-cat');
   var grid = document.getElementById('book-grid');
   var empty = document.getElementById('b-empty');
   var books = [].slice.call(grid.querySelectorAll('[data-book]'));
   var shelves = [].slice.call(grid.querySelectorAll('[data-shelf]'));
   var sequence = [].slice.call(grid.children);   // shelves + cards, curated order
-  var cat = null;
 
   books.forEach(function (b) {
     b._title = b.querySelector('h3').textContent;
@@ -49,6 +46,7 @@ BOOKS_JS = r"""
   }
 
   function apply() {
+    var cat = catSel.value;
     var terms = (q.value.toLowerCase().match(/"[^"]+"|\S+/g) || [])
       .map(function (t) { return t.replace(/^"|"$/g, '').trim(); })
       .filter(Boolean);
@@ -74,11 +72,7 @@ BOOKS_JS = r"""
       h.hidden = !any;
     });
 
-    count.textContent = shown === books.length
-      ? books.length + ' books'
-      : shown + ' of ' + books.length + ' books';
     empty.hidden = shown > 0;
-    clear.hidden = !(q.value || cat || sort.value !== 'az');
   }
 
   function reorder() {
@@ -100,22 +94,7 @@ BOOKS_JS = r"""
     if (e.key === 'Escape') { q.value = ''; apply(); }
   });
   sort.addEventListener('change', function () { reorder(); apply(); });
-  chips.forEach(function (c) {
-    c.addEventListener('click', function () {
-      var v = c.getAttribute('data-book-cat');
-      cat = cat === v ? null : v;
-      chips.forEach(function (o) {
-        o.setAttribute('aria-pressed',
-          String(o.getAttribute('data-book-cat') === cat));
-      });
-      apply();
-    });
-  });
-  clear.addEventListener('click', function () {
-    q.value = ''; cat = null; sort.value = 'az';
-    chips.forEach(function (o) { o.setAttribute('aria-pressed', 'false'); });
-    reorder(); apply();
-  });
+  catSel.addEventListener('change', apply);
   document.addEventListener('keydown', function (e) {
     if (e.key === '/' && e.target !== q &&
         !/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) {

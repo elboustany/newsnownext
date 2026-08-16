@@ -1,138 +1,720 @@
 {
-  "_comment": "Captured from the live site's /books page. Amazon links are generated as https://amazon.com/s?k=<title> <author>&tag=<affiliate_tag> - keep the tag, it is the client's revenue.",
-  "affiliate_tag": "newsnownext-20",
-  "categories": [
-    "Investing",
-    "Finance Classics",
-    "Trading & Hedge Funds",
-    "Behavioral Finance",
-    "Economics & Macro",
-    "Corporate & Strategy",
-    "Management & Leadership",
-    "Entrepreneurship & Startups",
-    "Biographies & Memoirs",
-    "Decision, Innovation & Misc"
+ "_comment": "Captured from the live site's /books page. Amazon links are generated as https://amazon.com/s?k=<title> <author>&tag=<affiliate_tag> - keep the tag, it is the client's revenue.",
+ "affiliate_tag": "newsnownext-20",
+ "categories": [
+  "Investing",
+  "Finance Classics",
+  "Trading & Hedge Funds",
+  "Behavioral Finance",
+  "Economics & Macro",
+  "Corporate & Strategy",
+  "Management & Leadership",
+  "Entrepreneurship & Startups",
+  "Biographies & Memoirs",
+  "Decision, Innovation & Misc"
+ ],
+ "books": [
+  [
+   "A Random Walk Down Wall Street",
+   "Burton G. Malkiel",
+   1973,
+   "Finance Classics"
   ],
-  "books": [
-    ["100 Baggers", "Christopher W. Mayer", 2015, "Investing"],
-    ["A Random Walk Down Wall Street", "Burton G. Malkiel", 1973, "Finance Classics"],
-    ["Against the Gods: The Remarkable Story of Risk", "Peter L. Bernstein", 1996, "Finance Classics"],
-    ["Alibaba: The House That Jack Ma Built", "Duncan Clark", 2016, "Biographies & Memoirs"],
-    ["Amp It Up", "Frank Slootman", 2022, "Management & Leadership"],
-    ["An Elegant Puzzle", "Will Larson", 2019, "Management & Leadership"],
-    ["Antifragile", "Nassim Nicholas Taleb", 2012, "Behavioral Finance"],
-    ["Bad Blood", "John Carreyrou", 2018, "Biographies & Memoirs"],
-    ["Barbarians at the Gate", "Bryan Burrough & John Helyar", 1990, "Finance Classics"],
-    ["Becoming", "Michelle Obama", 2018, "Biographies & Memoirs"],
-    ["Blitzscaling", "Reid Hoffman & Chris Yeh", 2018, "Entrepreneurship & Startups"],
-    ["Blue Ocean Strategy", "W. Chan Kim & Renée Mauborgne", 2004, "Corporate & Strategy"],
-    ["Built to Last", "Jim Collins & Jerry I. Porras", 1994, "Corporate & Strategy"],
-    ["Capital in the Twenty-First Century", "Thomas Piketty", 2013, "Economics & Macro"],
-    ["Common Stocks and Uncommon Profits", "Philip A. Fisher", 1958, "Investing"],
-    ["Competitive Strategy", "Michael E. Porter", 1980, "Corporate & Strategy"],
-    ["Crossing the Chasm", "Geoffrey A. Moore", 1991, "Entrepreneurship & Startups"],
-    ["Debt: The First 5,000 Years", "David Graeber", 2011, "Economics & Macro"],
-    ["Den of Thieves", "James B. Stewart", 1991, "Finance Classics"],
-    ["Drive", "Daniel H. Pink", 2009, "Management & Leadership"],
-    ["Elon Musk", "Walter Isaacson", 2023, "Biographies & Memoirs"],
-    ["Extreme Ownership", "Jocko Willink & Leif Babin", 2015, "Management & Leadership"],
-    ["Flash Boys", "Michael Lewis", 2014, "Trading & Hedge Funds"],
-    ["Fooled by Randomness", "Nassim Nicholas Taleb", 2001, "Behavioral Finance"],
-    ["Good Economics for Hard Times", "Banerjee & Duflo", 2019, "Economics & Macro"],
-    ["Good to Great", "Jim Collins", 2001, "Corporate & Strategy"],
-    ["Hatching Twitter", "Nick Bilton", 2013, "Biographies & Memoirs"],
-    ["Hedge Fund Market Wizards", "Jack D. Schwager", 2012, "Trading & Hedge Funds"],
-    ["High Output Management", "Andrew S. Grove", 1983, "Management & Leadership"],
-    ["Hooked", "Nir Eyal", 2014, "Decision, Innovation & Misc"],
-    ["Inspired", "Marty Cagan", 2008, "Entrepreneurship & Startups"],
-    ["Inspired (2nd Edition)", "Marty Cagan", 2018, "Entrepreneurship & Startups"],
-    ["Irrational Exuberance", "Robert J. Shiller", 2000, "Finance Classics"],
-    ["Leadership and Self-Deception", "The Arbinger Institute", 2000, "Management & Leadership"],
-    ["Liar's Poker", "Michael Lewis", 1989, "Finance Classics"],
-    ["Market Wizards", "Jack D. Schwager", 1989, "Trading & Hedge Funds"],
-    ["Measure What Matters", "John Doerr", 2017, "Corporate & Strategy"],
-    ["Misbehaving", "Richard Thaler", 2015, "Behavioral Finance"],
-    ["Money Mischief", "Milton Friedman", 1992, "Economics & Macro"],
-    ["More Money Than God", "Sebastian Mallaby", 2010, "Trading & Hedge Funds"],
-    ["Multipliers", "Liz Wiseman", 2010, "Management & Leadership"],
-    ["Narrative Economics", "Robert J. Shiller", 2019, "Behavioral Finance"],
-    ["No Rules Rules", "Reed Hastings & Erin Meyer", 2020, "Management & Leadership"],
-    ["Noise", "Kahneman, Sibony, Sunstein", 2021, "Behavioral Finance"],
-    ["One Up On Wall Street", "Peter Lynch", 1989, "Finance Classics"],
-    ["Only the Paranoid Survive", "Andrew S. Grove", 1996, "Management & Leadership"],
-    ["Onward: How Starbucks Fought for Its Life", "Howard Schultz", 2011, "Biographies & Memoirs"],
-    ["Playing to Win", "A.G. Lafley & Roger L. Martin", 2013, "Corporate & Strategy"],
-    ["Predictably Irrational", "Dan Ariely", 2008, "Behavioral Finance"],
-    ["Principles", "Ray Dalio", 2017, "Management & Leadership"],
-    ["Quality Investing", "Lawrence A. Cunningham et al.", 2016, "Investing"],
-    ["Radical Candor", "Kim Scott", 2017, "Management & Leadership"],
-    ["Range", "David Epstein", 2019, "Decision, Innovation & Misc"],
-    ["Reinventing Organizations", "Frederic Laloux", 2014, "Management & Leadership"],
-    ["Reminiscences of a Stock Operator", "Edwin Lefèvre", 1923, "Finance Classics"],
-    ["Rework", "Jason Fried & David Heinemeier Hansson", 2010, "Entrepreneurship & Startups"],
-    ["Rich Dad Poor Dad", "Robert T. Kiyosaki", 1997, "Decision, Innovation & Misc"],
-    ["Running Lean", "Ash Maurya", 2010, "Entrepreneurship & Startups"],
-    ["Security Analysis", "Benjamin Graham & David Dodd", 1934, "Investing"],
-    ["Shoe Dog", "Phil Knight", 2016, "Biographies & Memoirs"],
-    ["Steve Jobs", "Walter Isaacson", 2011, "Biographies & Memoirs"],
-    ["Stocks for the Long Run", "Jeremy J. Siegel", 1994, "Finance Classics"],
-    ["Superforecasting", "Philip E. Tetlock & Dan Gardner", 2015, "Decision, Innovation & Misc"],
-    ["The Alchemy of Finance", "George Soros", 1987, "Trading & Hedge Funds"],
-    ["The Art of Strategy", "Dixit & Nalebuff", 2008, "Decision, Innovation & Misc"],
-    ["The Ascent of Money", "Niall Ferguson", 2008, "Economics & Macro"],
-    ["The Big Short", "Michael Lewis", 2010, "Finance Classics"],
-    ["The Black Swan", "Nassim Nicholas Taleb", 2007, "Behavioral Finance"],
-    ["The Checklist Manifesto", "Atul Gawande", 2009, "Decision, Innovation & Misc"],
-    ["The Cold Start Problem", "Andrew Chen", 2021, "Entrepreneurship & Startups"],
-    ["The Dao of Capital", "Mark Spitznagel", 2013, "Trading & Hedge Funds"],
-    ["The Design of Everyday Things", "Don Norman", 1988, "Decision, Innovation & Misc"],
-    ["The Dhandho Investor", "Mohnish Pabrai", 2007, "Investing"],
-    ["The Effective Executive", "Peter F. Drucker", 1967, "Management & Leadership"],
-    ["The Euro", "Joseph E. Stiglitz", 2016, "Economics & Macro"],
-    ["The Everything Store", "Brad Stone", 2013, "Biographies & Memoirs"],
-    ["The Fix: How Bankers Lied, Cheated and Colluded", "Liam Vaughan & Gavin Finch", 2017, "Trading & Hedge Funds"],
-    ["The Four Steps to the Epiphany", "Steve Blank", 2005, "Entrepreneurship & Startups"],
-    ["The Goal", "Eliyahu M. Goldratt", 1984, "Corporate & Strategy"],
-    ["The Great Demographic Reversal", "Goodhart & Pradhan", 2020, "Economics & Macro"],
-    ["The Greatest Trade Ever", "Gregory Zuckerman", 2009, "Trading & Hedge Funds"],
-    ["The Halo Effect", "Phil Rosenzweig", 2007, "Corporate & Strategy"],
-    ["The Hard Thing About Hard Things", "Ben Horowitz", 2014, "Corporate & Strategy"],
-    ["The House of Morgan", "Ron Chernow", 1990, "Biographies & Memoirs"],
-    ["The Innovator's Dilemma", "Clayton M. Christensen", 1997, "Corporate & Strategy"],
-    ["The Innovator's Solution", "Christensen & Raynor", 2003, "Corporate & Strategy"],
-    ["The Intelligent Investor", "Benjamin Graham", 1949, "Investing"],
-    ["The Lean Product Playbook", "Dan Olsen", 2015, "Decision, Innovation & Misc"],
-    ["The Lean Startup", "Eric Ries", 2011, "Corporate & Strategy"],
-    ["The Little Book of Common Sense Investing", "John C. Bogle", 2007, "Investing"],
-    ["The Man Who Solved the Market", "Gregory Zuckerman", 2019, "Trading & Hedge Funds"],
-    ["The Minimalist Entrepreneur", "Sahil Lavingia", 2021, "Entrepreneurship & Startups"],
-    ["The Mom Test", "Rob Fitzpatrick", 2013, "Entrepreneurship & Startups"],
-    ["The Most Important Thing Illuminated", "Howard Marks", 2012, "Trading & Hedge Funds"],
-    ["The Myth of Capitalism", "Jonathan Tepper & Denise Hearn", 2018, "Economics & Macro"],
-    ["The New Buffettology", "Mary Buffett & David Clark", 1999, "Investing"],
-    ["The New Market Wizards", "Jack D. Schwager", 1992, "Trading & Hedge Funds"],
-    ["The Outsiders", "William N. Thorndike", 2012, "Corporate & Strategy"],
-    ["The Power Law: Venture Capital and the Making of the New Future", "Sebastian Mallaby", 2022, "Decision, Innovation & Misc"],
-    ["The Psychology of Money", "Morgan Housel", 2020, "Behavioral Finance"],
-    ["The Ride of a Lifetime", "Robert Iger", 2019, "Biographies & Memoirs"],
-    ["The Rise and Fall of American Growth", "Robert J. Gordon", 2016, "Economics & Macro"],
-    ["The Signal and the Noise", "Nate Silver", 2012, "Decision, Innovation & Misc"],
-    ["The Snowball: Warren Buffett and the Business of Life", "Alice Schroeder", 2008, "Biographies & Memoirs"],
-    ["The Startup Owner's Manual", "Steve Blank & Bob Dorf", 2012, "Entrepreneurship & Startups"],
-    ["The Warren Buffett Way", "Robert G. Hagstrom", 1994, "Investing"],
-    ["Thinking in Bets", "Annie Duke", 2018, "Decision, Innovation & Misc"],
-    ["Thinking, Fast and Slow", "Daniel Kahneman", 2011, "Behavioral Finance"],
-    ["This Time Is Different", "Reinhart & Rogoff", 2009, "Economics & Macro"],
-    ["Titan: The Life of John D. Rockefeller, Sr.", "Ron Chernow", 1998, "Biographies & Memoirs"],
-    ["Too Big to Fail", "Andrew Ross Sorkin", 2009, "Finance Classics"],
-    ["Trillion Dollar Coach", "Eric Schmidt, Jonathan Rosenberg, Alan Eagle", 2019, "Management & Leadership"],
-    ["Turn the Ship Around!", "L. David Marquet", 2013, "Management & Leadership"],
-    ["Unknown Market Wizards", "Jack D. Schwager", 2020, "Trading & Hedge Funds"],
-    ["Venture Deals", "Brad Feld & Jason Mendelson", 2012, "Entrepreneurship & Startups"],
-    ["When Genius Failed", "Roger Lowenstein", 2000, "Finance Classics"],
-    ["Why Nations Fail", "Acemoglu & Robinson", 2012, "Economics & Macro"],
-    ["You Can Be a Stock Market Genius", "Joel Greenblatt", 1997, "Investing"],
-    ["Your Money and Your Brain", "Jason Zweig", 2007, "Behavioral Finance"],
-    ["Zero to One", "Peter Thiel", 2014, "Entrepreneurship & Startups"]
+  [
+   "One Up On Wall Street",
+   "Peter Lynch",
+   1989,
+   "Finance Classics"
+  ],
+  [
+   "Liar's Poker",
+   "Michael Lewis",
+   1989,
+   "Finance Classics"
+  ],
+  [
+   "The Big Short",
+   "Michael Lewis",
+   2010,
+   "Finance Classics"
+  ],
+  [
+   "Too Big to Fail",
+   "Andrew Ross Sorkin",
+   2009,
+   "Finance Classics"
+  ],
+  [
+   "Against the Gods: The Remarkable Story of Risk",
+   "Peter L. Bernstein",
+   1996,
+   "Finance Classics"
+  ],
+  [
+   "Reminiscences of a Stock Operator",
+   "Edwin Lefèvre",
+   1923,
+   "Finance Classics"
+  ],
+  [
+   "Stocks for the Long Run",
+   "Jeremy J. Siegel",
+   1994,
+   "Finance Classics"
+  ],
+  [
+   "The Intelligent Investor",
+   "Benjamin Graham",
+   1949,
+   "Investing"
+  ],
+  [
+   "Security Analysis",
+   "Benjamin Graham & David Dodd",
+   1934,
+   "Investing"
+  ],
+  [
+   "Common Stocks and Uncommon Profits",
+   "Philip A. Fisher",
+   1958,
+   "Investing"
+  ],
+  [
+   "The Little Book of Common Sense Investing",
+   "John C. Bogle",
+   2007,
+   "Investing"
+  ],
+  [
+   "The Dhandho Investor",
+   "Mohnish Pabrai",
+   2007,
+   "Investing"
+  ],
+  [
+   "You Can Be a Stock Market Genius",
+   "Joel Greenblatt",
+   1997,
+   "Investing"
+  ],
+  [
+   "The Warren Buffett Way",
+   "Robert G. Hagstrom",
+   1994,
+   "Investing"
+  ],
+  [
+   "The New Buffettology",
+   "Mary Buffett & David Clark",
+   1999,
+   "Investing"
+  ],
+  [
+   "100 Baggers",
+   "Christopher W. Mayer",
+   2015,
+   "Investing"
+  ],
+  [
+   "Quality Investing",
+   "Lawrence A. Cunningham et al.",
+   2016,
+   "Investing"
+  ],
+  [
+   "Market Wizards",
+   "Jack D. Schwager",
+   1989,
+   "Trading & Hedge Funds"
+  ],
+  [
+   "The New Market Wizards",
+   "Jack D. Schwager",
+   1992,
+   "Trading & Hedge Funds"
+  ],
+  [
+   "Unknown Market Wizards",
+   "Jack D. Schwager",
+   2020,
+   "Trading & Hedge Funds"
+  ],
+  [
+   "The Man Who Solved the Market",
+   "Gregory Zuckerman",
+   2019,
+   "Trading & Hedge Funds"
+  ],
+  [
+   "More Money Than God",
+   "Sebastian Mallaby",
+   2010,
+   "Trading & Hedge Funds"
+  ],
+  [
+   "Hedge Fund Market Wizards",
+   "Jack D. Schwager",
+   2012,
+   "Trading & Hedge Funds"
+  ],
+  [
+   "The Alchemy of Finance",
+   "George Soros",
+   1987,
+   "Trading & Hedge Funds"
+  ],
+  [
+   "The Fix: How Bankers Lied, Cheated and Colluded",
+   "Liam Vaughan & Gavin Finch",
+   2017,
+   "Trading & Hedge Funds"
+  ],
+  [
+   "Flash Boys",
+   "Michael Lewis",
+   2014,
+   "Trading & Hedge Funds"
+  ],
+  [
+   "The Most Important Thing Illuminated",
+   "Howard Marks",
+   2012,
+   "Trading & Hedge Funds"
+  ],
+  [
+   "Thinking, Fast and Slow",
+   "Daniel Kahneman",
+   2011,
+   "Behavioral Finance"
+  ],
+  [
+   "Misbehaving",
+   "Richard Thaler",
+   2015,
+   "Behavioral Finance"
+  ],
+  [
+   "Fooled by Randomness",
+   "Nassim Nicholas Taleb",
+   2001,
+   "Behavioral Finance"
+  ],
+  [
+   "The Black Swan",
+   "Nassim Nicholas Taleb",
+   2007,
+   "Behavioral Finance"
+  ],
+  [
+   "Antifragile",
+   "Nassim Nicholas Taleb",
+   2012,
+   "Behavioral Finance"
+  ],
+  [
+   "Predictably Irrational",
+   "Dan Ariely",
+   2008,
+   "Behavioral Finance"
+  ],
+  [
+   "Your Money and Your Brain",
+   "Jason Zweig",
+   2007,
+   "Behavioral Finance"
+  ],
+  [
+   "Narrative Economics",
+   "Robert J. Shiller",
+   2019,
+   "Behavioral Finance"
+  ],
+  [
+   "The Psychology of Money",
+   "Morgan Housel",
+   2020,
+   "Behavioral Finance"
+  ],
+  [
+   "Noise",
+   "Kahneman, Sibony, Sunstein",
+   2021,
+   "Behavioral Finance"
+  ],
+  [
+   "Capital in the Twenty-First Century",
+   "Thomas Piketty",
+   2013,
+   "Economics & Macro"
+  ],
+  [
+   "The Ascent of Money",
+   "Niall Ferguson",
+   2008,
+   "Economics & Macro"
+  ],
+  [
+   "Good Economics for Hard Times",
+   "Banerjee & Duflo",
+   2019,
+   "Economics & Macro"
+  ],
+  [
+   "The Myth of Capitalism",
+   "Jonathan Tepper & Denise Hearn",
+   2018,
+   "Economics & Macro"
+  ],
+  [
+   "Why Nations Fail",
+   "Acemoglu & Robinson",
+   2012,
+   "Economics & Macro"
+  ],
+  [
+   "Debt: The First 5,000 Years",
+   "David Graeber",
+   2011,
+   "Economics & Macro"
+  ],
+  [
+   "This Time Is Different",
+   "Reinhart & Rogoff",
+   2009,
+   "Economics & Macro"
+  ],
+  [
+   "The Euro",
+   "Joseph E. Stiglitz",
+   2016,
+   "Economics & Macro"
+  ],
+  [
+   "The Great Demographic Reversal",
+   "Goodhart & Pradhan",
+   2020,
+   "Economics & Macro"
+  ],
+  [
+   "The Rise and Fall of American Growth",
+   "Robert J. Gordon",
+   2016,
+   "Economics & Macro"
+  ],
+  [
+   "Good to Great",
+   "Jim Collins",
+   2001,
+   "Corporate & Strategy"
+  ],
+  [
+   "Built to Last",
+   "Jim Collins & Jerry I. Porras",
+   1994,
+   "Corporate & Strategy"
+  ],
+  [
+   "Competitive Strategy",
+   "Michael E. Porter",
+   1980,
+   "Corporate & Strategy"
+  ],
+  [
+   "Playing to Win",
+   "A.G. Lafley & Roger L. Martin",
+   2013,
+   "Corporate & Strategy"
+  ],
+  [
+   "Blue Ocean Strategy",
+   "W. Chan Kim & Renée Mauborgne",
+   2004,
+   "Corporate & Strategy"
+  ],
+  [
+   "The Innovator's Dilemma",
+   "Clayton M. Christensen",
+   1997,
+   "Corporate & Strategy"
+  ],
+  [
+   "Measure What Matters",
+   "John Doerr",
+   2017,
+   "Corporate & Strategy"
+  ],
+  [
+   "The Lean Startup",
+   "Eric Ries",
+   2011,
+   "Corporate & Strategy"
+  ],
+  [
+   "The Hard Thing About Hard Things",
+   "Ben Horowitz",
+   2014,
+   "Corporate & Strategy"
+  ],
+  [
+   "The Outsiders",
+   "William N. Thorndike",
+   2012,
+   "Corporate & Strategy"
+  ],
+  [
+   "High Output Management",
+   "Andrew S. Grove",
+   1983,
+   "Management & Leadership"
+  ],
+  [
+   "The Effective Executive",
+   "Peter F. Drucker",
+   1967,
+   "Management & Leadership"
+  ],
+  [
+   "Extreme Ownership",
+   "Jocko Willink & Leif Babin",
+   2015,
+   "Management & Leadership"
+  ],
+  [
+   "No Rules Rules",
+   "Reed Hastings & Erin Meyer",
+   2020,
+   "Management & Leadership"
+  ],
+  [
+   "Radical Candor",
+   "Kim Scott",
+   2017,
+   "Management & Leadership"
+  ],
+  [
+   "Trillion Dollar Coach",
+   "Eric Schmidt, Jonathan Rosenberg, Alan Eagle",
+   2019,
+   "Management & Leadership"
+  ],
+  [
+   "Turn the Ship Around!",
+   "L. David Marquet",
+   2013,
+   "Management & Leadership"
+  ],
+  [
+   "Multipliers",
+   "Liz Wiseman",
+   2010,
+   "Management & Leadership"
+  ],
+  [
+   "An Elegant Puzzle",
+   "Will Larson",
+   2019,
+   "Management & Leadership"
+  ],
+  [
+   "Zero to One",
+   "Peter Thiel",
+   2014,
+   "Entrepreneurship & Startups"
+  ],
+  [
+   "The Startup Owner's Manual",
+   "Steve Blank & Bob Dorf",
+   2012,
+   "Entrepreneurship & Startups"
+  ],
+  [
+   "The Mom Test",
+   "Rob Fitzpatrick",
+   2013,
+   "Entrepreneurship & Startups"
+  ],
+  [
+   "The Minimalist Entrepreneur",
+   "Sahil Lavingia",
+   2021,
+   "Entrepreneurship & Startups"
+  ],
+  [
+   "The Cold Start Problem",
+   "Andrew Chen",
+   2021,
+   "Entrepreneurship & Startups"
+  ],
+  [
+   "Inspired",
+   "Marty Cagan",
+   2008,
+   "Entrepreneurship & Startups"
+  ],
+  [
+   "Running Lean",
+   "Ash Maurya",
+   2010,
+   "Entrepreneurship & Startups"
+  ],
+  [
+   "Blitzscaling",
+   "Reid Hoffman & Chris Yeh",
+   2018,
+   "Entrepreneurship & Startups"
+  ],
+  [
+   "Rework",
+   "Jason Fried & David Heinemeier Hansson",
+   2010,
+   "Entrepreneurship & Startups"
+  ],
+  [
+   "Venture Deals",
+   "Brad Feld & Jason Mendelson",
+   2012,
+   "Entrepreneurship & Startups"
+  ],
+  [
+   "The Snowball: Warren Buffett and the Business of Life",
+   "Alice Schroeder",
+   2008,
+   "Biographies & Memoirs"
+  ],
+  [
+   "Shoe Dog",
+   "Phil Knight",
+   2016,
+   "Biographies & Memoirs"
+  ],
+  [
+   "Elon Musk",
+   "Walter Isaacson",
+   2023,
+   "Biographies & Memoirs"
+  ],
+  [
+   "Steve Jobs",
+   "Walter Isaacson",
+   2011,
+   "Biographies & Memoirs"
+  ],
+  [
+   "Titan: The Life of John D. Rockefeller, Sr.",
+   "Ron Chernow",
+   1998,
+   "Biographies & Memoirs"
+  ],
+  [
+   "The Everything Store",
+   "Brad Stone",
+   2013,
+   "Biographies & Memoirs"
+  ],
+  [
+   "Alibaba: The House That Jack Ma Built",
+   "Duncan Clark",
+   2016,
+   "Biographies & Memoirs"
+  ],
+  [
+   "Onward: How Starbucks Fought for Its Life",
+   "Howard Schultz",
+   2011,
+   "Biographies & Memoirs"
+  ],
+  [
+   "Hatching Twitter",
+   "Nick Bilton",
+   2013,
+   "Biographies & Memoirs"
+  ],
+  [
+   "Becoming",
+   "Michelle Obama",
+   2018,
+   "Biographies & Memoirs"
+  ],
+  [
+   "Thinking in Bets",
+   "Annie Duke",
+   2018,
+   "Decision, Innovation & Misc"
+  ],
+  [
+   "Superforecasting",
+   "Philip E. Tetlock & Dan Gardner",
+   2015,
+   "Decision, Innovation & Misc"
+  ],
+  [
+   "Range",
+   "David Epstein",
+   2019,
+   "Decision, Innovation & Misc"
+  ],
+  [
+   "The Design of Everyday Things",
+   "Don Norman",
+   1988,
+   "Decision, Innovation & Misc"
+  ],
+  [
+   "The Art of Strategy",
+   "Dixit & Nalebuff",
+   2008,
+   "Decision, Innovation & Misc"
+  ],
+  [
+   "The Lean Product Playbook",
+   "Dan Olsen",
+   2015,
+   "Decision, Innovation & Misc"
+  ],
+  [
+   "The Checklist Manifesto",
+   "Atul Gawande",
+   2009,
+   "Decision, Innovation & Misc"
+  ],
+  [
+   "Hooked",
+   "Nir Eyal",
+   2014,
+   "Decision, Innovation & Misc"
+  ],
+  [
+   "The Signal and the Noise",
+   "Nate Silver",
+   2012,
+   "Decision, Innovation & Misc"
+  ],
+  [
+   "The Power Law: Venture Capital and the Making of the New Future",
+   "Sebastian Mallaby",
+   2022,
+   "Decision, Innovation & Misc"
+  ],
+  [
+   "Barbarians at the Gate",
+   "Bryan Burrough & John Helyar",
+   1990,
+   "Finance Classics"
+  ],
+  [
+   "Den of Thieves",
+   "James B. Stewart",
+   1991,
+   "Finance Classics"
+  ],
+  [
+   "The Greatest Trade Ever",
+   "Gregory Zuckerman",
+   2009,
+   "Trading & Hedge Funds"
+  ],
+  [
+   "The Dao of Capital",
+   "Mark Spitznagel",
+   2013,
+   "Trading & Hedge Funds"
+  ],
+  [
+   "Money Mischief",
+   "Milton Friedman",
+   1992,
+   "Economics & Macro"
+  ],
+  [
+   "Rich Dad Poor Dad",
+   "Robert T. Kiyosaki",
+   1997,
+   "Decision, Innovation & Misc"
+  ],
+  [
+   "Principles",
+   "Ray Dalio",
+   2017,
+   "Management & Leadership"
+  ],
+  [
+   "The Four Steps to the Epiphany",
+   "Steve Blank",
+   2005,
+   "Entrepreneurship & Startups"
+  ],
+  [
+   "Crossing the Chasm",
+   "Geoffrey A. Moore",
+   1991,
+   "Entrepreneurship & Startups"
+  ],
+  [
+   "Inspired (2nd Edition)",
+   "Marty Cagan",
+   2018,
+   "Entrepreneurship & Startups"
+  ],
+  [
+   "The Goal",
+   "Eliyahu M. Goldratt",
+   1984,
+   "Corporate & Strategy"
+  ],
+  [
+   "The Halo Effect",
+   "Phil Rosenzweig",
+   2007,
+   "Corporate & Strategy"
+  ],
+  [
+   "The Innovator's Solution",
+   "Christensen & Raynor",
+   2003,
+   "Corporate & Strategy"
+  ],
+  [
+   "Only the Paranoid Survive",
+   "Andrew S. Grove",
+   1996,
+   "Management & Leadership"
+  ],
+  [
+   "Drive",
+   "Daniel H. Pink",
+   2009,
+   "Management & Leadership"
+  ],
+  [
+   "Reinventing Organizations",
+   "Frederic Laloux",
+   2014,
+   "Management & Leadership"
+  ],
+  [
+   "Amp It Up",
+   "Frank Slootman",
+   2022,
+   "Management & Leadership"
+  ],
+  [
+   "The Ride of a Lifetime",
+   "Robert Iger",
+   2019,
+   "Biographies & Memoirs"
+  ],
+  [
+   "Bad Blood",
+   "John Carreyrou",
+   2018,
+   "Biographies & Memoirs"
+  ],
+  [
+   "The House of Morgan",
+   "Ron Chernow",
+   1990,
+   "Biographies & Memoirs"
   ]
+ ]
 }

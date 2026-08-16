@@ -96,7 +96,8 @@ PAGES_JS = r"""
     var mini = clockbox.querySelector('[data-clock-mini]');
     function fmt(tz) {
       return new Intl.DateTimeFormat('en-GB', {
-        timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
+        timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false
       }).format(new Date());
     }
     function marketOpen(tz, o, c) {
@@ -120,7 +121,56 @@ PAGES_JS = r"""
       if (mini && rows[0]) mini.textContent = 'NY ' + fmt(rows[0].getAttribute('data-tz'));
     }
     tick();
-    setInterval(tick, 30000);
+    setInterval(tick, 1000);
+  }
+
+  /* ── Live quotes - refresh the ticker cards from /api/quotes ─────── */
+  var liveCards = [].slice.call(document.querySelectorAll('.qcard[data-sym]'));
+  if (liveCards.length) {
+    function fmtMoney(v, dp) {
+      return v.toLocaleString('en-US', {
+        minimumFractionDigits: dp, maximumFractionDigits: dp
+      });
+    }
+    function fmtSigned(v, dp) {
+      return (v > 0 ? '+' : '') + fmtMoney(v, dp);
+    }
+    function etNow() {
+      return new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit',
+        second: '2-digit', hour12: true, timeZoneName: 'short'
+      }).format(new Date());
+    }
+    function refreshQuotes() {
+      if (document.hidden) return;
+      fetch('/api/quotes').then(function (r) {
+        return r.ok ? r.json() : null;
+      }).then(function (data) {
+        if (!data || !data.q) return;
+        liveCards.forEach(function (card) {
+          var q = data.q[card.getAttribute('data-sym')];
+          if (!q) return;
+          var dp = Math.abs(q.price) >= 10 ? 2 : 4;
+          var price = card.querySelector('.qprice');
+          var chg = card.querySelector('.qchg');
+          if (price) price.textContent = fmtMoney(q.price, dp);
+          if (chg) {
+            var cls = q.change > 0 ? 'up' : q.change < 0 ? 'down' : 'flat';
+            var arrow = q.change > 0 ? '↗' : q.change < 0 ? '↘' : '';
+            chg.textContent = arrow + ' ' + fmtSigned(q.change, dp) +
+              ' (' + fmtSigned(q.pct, 2) + '%)';
+            chg.className = 'qchg ' + cls;
+          }
+          var t = card.querySelector('.qtime');
+          if (t) t.textContent = etNow();
+        });
+      }).catch(function () {});
+    }
+    refreshQuotes();
+    setInterval(refreshQuotes, 15000);
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) refreshQuotes();
+    });
   }
 
   /* ── Economic calendar ───────────────────────────────────────────── */

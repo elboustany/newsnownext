@@ -591,8 +591,9 @@ def ticker_strip(mkt):
             # The live site says LIVE on every card regardless of quote age
             # (its data is delayed too); match it, the as-of time tells the truth.
             live = '<span class="qlive"><i></i>LIVE</span>'
+            cnbc_sym = market.CNBC_SYMBOLS.get(sym, "")
             cards.append(
-                f'<div class="qcard">'
+                f'<div class="qcard" data-sym="{esc(cnbc_sym)}">'
                 f'<div class="qtop"><span class="qname">{esc(name)}</span>{live}</div>'
                 f'{badge}'
                 f'<div class="qprice">{money(q["price"], dp)}</div>'
@@ -1007,9 +1008,8 @@ def books_page(cfg, mkt, base, out):
     books = sorted(data["books"],
                    key=lambda b: (cat_order.get(b[3], 99), b[0].lower()))
 
-    chips = "".join(
-        f'<button class="chip" type="button" data-book-cat="{esc(c)}" '
-        f'aria-pressed="false">{esc(c)}</button>'
+    cat_opts = '<option value="">All</option>' + "".join(
+        f'<option value="{esc(c)}">{esc(c)}</option>'
         for c in data["categories"])
 
     # One gradient per category, so the shelf reads as organised colour.
@@ -1038,12 +1038,14 @@ def books_page(cfg, mkt, base, out):
         h = HUES.get(cat, 214)
         initial = re.sub(r"^(The|A|An)\s+", "", title)[:1].upper()
         cover_file = covers_map.get(title)
+        # His card: full-width 3:4 portrait cover on top, then category,
+        # title, author-dot-year and the Amazon link.
         if cover_file and (HERE / "static" / "covers" / cover_file).exists():
-            cover = (f'<span class="bcover has-img">'
-                     f'<img src="/assets/covers/{esc(cover_file)}" alt="" '
-                     f'loading="lazy" width="58" height="86"></span>')
+            cover = (f'<span class="bcover">'
+                     f'<img src="/assets/covers/{esc(cover_file)}" '
+                     f'alt="{esc(title)}" loading="lazy"></span>')
         else:
-            cover = (f'<span class="bcover" aria-hidden="true" '
+            cover = (f'<span class="bcover bcover-ph" aria-hidden="true" '
                      f'style="background:linear-gradient(160deg,'
                      f'hsl({h},65%,46%),hsl({(h + 40) % 360},60%,32%))">'
                      f'{esc(initial)}</span>')
@@ -1053,7 +1055,7 @@ def books_page(cfg, mkt, base, out):
             f'{cover}<div class="binfo">'
             f'<span class="book-cat">{esc(cat)}</span>'
             f'<h3>{esc(title)}</h3>'
-            f'<p class="byline">{esc(author)} &middot; {year}</p>'
+            f'<p class="byline">{esc(author)} &bull; {year}</p>'
             f'<a class="buy" href="{esc(href)}" rel="nofollow sponsored noopener" '
             f'target="_blank">Buy on Amazon &rarr;</a></div></article>')
 
@@ -1069,22 +1071,24 @@ def books_page(cfg, mkt, base, out):
         ],
     })
 
+    # His page head and his three controls, verbatim: search box, category
+    # dropdown defaulting to All, sort dropdown. The shelf grouping below
+    # is this build's one addition to the layout.
     body = (
         '<div class="page-head"><h1>Best Finance &amp; Business Books</h1>'
-        f'<p class="standfirst">{len(books)} titles, curated by {esc(cfg["site_name"])}. '
-        'Affiliate links - we may earn a commission.</p></div>'
-        '<div class="filters" data-book-filters hidden>'
-        '<div class="frow"><div class="fsearch">'
-        '<label class="sr-only" for="b-q">Filter books</label>'
-        '<input id="b-q" type="search" autocomplete="off" placeholder="Filter by title or author…">'
-        '</div><label class="sr-only" for="b-sort">Order</label>'
+        f'<p class="standfirst">Curated by {esc(cfg["site_name"])}</p></div>'
+        '<div class="filters bfilters" data-book-filters hidden>'
+        '<div class="fsearch">'
+        '<label class="sr-only" for="b-q">Search books</label>'
+        '<input id="b-q" type="search" autocomplete="off" placeholder="Search title or author">'
+        '</div>'
+        '<label class="sr-only" for="b-cat">Category</label>'
+        f'<select id="b-cat" class="fsel">{cat_opts}</select>'
+        '<label class="sr-only" for="b-sort">Order</label>'
         '<select id="b-sort" class="fsel">'
-        '<option value="az">A-Z</option><option value="new">Newest first</option>'
-        '<option value="old">Oldest first</option></select></div>'
-        f'<div class="frow"><span class="flabel">Category</span>'
-        f'<nav class="chips">{chips}</nav></div>'
-        '<p class="fcount"><span id="b-count"></span>'
-        '<button class="linkbtn" id="b-clear" type="button" hidden>Clear filters</button></p>'
+        '<option value="az">Sort A&ndash;Z</option>'
+        '<option value="new">Sort Newest</option>'
+        '<option value="old">Sort Oldest</option></select>'
         '</div>'
         '<p class="empty" id="b-empty" hidden>No books match those filters.</p>'
         f'<div class="books" id="book-grid">{"".join(cards)}</div>'
@@ -1483,6 +1487,8 @@ self.addEventListener('activate', function (e) {
 self.addEventListener('fetch', function (e) {
   var url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  // Live data and the portfolio backend must never be cache-served.
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/portfolio')) return;
   if (url.pathname.startsWith('/assets/')) {
     // Stale-while-revalidate: paint from cache instantly, refresh it in the
     // background so the next load is never more than one build behind.
@@ -1507,6 +1513,100 @@ self.addEventListener('fetch', function (e) {
   }));
 });
 """.strip() % sw_version)
+
+    # Cloudflare Pages advanced-mode worker. Two jobs:
+    #  - /api/quotes: live CNBC quotes cached ~15s at the edge, so the
+    #    ticker can refresh client-side (CNBC 403s browser origins).
+    #  - /api/* and /portfolio: proxied to the client's original Railway
+    #    backend, which still runs his login + watchlist system. If the
+    #    backend does not answer (Railway routes by Host header), the
+    #    static page is served instead of an error.
+    cnbc_url = market.CNBC.format("|".join(market.CNBC_SYMBOLS.values()))
+    write(out / "_worker.js", """
+// Generated by build.py - edit there, not here.
+var RAILWAY = 'https://m3xyyflw.up.railway.app';
+var RAILWAY_HOST = 'www.newsnownext.org';
+var CNBC_URL = %s;
+
+function num(v) {
+  if (v === null || v === undefined) return null;
+  var t = String(v).replace(/,/g, '').replace(/%%/g, '').trim();
+  if (t === '' || t === 'UNCH' || t === 'N/A' || t === '--') return 0;
+  var n = parseFloat(t);
+  return isNaN(n) ? null : n;
+}
+
+async function quotes(ctx) {
+  var cache = caches.default;
+  var key = new Request('https://quotes.internal/api/quotes');
+  var hit = await cache.match(key);
+  if (hit) return hit;
+  var r = await fetch(CNBC_URL, {headers: {'User-Agent': 'Mozilla/5.0'}});
+  if (!r.ok) return new Response('{}', {status: 502,
+    headers: {'content-type': 'application/json'}});
+  var raw = await r.json();
+  var rows = ((raw.FormattedQuoteResult || {}).FormattedQuote) || [];
+  var out = {};
+  for (var i = 0; i < rows.length; i++) {
+    var q = rows[i];
+    var last = num(q.last), change = num(q.change);
+    if (last === null || change === null) continue;
+    var prev = last - change;
+    out[q.symbol] = {price: last, change: change,
+                     pct: prev ? change / prev * 100 : 0};
+  }
+  var res = new Response(JSON.stringify({t: Date.now(), q: out}), {
+    headers: {'content-type': 'application/json',
+              'cache-control': 'public, s-maxage=15, max-age=5'}});
+  ctx.waitUntil(cache.put(key, res.clone()));
+  return res;
+}
+
+async function railway(request, url) {
+  var target = RAILWAY + url.pathname + url.search;
+  var h = new Headers(request.headers);
+  h.set('Host', RAILWAY_HOST);
+  try {
+    return await fetch(target, {
+      method: request.method, headers: h,
+      body: (request.method === 'GET' || request.method === 'HEAD')
+        ? undefined : request.body,
+      redirect: 'manual',
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
+function fromRailway(res) {
+  return res && res.status < 500 && !res.headers.get('x-railway-fallback');
+}
+
+export default {
+  async fetch(request, env, ctx) {
+    var url = new URL(request.url);
+    if (url.pathname === '/api/quotes') return quotes(ctx);
+    if (url.pathname.startsWith('/api/')) {
+      var r = await railway(request, url);
+      return r || new Response('{"error":"backend unreachable"}', {
+        status: 502, headers: {'content-type': 'application/json'}});
+    }
+    if (url.pathname === '/portfolio' || url.pathname.startsWith('/portfolio/')) {
+      var p = await railway(request, url);
+      if (fromRailway(p)) return p;
+      return env.ASSETS.fetch(request);
+    }
+    var res = await env.ASSETS.fetch(request);
+    // The old app's hashed bundles (its /assets/index-*.js) are not in the
+    // static build; let them fall through to the backend.
+    if (res.status === 404 && url.pathname.startsWith('/assets/')) {
+      var a = await railway(request, url);
+      if (fromRailway(a)) return a;
+    }
+    return res;
+  },
+};
+""".strip() % json.dumps(cnbc_url))
 
     for icon in ("icon-192.png", "icon-512.png"):
         src = HERE / "static" / icon
