@@ -916,33 +916,82 @@ def forex_page(cfg, mkt, base, out):
             if ch is None:
                 cells.append('<td class="flat">n/a</td>')
             else:
-                cells.append(f'<td><span class="pct {dir_class(ch)}">'
-                             f'{signed(ch, 2, "%")}</span></td>')
+                cells.append(f'<td class="{dir_class(ch)}">'
+                             f'{signed(ch, 2, "%")}</td>')
+        # The dot mirrors the daily direction, like the live site's rows.
+        daily = v["changes"].get(spans[0]) if spans else None
+        dot = dir_class(daily) if daily is not None else "flat"
         rows.append(
-            f'<tr><td><div class="fx-pair">{esc(pair)}</div>'
-            f'<div class="fx-rate">{money(v["rate"], 4)}</div></td>'
+            f'<tr><td><div class="fx-pair">'
+            f'<span class="fx-dot {dot}" aria-hidden="true"></span>'
+            f'<span class="fx-name">{esc(pair)}</span>'
+            f'<span class="fx-rate">{money(v["rate"], 4)}</span></div></td>'
             f'{"".join(cells)}</tr>')
+
+    # The live site's forex page carries an Economic Calendar card below the
+    # pairs ("Upcoming events for the next 7 days"). Its API fetch is broken
+    # there; ours renders the same section from data/events.json.
+    from zoneinfo import ZoneInfo
+    ev_data = json.loads((HERE / "data" / "events.json").read_text(encoding="utf-8"))
+    ev_tz = ZoneInfo(ev_data.get("timezone", "America/New_York"))
+    today = datetime.now(timezone.utc).date()
+    week, later = [], []
+    for e in ev_data["events"]:
+        d = datetime.strptime(f'{e["date"]} {e["time"]}', "%Y-%m-%d %H:%M")
+        local = d.replace(tzinfo=ev_tz)
+        days_out = (local.date() - today).days
+        if 0 <= days_out <= 7:
+            week.append((local, e))
+        elif days_out > 7:
+            later.append((local, e))
+    week.sort(key=lambda x: x[0])
+    later.sort(key=lambda x: x[0])
+    # A quiet week would leave his card empty; fall through to the next
+    # scheduled releases so there is always something to show.
+    cal_sub = "Upcoming events for the next 7 days"
+    if not week:
+        week = later[:4]
+        cal_sub = "Next scheduled releases"
+    cal_rows = "".join(
+        f'<div class="fxcal-row">'
+        f'<span class="fxcal-date">{local.strftime("%a %b")} {local.day}</span>'
+        f'<span class="fxcal-name">{esc(e["name"])}</span>'
+        f'<span class="ev-badge {esc(e["impact"])}">'
+        f'{"HIGH" if e["impact"] == "high" else "MED"}</span>'
+        f'<span class="fxcal-when">{local.strftime("%-I:%M %p")} ET</span>'
+        f'</div>'
+        for local, e in week) or \
+        '<p class="empty">No major US releases in the next 7 days.</p>'
+    calendar = (
+        '<section class="fxbox">'
+        '<h2>Economic Calendar</h2>'
+        f'<p class="fxcal-sub">{cal_sub}</p>'
+        f'{cal_rows}'
+        '<p class="fx-note">Times in US Eastern &middot; '
+        '<a href="/events/">Full calendar &rarr;</a></p>'
+        '</section>')
 
     asof = market.load_cache().get("fx_date") or ""
     body = (
-        '<div class="page-head"><h1>Forex</h1>'
-        '<p class="standfirst">Major currency pairs and how far they have moved.</p></div>'
-        + (('<section class="card fxcard">'
-            '<div class="card-head"><h2>Major Pairs</h2>'
-            f'<span class="card-count">ECB reference rates'
-            f'{f", as of {esc(asof)}" if asof else ""}</span></div>'
+        '<div class="sr-only"><h1>Forex</h1>'
+        '<p>Major currency pairs and how far they have moved.</p></div>'
+        + (('<section class="fxbox">'
+            '<h2>Major Pairs</h2>'
             '<div class="tablewrap"><table class="fx"><thead><tr><th>Pair</th>'
             f'{heads}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
-            '<p class="fx-note">The ECB publishes one reference rate per business '
+            f'<p class="fx-note">ECB reference rates'
+            f'{f", as of {esc(asof)}" if asof else ""} - one rate per business '
             'day, so moves are day-over-day rather than intraday.</p>'
             '</section>')
            if rows else
            '<p class="empty">Rates are temporarily unavailable. '
-           'The next build will restore them.</p>'))
+           'The next build will restore them.</p>')
+        + calendar)
     write(out / "forex" / "index.html", shell(
-        cfg, title=f"Forex - major currency pairs - {cfg['site_name']}",
+        cfg, title=f"Forex Trading & Economic Calendar - {cfg['site_name']}",
         description=("Live major forex pairs with daily, weekly, monthly, "
-                     "year-to-date, one-year and three-year moves."),
+                     "year-to-date, one-year and three-year moves, plus the "
+                     "week's US economic calendar."),
         canonical=f"{base}/forex/", body=body, current="/forex/",
         ticker=ticker_strip(mkt),
         extra_head=breadcrumbs(base, [("Forex", "/forex/")]),

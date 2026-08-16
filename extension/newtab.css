@@ -453,30 +453,56 @@ body.has-botbar .totop{bottom:66px}
 .intro{max-width:760px;margin:2px 0 6px}
 .intro p{margin:0;font-size:13.5px;line-height:1.55;color:var(--muted-foreground)}
 
-.fxcard{max-width:1000px}
+/* The live site's forex page, sampled: a white card, 18px "Major Pairs"
+   heading, plain-case 14px column heads, monospace numbers in plain
+   green/red (no chips), and the pair cell as dot + name + a blue rate
+   pill. The Economic Calendar card below it is his too - his fetch was
+   broken, ours renders from events.json. */
+.fxbox{
+  background:#fff;border:1px solid var(--border);border-radius:8px;
+  padding:16px;
+}
+.fxbox + .fxbox{margin-top:24px}
+.fxbox > h2{font-size:18px;font-weight:600;margin:0 0 16px}
 .tablewrap{overflow-x:auto}
 table.fx{border-collapse:collapse;width:100%;min-width:680px}
-table.fx th,table.fx td{padding:12px 16px;text-align:right;font-size:14px;white-space:nowrap}
-table.fx th{
-  background:var(--muted);font-size:11px;font-weight:600;letter-spacing:.05em;
-  text-transform:uppercase;color:var(--muted-foreground);border-bottom:1px solid var(--border);
-}
+table.fx th,table.fx td{padding:8px;text-align:right;font-size:14px;white-space:nowrap}
+table.fx th{font-weight:500;color:#374151;border-bottom:1px solid var(--border)}
 table.fx th:first-child,table.fx td:first-child{text-align:left}
-table.fx tbody tr{border-bottom:1px solid var(--border)}
+table.fx tbody tr{border-bottom:1px solid #f3f4f6}
 table.fx tbody tr:last-child{border-bottom:0}
-table.fx tbody tr:hover{background:#f8fafc}
-table.fx td{font-variant-numeric:tabular-nums}
-.fx-pair{font-weight:700;font-size:14.5px}
-.fx-rate{color:var(--muted-foreground);font-size:12.5px;margin-top:1px}
-.pct{
-  display:inline-block;min-width:74px;text-align:right;
-  padding:3px 8px;border-radius:6px;font-weight:600;font-size:13px;
+table.fx tbody tr:hover{background:#f9fafb}
+table.fx td{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13.5px;
 }
-.pct.up{background:rgba(5,150,105,.09)}
-.pct.down{background:rgba(220,38,38,.08)}
-.fx-note{
-  margin:0;padding:12px 16px;border-top:1px solid var(--border);
-  font-size:12.5px;color:var(--muted-foreground);
+table.fx td.up{color:#16a34a}
+table.fx td.down{color:#dc2626}
+table.fx td.flat{color:var(--muted-foreground)}
+.fx-pair{display:flex;align-items:center;gap:8px;font-family:var(--sans)}
+.fx-dot{width:8px;height:8px;border-radius:50%;flex:none;background:#cbd5e1}
+.fx-dot.up{background:#22c55e}
+.fx-dot.down{background:#ef4444}
+.fx-name{font-weight:600;font-size:14px}
+.fx-rate{
+  display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;
+  background:#eff6ff;color:#1d4ed8;font-size:13.5px;font-weight:500;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+.fx-note{margin:12px 0 0;font-size:12px;color:var(--muted-foreground)}
+
+.fxcal-sub{font-size:14px;color:#4b5563;margin:-12px 0 14px}
+.fxcal-row{
+  display:flex;align-items:center;gap:12px;padding:10px 2px;
+  border-bottom:1px solid #f3f4f6;font-size:14px;
+}
+.fxcal-row:last-of-type{border-bottom:0}
+.fxcal-row:hover{background:#f9fafb}
+.fxcal-date{width:92px;flex:none;font-weight:600;font-size:13px}
+.fxcal-name{flex:1;min-width:0;font-weight:500}
+.fxcal-when{
+  color:var(--muted-foreground);font-size:13px;flex:none;
+  font-variant-numeric:tabular-nums;
 }
 
 .books{display:grid;gap:12px;grid-template-columns:1fr;margin-top:6px}
