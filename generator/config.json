@@ -1,7 +1,7 @@
 {
   "site_name": "NewsNowNext",
   "tagline": "Global Financial News Feed",
-  "base_url": "https://www.newsnownext.org",
+  "base_url": "https://newsnownext.org",
   "output_dir": "site",
   "window_hours": 72,
   "max_per_source": 12,
