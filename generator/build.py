@@ -929,16 +929,27 @@ def books_page(cfg, mkt, base, out):
     HUES = {c: h for c, h in zip(data["categories"],
             [214, 160, 262, 20, 340, 190, 30, 280, 120, 0])}
 
+    covers_map = {}
+    cmap_path = HERE / "static" / "covers" / "map.json"
+    if cmap_path.exists():
+        covers_map = json.loads(cmap_path.read_text(encoding="utf-8"))
+
     cards = []
     for title, author, year, cat in books:
         q = urllib.parse.quote(f"{title} {author}")
         href = f"https://amazon.com/s?k={q}&tag={tag}"
         h = HUES.get(cat, 214)
         initial = re.sub(r"^(The|A|An)\s+", "", title)[:1].upper()
-        cover = (f'<span class="bcover" aria-hidden="true" '
-                 f'style="background:linear-gradient(160deg,'
-                 f'hsl({h},65%,46%),hsl({(h + 40) % 360},60%,32%))">'
-                 f'{esc(initial)}</span>')
+        cover_file = covers_map.get(title)
+        if cover_file and (HERE / "static" / "covers" / cover_file).exists():
+            cover = (f'<span class="bcover has-img">'
+                     f'<img src="/assets/covers/{esc(cover_file)}" alt="" '
+                     f'loading="lazy" width="58" height="86"></span>')
+        else:
+            cover = (f'<span class="bcover" aria-hidden="true" '
+                     f'style="background:linear-gradient(160deg,'
+                     f'hsl({h},65%,46%),hsl({(h + 40) % 360},60%,32%))">'
+                     f'{esc(initial)}</span>')
         cards.append(
             f'<article class="book" data-book data-cat="{esc(cat)}" '
             f'data-year="{year}" data-title="{esc(title.lower())}">'
@@ -1127,21 +1138,45 @@ def podcasts_page(cfg, mkt, base, out):
     data = json.loads((HERE / "data" / "podcasts.json").read_text(encoding="utf-8"))
     eps = data["episodes"]
 
+    tmap = {}
+    tmap_path = HERE / "static" / "podcasts" / "map.json"
+    if tmap_path.exists():
+        tmap = json.loads(tmap_path.read_text(encoding="utf-8"))
+
     cards = []
     for e in eps:
         when = datetime.fromisoformat(e["date"])
+        thumb = tmap.get(e["url"])
+        if thumb and (HERE / "static" / "podcasts" / thumb["file"]).exists():
+            play = ('<span class="pod-play" aria-hidden="true">&#9654;</span>'
+                    if thumb["kind"] == "youtube" else "")
+            kind = "Watch" if thumb["kind"] == "youtube" else "Read"
+            media = (f'<a class="pod-thumb" href="{esc(e["url"])}" '
+                     f'rel="noopener" target="_blank" tabindex="-1">'
+                     f'<img src="/assets/podcasts/{esc(thumb["file"])}" alt="" '
+                     f'loading="lazy">{play}'
+                     f'<span class="pod-kind">{kind}</span></a>')
+        else:
+            media = ""
         cards.append(
             f'<article class="pod" data-pod '
             f'data-hay="{esc((e["title"] + " " + e["guest"] + " " + e["host"] + " " + e["summary"]).lower())}" '
             f'data-ts="{int(when.timestamp())}">'
-            f'<h2>{esc(e["title"])}</h2>'
+            f'{media}'
+            f'<div class="pod-body">'
+            f'<h2><a href="{esc(e["url"])}" rel="noopener" target="_blank">'
+            f'{esc(e["title"])}</a></h2>'
             f'<p class="pod-meta"><strong>Guest</strong> {esc(e["guest"])}'
             f'<span class="dot">&middot;</span><strong>Host</strong> {esc(e["host"])}'
             f'<span class="dot">&middot;</span>'
             f'<time datetime="{e["date"]}">{when.strftime("%d %B %Y")}</time></p>'
-            f'<p class="pod-sum">{esc(e["summary"])}</p>'
-            f'<a class="pod-link" href="{esc(e["url"])}" rel="noopener" target="_blank">'
-            f'Listen to the full episode &rarr;</a></article>')
+            f'<p class="pod-sum" data-pod-sum>{esc(e["summary"])}</p>'
+            f'<div class="pod-foot">'
+            f'<button class="linkbtn" type="button" data-pod-more hidden>'
+            f'Show more</button>'
+            f'<a class="pod-link" href="{esc(e["url"])}" rel="noopener" '
+            f'target="_blank">Listen to the full episode &rarr;</a></div>'
+            f'</div></article>')
 
     ld = json.dumps({
         "@context": "https://schema.org", "@type": "ItemList",
@@ -1386,15 +1421,18 @@ self.addEventListener('fetch', function (e) {
               'already visited are cached and still open.</p></div></div>'),
     ))
 
-    logo_dir = HERE / "static" / "logos"
-    if logo_dir.is_dir():
-        dest = out / "assets" / "logos"
+    for sub, pattern in (("logos", "*.png"), ("covers", "*.jpg"),
+                         ("podcasts", "*.jpg")):
+        src_dir = HERE / "static" / sub
+        if not src_dir.is_dir():
+            continue
+        dest = out / "assets" / sub
         dest.mkdir(parents=True, exist_ok=True)
         n = 0
-        for f in logo_dir.glob("*.png"):
+        for f in src_dir.glob(pattern):
             (dest / f.name).write_bytes(f.read_bytes())
             n += 1
-        print(f"  wrote {n} source logos")
+        print(f"  wrote {n} {sub}")
     write(out / "assets" / "filter.js", FILTER_JS.strip())
     write(out / "assets" / "books.js", BOOKS_JS.strip())
     write(out / "assets" / "pages.js", PAGES_JS.strip())

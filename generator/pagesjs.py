@@ -392,6 +392,21 @@ PAGES_JS = r"""
         return asc ? x - y : y - x;
       }).forEach(function (p) { list.appendChild(p); });
     }
+    // Clamped summaries get a Show more toggle, but only when the clamp
+    // actually hides something.
+    pods.forEach(function (card) {
+      var sum = card.querySelector('[data-pod-sum]');
+      var btn = card.querySelector('[data-pod-more]');
+      if (!sum || !btn) return;
+      if (sum.scrollHeight > sum.clientHeight + 4) {
+        btn.hidden = false;
+        btn.addEventListener('click', function () {
+          var open = sum.classList.toggle('open');
+          btn.textContent = open ? 'Show less' : 'Show more';
+        });
+      }
+    });
+
     pq.addEventListener('input', papply);
     pq.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') { pq.value = ''; papply(); }

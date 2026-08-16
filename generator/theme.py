@@ -430,6 +430,9 @@ table.fx td{font-variant-numeric:tabular-nums}
   content:"";position:absolute;left:7px;top:0;bottom:0;width:1px;
   background:rgba(255,255,255,.35);
 }
+.bcover.has-img{background:var(--muted);overflow:hidden}
+.bcover.has-img::before{display:none}
+.bcover.has-img img{width:100%;height:100%;object-fit:cover;display:block}
 .binfo{display:flex;flex-direction:column;gap:5px;min-width:0}
 .book-cat{
   font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
@@ -604,20 +607,48 @@ ol.wire mark{background:rgba(36,99,235,.16);color:inherit;border-radius:2px;padd
 
 /* ── Podcasts ──────────────────────────────────────────────────────── */
 
-.pods{display:grid;gap:14px;margin-top:16px;max-width:900px}
+.pods{display:grid;gap:18px;margin-top:16px;grid-template-columns:1fr}
+@media(min-width:900px){.pods{grid-template-columns:repeat(2,1fr)}}
 .pod{
-  border:1px solid var(--border);border-radius:var(--radius);background:var(--card);
-  padding:18px 20px;
+  border:1px solid var(--border);border-radius:12px;background:var(--card);
+  overflow:hidden;display:flex;flex-direction:column;
 }
-.pod h2{font-size:18px;font-weight:700;margin:0 0 6px;line-height:1.3}
+.pod-thumb{position:relative;display:block;aspect-ratio:16/9;background:var(--muted)}
+.pod-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.pod-thumb::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,transparent 60%,rgba(16,24,40,.25));
+}
+.pod-play{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:52px;height:52px;border-radius:50%;z-index:1;
+  background:rgba(220,38,38,.92);color:#fff;font-size:19px;
+  display:flex;align-items:center;justify-content:center;padding-left:4px;
+  box-shadow:0 6px 18px rgba(16,24,40,.35);transition:transform .15s;
+}
+.pod-thumb:hover .pod-play{transform:translate(-50%,-50%) scale(1.08)}
+.pod-kind{
+  position:absolute;top:10px;right:10px;z-index:1;
+  font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  background:rgba(16,24,40,.72);color:#fff;border-radius:6px;padding:3px 8px;
+}
+.pod-body{padding:16px 18px;display:flex;flex-direction:column;flex:1}
+.pod h2{font-size:16.5px;font-weight:700;margin:0 0 7px;line-height:1.35}
+.pod h2 a{color:var(--foreground);text-decoration:none}
+.pod h2 a:hover{color:var(--primary)}
 .pod-meta{
-  font-size:13px;color:var(--muted-foreground);margin:0 0 10px;
+  font-size:12.5px;color:var(--muted-foreground);margin:0 0 10px;
   display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;
 }
 .pod-meta strong{color:var(--foreground);font-weight:600;margin-right:3px}
 .pod-meta .dot{opacity:.5}
-.pod-sum{margin:0 0 12px;font-size:15px;line-height:1.6}
-.pod-link{font-size:14px;font-weight:500;color:var(--primary);text-decoration:none}
+.pod-sum{
+  margin:0 0 12px;font-size:14px;line-height:1.6;
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;
+}
+.pod-sum.open{display:block;-webkit-line-clamp:unset}
+.pod-foot{margin-top:auto;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+.pod-link{font-size:13.5px;font-weight:600;color:var(--primary);text-decoration:none}
 .pod-link:hover{text-decoration:underline}
 
 /* ── Ask AI ────────────────────────────────────────────────────────── */
