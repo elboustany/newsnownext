@@ -474,6 +474,10 @@ def _svg(*paths):
 
 
 NAV_ICONS = {
+    # News only shows in the phone menu; the desktop bar keeps its bare label.
+    "News": _svg("M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16"
+                 "a2 2 0 0 1-4 0V9h2", "M18 14h-8", "M15 18h-5",
+                 "M10 6h8v4h-8z"),
     "Forex": _svg("M8 3L4 7l4 4", "M4 7h16", "M16 21l4-4-4-4", "M20 17H4"),
     "Economic Calendar": _svg("M8 2v4", "M16 2v4",
                               "M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
@@ -653,7 +657,11 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
     parts = []
     for kind, label, target in NAV:
         if kind == "link":
-            parts.append(nav_link(target, label))
+            # Top-level bar links stay bare text; icons belong to the
+            # dropdown items and the phone menu.
+            parts.append('<a href="{}"{}>{}</a>'.format(
+                target, ' aria-current="page"' if target == current else "",
+                esc(label)))
         else:
             inside = any(href == current for href, _ in target)
             items = "".join(nav_link(h, l) for h, l in target)
@@ -664,6 +672,31 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
                 f'<span class="caret" aria-hidden="true">&#9662;</span></button>'
                 f'<div class="menu-pop" hidden>{items}</div></div>')
     links = "".join(parts)
+
+    # The phone menu is the old site's pattern: a hamburger opening a
+    # full-screen overlay with every destination as one flat list. The
+    # desktop dropdowns stay untouched; CSS swaps which one is visible.
+    mobile_links = []
+    for kind, label, target in NAV:
+        if kind == "link":
+            mobile_links.append(nav_link(target, label))
+        else:
+            mobile_links.extend(nav_link(h, l) for h, l in target)
+    mnav = (
+        '<button class="burger" id="burger" type="button" aria-label="Open menu" '
+        'aria-expanded="false" aria-controls="mnav">'
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+        'stroke-linecap="round" aria-hidden="true">'
+        '<path d="M4 7h16M4 12h16M4 17h16"/></svg></button>')
+    moverlay = (
+        '<div class="mnav" id="mnav" hidden>'
+        '<div class="mnav-head">'
+        '<span class="logo" aria-hidden="true">'
+        '<span class="l1">NEWS</span><span class="l2">NOW</span>'
+        '<span class="l3">NEXT</span></span>'
+        '<button class="mnav-x" id="mnav-x" type="button" aria-label="Close menu">'
+        '&times;</button></div>'
+        f'<nav class="mnav-links">{"".join(mobile_links)}</nav></div>')
 
     clock_rows = "".join(
         f'<div class="clock-row" data-tz="{tz}" data-open="{o}" data-close="{c}">'
@@ -696,6 +729,9 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
 <meta property="og:image" content="{esc(cfg['base_url'].rstrip('/'))}/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="{esc(cfg['base_url'].rstrip('/'))}/assets/og.png">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
 <link rel="alternate" type="application/rss+xml" title="{esc(cfg['site_name'])} recaps" href="/feed.xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -715,9 +751,11 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
     </a>
     {clocks}
     <div class="nav-links">{links}</div>
+    {mnav}
   </div>
 </nav>
 </div>
+{moverlay}
 {ticker}
 <div class="wrap">
 {body}
@@ -1178,9 +1216,13 @@ def podcasts_page(cfg, mkt, base, out):
             f'<div class="pod-body">'
             f'<h2><a href="{esc(e["url"])}" rel="noopener" target="_blank">'
             f'{esc(e["title"])}</a></h2>'
-            f'<p class="pod-meta"><strong>Guest</strong> {esc(e["guest"])}'
-            f'<span class="dot">&middot;</span><strong>Host</strong> {esc(e["host"])}'
-            f'<span class="dot">&middot;</span>'
+            # A solo episode lists the same name as guest and host; saying
+            # it twice reads like a data bug, so collapse to Host.
+            + (f'<p class="pod-meta"><strong>Host</strong> {esc(e["host"])}'
+               if e["guest"].strip().lower() == e["host"].strip().lower() else
+               f'<p class="pod-meta"><strong>Guest</strong> {esc(e["guest"])}'
+               f'<span class="dot">&middot;</span><strong>Host</strong> {esc(e["host"])}')
+            + f'<span class="dot">&middot;</span>'
             f'<time datetime="{e["date"]}">{when.strftime("%d %B %Y")}</time></p>'
             f'<p class="pod-sum" data-pod-sum>{esc(e["summary"])}</p>'
             f'<div class="pod-foot">'
@@ -1423,6 +1465,15 @@ self.addEventListener('fetch', function (e) {
         src = HERE / "static" / icon
         if src.exists():
             (out / "assets" / icon).write_bytes(src.read_bytes())
+
+    # favicon.ico lives at the root because browsers and crawlers probe
+    # /favicon.ico regardless of link tags; the SVG rides with the assets.
+    for name, rel in (("favicon.svg", "assets/favicon.svg"),
+                      ("favicon.ico", "favicon.ico")):
+        src = HERE / "static" / name
+        if src.exists():
+            (out / rel).parent.mkdir(parents=True, exist_ok=True)
+            (out / rel).write_bytes(src.read_bytes())
 
     write(out / "offline.html", shell(
         cfg, title=f"Offline - {cfg['site_name']}",

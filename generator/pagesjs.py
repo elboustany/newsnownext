@@ -68,6 +68,27 @@ PAGES_JS = r"""
     if (e.key === 'Escape') closeMenus(null);
   });
 
+  /* ── Phone menu (hamburger -> full-screen overlay) ───────────────── */
+  var burger = document.getElementById('burger');
+  var mnav = document.getElementById('mnav');
+  if (burger && mnav) {
+    var mnavX = document.getElementById('mnav-x');
+    function setMnav(open) {
+      mnav.hidden = !open;
+      burger.setAttribute('aria-expanded', String(open));
+      /* Lock the page behind the overlay so it does not scroll under it. */
+      document.documentElement.style.overflow = open ? 'hidden' : '';
+    }
+    burger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setMnav(mnav.hidden);
+    });
+    if (mnavX) mnavX.addEventListener('click', function () { setMnav(false); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !mnav.hidden) setMnav(false);
+    });
+  }
+
   /* ── Market clocks ───────────────────────────────────────────────── */
   var clockbox = document.querySelector('[data-clocks]');
   if (clockbox) {

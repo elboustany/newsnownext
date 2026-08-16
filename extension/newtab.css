@@ -66,6 +66,13 @@ a{color:inherit}
   font-size:16px;line-height:1;padding:0 2px;
 }
 .promo .close:hover{opacity:1}
+/* One line on phones: name and link only, or the banner eats the screen. */
+@media(max-width:640px){
+  .promo{font-size:12.5px}
+  .promo .muted{display:none}
+  .promo-in{padding:8px 14px;gap:8px;flex-wrap:nowrap;min-width:0}
+  .promo strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
 
 /* ── Sticky chrome ─────────────────────────────────────────────────── */
 
@@ -150,6 +157,47 @@ a{color:inherit}
 .clock-row.open .ctime{color:var(--foreground)}
 
 @media(max-width:900px){.clockbox{display:none}}
+
+/* ── Phone menu - hamburger + full-screen overlay ──────────────────── */
+
+.burger{
+  display:none;margin-left:auto;background:none;border:0;color:#e5e7eb;
+  cursor:pointer;padding:8px;border-radius:8px;
+}
+.burger:hover{color:#fff;background:rgba(255,255,255,.10)}
+.burger svg{width:26px;height:26px;display:block}
+.mnav{
+  position:fixed;inset:0;z-index:120;background:var(--navbar);color:#e5e7eb;
+  overflow-y:auto;padding:12px 22px 40px;
+}
+.mnav-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 0 16px;border-bottom:1px solid rgba(255,255,255,.14);
+  margin-bottom:12px;
+}
+.mnav-head .logo{font-size:22px}
+.mnav-x{
+  background:none;border:0;color:#fff;font-size:32px;line-height:1;
+  cursor:pointer;padding:2px 8px;opacity:.9;
+}
+.mnav-x:hover{opacity:1}
+.mnav-links{display:flex;flex-direction:column}
+.mnav-links a{
+  color:#e5e7eb;text-decoration:none;font-size:19px;font-weight:500;
+  padding:13px 4px;display:flex;align-items:center;gap:12px;
+}
+.mnav-links a svg{width:18px;height:18px;flex:none;opacity:.75}
+.mnav-links a:hover,.mnav-links a[aria-current]{color:#fff}
+.mnav-links a[aria-current] svg{opacity:1}
+
+/* Below the breakpoint the dropdown row hands over to the hamburger; the
+   two-row wrapped nav it replaces ate a quarter of a phone screen. */
+@media(max-width:860px){
+  .nav-links{display:none}
+  .burger{display:inline-flex}
+  .nav-in{padding:10px 16px;gap:12px}
+  .logo{font-size:20px}
+}
 
 /* ── Economic calendar ─────────────────────────────────────────────── */
 
@@ -258,9 +306,30 @@ a{color:inherit}
 .evc:hover .qname{color:var(--primary)}
 .evc .ev-badge{flex:none;font-size:9px;padding:2px 6px}
 
+/* Phones get the live site's pattern: one row of cards scrolling sideways
+   under one row of scrolling tab pills. A 2-up grid left half-empty cards
+   as tall as the deepest panel. The panels stay grid-stacked (see above),
+   so the Events tab still cannot resize the band. */
 @media(max-width:640px){
-  .quotes{grid-template-columns:repeat(2,1fr)}
-  .logo{font-size:20px}
+  .ticker{padding:12px 0 12px}
+  .tabs{
+    justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;
+    margin:0 -20px 10px;padding:0 20px 6px;scrollbar-width:none;
+  }
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:6px 13px;font-size:13px;flex:none}
+  .quotes{
+    grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:188px;
+    justify-content:flex-start;gap:10px;overflow-x:auto;
+    margin:0 -20px;padding:0 20px 4px;
+    scroll-snap-type:x proximity;scrollbar-width:none;
+  }
+  .quotes::-webkit-scrollbar{display:none}
+  .qcard{scroll-snap-align:start}
+  /* Keep the event lines to one row each, or the tallest event card
+     stretches every panel (the band is as tall as its tallest tab). */
+  .qchg{font-size:12.5px}
+  .qtime{font-size:11px}
 }
 
 /* ── Today's Brief + For You ───────────────────────────────────────── */
@@ -277,6 +346,12 @@ a{color:inherit}
 }
 .brief-head h2{font-size:17px;font-weight:800;margin:0;letter-spacing:-.01em;color:#1e3a8a}
 .brief-date{font-size:12px;color:var(--muted-foreground);font-weight:600;margin-left:2px}
+@media(max-width:640px){
+  .brief{padding:13px 14px;margin:12px 0 4px}
+  .brief-head{gap:8px}
+  .brief-head h2{font-size:15.5px;white-space:nowrap}
+  .brief-date{font-size:11px}
+}
 .brief-head .tcollapse{margin-left:auto;color:#1e3a8a}
 .brief-body{margin-top:10px;max-width:860px}
 .brief p{margin:0 0 10px;font-size:14.5px;line-height:1.65}
@@ -453,6 +528,7 @@ table.fx td{font-variant-numeric:tabular-nums}
 /* ── Shell ─────────────────────────────────────────────────────────── */
 
 .wrap{max-width:1320px;margin:0 auto;padding:20px 20px 64px}
+@media(max-width:640px){.wrap{padding:16px 14px 56px}}
 .page-head{margin:8px 0 4px}
 h1{font-size:26px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
 .standfirst{color:var(--muted-foreground);margin:0;font-size:15px}
@@ -520,6 +596,9 @@ select.fsel:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px 
 .frow + .frow{margin-top:8px}
 
 @media(max-width:700px){
+  .filters{gap:6px;margin:12px 0 14px}
+  .fsearch{flex-basis:100%}
+  select.fsel{flex:1 1 0;min-width:0;font-size:12.5px;padding:8px 26px 8px 11px}
   .fcount{width:100%;order:9}
 }
 
