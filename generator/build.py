@@ -454,7 +454,9 @@ NAV = [
     ("link", "Contact", "/contact/"),
     ("link", "Preferences", "/preferences/"),
     ("link", "Read Later", "/read-later/"),
-    ("link", "Portfolio", "/portfolio/"),
+    # No trailing slash: his SPA's router matches /portfolio exactly and
+    # renders its own 404 page for /portfolio/.
+    ("link", "Portfolio", "/portfolio"),
 ]
 
 # Market clocks in the navbar: label, IANA zone, open/close minutes local.
@@ -1590,6 +1592,10 @@ export default {
       var r = await railway(request, url);
       return r || new Response('{"error":"backend unreachable"}', {
         status: 502, headers: {'content-type': 'application/json'}});
+    }
+    if (url.pathname === '/portfolio/') {
+      // His SPA's router 404s on the trailing slash; canonicalise.
+      return Response.redirect(url.origin + '/portfolio' + url.search, 301);
     }
     if (url.pathname === '/portfolio' || url.pathname.startsWith('/portfolio/')) {
       var p = await railway(request, url);
