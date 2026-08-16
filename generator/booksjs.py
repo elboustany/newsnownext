@@ -21,6 +21,8 @@ BOOKS_JS = r"""
   var grid = document.getElementById('book-grid');
   var empty = document.getElementById('b-empty');
   var books = [].slice.call(grid.querySelectorAll('[data-book]'));
+  var shelves = [].slice.call(grid.querySelectorAll('[data-shelf]'));
+  var sequence = [].slice.call(grid.children);   // shelves + cards, curated order
   var cat = null;
 
   books.forEach(function (b) {
@@ -61,6 +63,17 @@ BOOKS_JS = r"""
       b._h3.innerHTML = markUp(b._title, ok ? re : null);
     });
 
+    var shelved = sort.value === 'az';
+    shelves.forEach(function (h) {
+      if (!shelved) { h.hidden = true; return; }
+      var any = false, n = h.nextElementSibling;
+      while (n && !n.hasAttribute('data-shelf')) {
+        if (n.hasAttribute('data-book') && !n.hidden) { any = true; break; }
+        n = n.nextElementSibling;
+      }
+      h.hidden = !any;
+    });
+
     count.textContent = shown === books.length
       ? books.length + ' books'
       : shown + ' of ' + books.length + ' books';
@@ -70,10 +83,15 @@ BOOKS_JS = r"""
 
   function reorder() {
     var mode = sort.value;
+    if (mode === 'az') {
+      // The default view is curated shelves, not a flat A-Z wall: restore
+      // the exact server-rendered sequence, headers included.
+      sequence.forEach(function (el) { grid.appendChild(el); });
+      return;
+    }
     books.slice().sort(function (a, b) {
       if (mode === 'new') return b._year - a._year || a._title.localeCompare(b._title);
-      if (mode === 'old') return a._year - b._year || a._title.localeCompare(b._title);
-      return a._title.localeCompare(b._title);
+      return a._year - b._year || a._title.localeCompare(b._title);
     }).forEach(function (b) { grid.appendChild(b); });
   }
 

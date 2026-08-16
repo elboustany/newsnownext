@@ -918,7 +918,9 @@ def books_page(cfg, mkt, base, out):
     """The 120-title reading list, with the client's affiliate tag preserved."""
     data = json.loads((HERE / "data" / "books.json").read_text(encoding="utf-8"))
     tag = data["affiliate_tag"]
-    books = sorted(data["books"], key=lambda b: b[0].lower())
+    cat_order = {c: i for i, c in enumerate(data["categories"])}
+    books = sorted(data["books"],
+                   key=lambda b: (cat_order.get(b[3], 99), b[0].lower()))
 
     chips = "".join(
         f'<button class="chip" type="button" data-book-cat="{esc(c)}" '
@@ -935,7 +937,17 @@ def books_page(cfg, mkt, base, out):
         covers_map = json.loads(cmap_path.read_text(encoding="utf-8"))
 
     cards = []
+    seen_cat = None
     for title, author, year, cat in books:
+        if cat != seen_cat:
+            seen_cat = cat
+            n = sum(1 for b in books if b[3] == cat)
+            hh = HUES.get(cat, 214)
+            cards.append(
+                f'<h2 class="bshelf" data-shelf '
+                f'style="--shelf:hsl({hh},65%,46%)">'
+                f'<span class="bshelf-dot" aria-hidden="true"></span>'
+                f'{esc(cat)}<span class="bshelf-n">{n} books</span></h2>')
         q = urllib.parse.quote(f"{title} {author}")
         href = f"https://amazon.com/s?k={q}&tag={tag}"
         h = HUES.get(cat, 214)
