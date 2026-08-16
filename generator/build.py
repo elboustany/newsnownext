@@ -454,9 +454,9 @@ NAV = [
     ("link", "Contact", "/contact/"),
     ("link", "Preferences", "/preferences/"),
     ("link", "Read Later", "/read-later/"),
-    # No trailing slash: his SPA's router matches /portfolio exactly and
-    # renders its own 404 page for /portfolio/.
-    ("link", "Portfolio", "/portfolio"),
+    # His app's portfolio page is the /stocks route (titled "Portfolio");
+    # a /portfolio path does not exist in his router.
+    ("link", "Portfolio", "/stocks"),
 ]
 
 # Market clocks in the navbar: label, IANA zone, open/close minutes local.
@@ -1593,14 +1593,19 @@ export default {
       return r || new Response('{"error":"backend unreachable"}', {
         status: 502, headers: {'content-type': 'application/json'}});
     }
-    if (url.pathname === '/portfolio/') {
-      // His SPA's router 404s on the trailing slash; canonicalise.
-      return Response.redirect(url.origin + '/portfolio' + url.search, 301);
-    }
-    if (url.pathname === '/portfolio' || url.pathname.startsWith('/portfolio/')) {
+    // The portfolio system's pages in his app: /stocks is the portfolio
+    // itself, the rest are its login flow. All proxied; if the backend is
+    // down, the static portfolio page explains instead of erroring.
+    var SPA = ['/stocks', '/login', '/register', '/forgot-password',
+               '/reset-password', '/portfolio'];
+    var path = url.pathname.replace(/\\/+$/, '') || '/';
+    if (SPA.indexOf(path) !== -1) {
+      if (path !== url.pathname) {
+        return Response.redirect(url.origin + path + url.search, 301);
+      }
       var p = await railway(request, url);
       if (fromRailway(p)) return p;
-      return env.ASSETS.fetch(request);
+      return env.ASSETS.fetch(new Request(url.origin + '/portfolio/', request));
     }
     var res = await env.ASSETS.fetch(request);
     // The old app's hashed bundles (its /assets/index-*.js) are not in the
