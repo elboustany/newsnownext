@@ -44,6 +44,10 @@ from pagesjs import PAGES_JS
 HERE = Path(__file__).resolve().parent
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36 NewsNowNextBuilder/2.0")
+# Appended to CSS/JS URLs so every deploy busts Cloudflare's edge cache and
+# the service worker in one move. Without it a deploy could serve new HTML
+# with up to four hours of stale stylesheet - mixed chrome, seen in the wild.
+BUILD_STAMP = datetime.now(timezone.utc).strftime("%Y%m%d%H%M")
 # Keyed on output_dir so the offline self-test (which writes site-test/) cannot
 # clobber the production pull. They shared one path and it silently did.
 def cache_path(cfg):
@@ -722,7 +726,7 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap">
-<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/site.css?v={BUILD_STAMP}">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#374151">
 {extra_head}
@@ -790,7 +794,7 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
   </div>
 </footer>
 {BOTBAR}
-<script src="/assets/pages.js" defer></script>
+<script src="/assets/pages.js?v={BUILD_STAMP}" defer></script>
 {scripts}
 </body>
 </html>
@@ -1041,7 +1045,7 @@ def books_page(cfg, mkt, base, out):
         ticker=ticker_strip(mkt),
         extra_head=(f'<script type="application/ld+json">{ld}</script>'
                     + breadcrumbs(base, [("Books", "/books/")])),
-        scripts='<script src="/assets/books.js" defer></script>',
+        scripts=f'<script src="/assets/books.js?v={BUILD_STAMP}" defer></script>',
     ))
     return f"{base}/books/"
 
@@ -1567,7 +1571,7 @@ self.addEventListener('fetch', function (e) {
         ticker=ticker_strip(mkt),
         extra_head=(f"<script>window.__TOPICS__={topic_json};</script>"
                     f'<script type="application/ld+json">{site_ld}</script>'),
-        scripts='<script src="/assets/filter.js" defer></script>',
+        scripts=f'<script src="/assets/filter.js?v={BUILD_STAMP}" defer></script>',
     ))
     urls.append((f"{base}/", datetime.now(timezone.utc)))
 
