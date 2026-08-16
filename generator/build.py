@@ -755,28 +755,32 @@ def shell(cfg, *, title, description, canonical, body, noindex=False,
     <path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
 </button>
 <button class="ai-fab" id="ai-fab" type="button" aria-expanded="false"
-        aria-controls="ai-panel">
+        aria-controls="ai-modal">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
   </svg>
   Ask AI about News
 </button>
-<div class="ai-panel" id="ai-panel" hidden>
-  <div class="ai-head"><strong>Ask AI about News</strong>
-    <button class="ai-x" id="ai-x" type="button" aria-label="Close">&times;</button></div>
-  <p class="ai-sub">Preview - answers search the live wire directly.</p>
-  <form id="ai-form">
+<div class="ai-modal" id="ai-modal" hidden>
+  <div class="ai-back" id="ai-back"></div>
+  <div class="ai-sheet" role="dialog" aria-modal="true"
+       aria-label="Ask AI about News &amp; Finance">
+    <div class="ai-head">
+      <h2>Ask AI about News &amp; Finance</h2>
+      <button class="ai-x" id="ai-x" type="button" aria-label="Close">&#10005;</button>
+    </div>
     <label class="sr-only" for="ai-q">Ask about the news</label>
-    <input id="ai-q" type="text" autocomplete="off"
-           placeholder="e.g. what&rsquo;s moving oil today?">
-  </form>
-  <div class="ai-sugg" id="ai-sugg">
-    <button class="chip" type="button" data-ai-q="oil">Oil</button>
-    <button class="chip" type="button" data-ai-q="fed rates">Fed &amp; rates</button>
-    <button class="chip" type="button" data-ai-q="china">China</button>
-    <button class="chip" type="button" data-ai-q="bitcoin">Crypto</button>
-    <button class="chip" type="button" data-ai-q="yen">Yen</button>
+    <textarea id="ai-q" autocomplete="off" placeholder="Ask anything! e.g., 'Summarize today's news' or 'Why do Fed rate cuts affect markets?'"></textarea>
+    <div class="ai-actions">
+      <button class="ai-ask" id="ai-ask" type="button" disabled>Ask AI</button>
+      <button class="ai-quick" id="ai-quick" type="button">Quick Summary</button>
+      <button class="ai-clear" id="ai-clear" type="button">Clear</button>
+    </div>
+    <div class="ai-out" id="ai-out">The summary will appear here&hellip;</div>
+    <p class="ai-hint">&#128161; <strong>Two modes:</strong> <span id="ai-hint-modes">Ask
+      about current news or general finance topics (Fed policy, markets,
+      economics, etc.)</span></p>
   </div>
 </div>
 </div>

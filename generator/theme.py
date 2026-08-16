@@ -80,8 +80,7 @@ a{color:inherit}
 }
 .promo .close:hover,.botbar .close:hover{opacity:1}
 /* Room for the AI pill and back-to-top above the fixed bottom banner. */
-body.has-botbar .ai-fab,body.has-botbar .totop{bottom:66px}
-body.has-botbar .ai-panel{bottom:122px}
+body.has-botbar .totop{bottom:66px}
 @media(max-width:640px){
   .promo,.botbar{font-size:12.5px}
   .promo .muted,.promo .learn,.botbar .muted,.botbar .learn{display:none}
@@ -758,34 +757,59 @@ ol.wire mark{background:rgba(36,99,235,.16);color:inherit;border-radius:2px;padd
 .totop:hover{color:var(--primary);border-color:var(--primary)}
 .totop svg{width:18px;height:18px}
 
+/* Pinned where the live site pins it - 80px up, clear of the bottom
+   banner - so it needs no lift when the banner shows. */
 .ai-fab{
-  position:fixed;right:22px;bottom:22px;z-index:60;
-  display:inline-flex;align-items:center;gap:9px;
+  position:fixed;right:16px;bottom:80px;z-index:60;
+  display:inline-flex;align-items:center;gap:8px;
   font:inherit;font-size:14px;font-weight:600;color:#fff;
-  background:#dc2626;border:0;border-radius:999px;padding:13px 20px;cursor:pointer;
-  box-shadow:0 6px 16px rgba(220,38,38,.35);
+  background:#dc2626;border:0;border-radius:999px;padding:12px 16px;cursor:pointer;
+  box-shadow:0 6px 16px rgba(0,0,0,.25);
 }
 .ai-fab:hover{background:#b91c1c}
 .ai-fab svg{width:17px;height:17px}
-.ai-panel{
-  position:fixed;right:22px;bottom:78px;z-index:60;width:min(330px,calc(100vw - 44px));
-  background:var(--card);border:1px solid var(--border);border-radius:14px;
-  box-shadow:0 18px 40px rgba(16,24,40,.22);padding:14px 16px;
+/* The live site's sheet, verbatim: dimmed backdrop, a centred bottom
+   sheet (max 672px) with rounded top corners, textarea, black Ask AI
+   button, bordered Quick Summary and Clear, pre-wrap output box. */
+.ai-modal{position:fixed;inset:0;z-index:130}
+.ai-back{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+.ai-sheet{
+  position:absolute;left:50%;transform:translateX(-50%);bottom:0;
+  width:100%;max-width:672px;background:#fff;border-radius:16px 16px 0 0;
+  box-shadow:0 -10px 30px rgba(0,0,0,.2);padding:16px;box-sizing:border-box;
 }
-.ai-head{display:flex;align-items:center;justify-content:space-between;font-size:15px}
+.ai-head{display:flex;align-items:center;justify-content:space-between}
+.ai-head h2{font-size:18px;font-weight:600;margin:0}
 .ai-x{
-  background:none;border:0;font-size:20px;line-height:1;cursor:pointer;
-  color:var(--muted-foreground);padding:2px 4px;
+  background:none;border:0;font-size:14px;line-height:1;cursor:pointer;
+  color:#6b7280;padding:8px;border-radius:6px;
 }
-.ai-x:hover{color:var(--foreground)}
-.ai-sub{font-size:12px;color:var(--muted-foreground);margin:4px 0 10px}
+.ai-x:hover{background:#f3f4f6;color:var(--foreground)}
 #ai-q{
-  width:100%;font:inherit;font-size:14px;color:var(--foreground);
-  background:var(--input);border:1px solid var(--border);border-radius:8px;
-  padding:9px 12px;
+  margin-top:12px;width:100%;min-height:90px;font:inherit;font-size:14px;
+  color:var(--foreground);background:#fff;border:1px solid var(--border);
+  border-radius:6px;padding:8px;resize:none;box-sizing:border-box;
 }
-#ai-q:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(36,99,235,.13)}
-.ai-sugg{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+#ai-q:focus{outline:none;box-shadow:0 0 0 2px rgba(0,0,0,.3)}
+.ai-actions{margin-top:12px;display:flex;gap:8px}
+.ai-ask{
+  font:inherit;font-size:14px;padding:8px 16px;border-radius:6px;
+  background:#000;color:#fff;border:0;cursor:pointer;
+}
+.ai-ask:hover{opacity:.9}
+.ai-ask:disabled{opacity:.6;cursor:default}
+.ai-quick,.ai-clear{
+  font:inherit;padding:8px 16px;border-radius:6px;background:none;
+  border:1px solid #d1d5db;color:var(--foreground);cursor:pointer;
+}
+.ai-quick{font-size:13px;padding:8px 12px}
+.ai-quick:hover,.ai-clear:hover{background:#f9fafb}
+.ai-out{
+  margin-top:12px;border:1px solid var(--border);border-radius:6px;
+  padding:12px;max-height:40vh;overflow:auto;white-space:pre-wrap;
+  font-size:13.5px;line-height:1.55;background:#f9fafb;
+}
+.ai-hint{margin:8px 0 0;font-size:12px;color:#6b7280}
 
 /* ── Contact ───────────────────────────────────────────────────────── */
 

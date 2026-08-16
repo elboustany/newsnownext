@@ -231,43 +231,121 @@ PAGES_JS = r"""
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  /* ── Ask AI ──────────────────────────────────────────────────────── */
+  /* ── Ask AI - the live site's bottom sheet, answered from the wire ──
+     Same modal, copy and buttons as the client's site. The answers are
+     composed client-side from the rendered headlines (the old backend's
+     LLM call is dead - its API key expired), so Ask matches headlines
+     against the question and Quick Summary reads the brief + trending. */
   var fab = document.getElementById('ai-fab');
-  var panel = document.getElementById('ai-panel');
-  if (fab && panel) {
+  var modal = document.getElementById('ai-modal');
+  if (fab && modal) {
     var aiq = document.getElementById('ai-q');
+    var aiAsk = document.getElementById('ai-ask');
+    var aiOut = document.getElementById('ai-out');
+    var OUT_IDLE = 'The summary will appear here…';
+    var wireItems = [].slice.call(document.querySelectorAll('[data-item]'));
+
+    var hintEl = document.getElementById('ai-hint-modes');
+    if (hintEl && wireItems.length) {
+      hintEl.textContent = 'Ask about current news (uses ' + wireItems.length +
+        ' articles) or general finance topics (Fed policy, markets, economics, etc.)';
+    }
+
     function toggle(open) {
-      panel.hidden = !open;
+      modal.hidden = !open;
       fab.setAttribute('aria-expanded', String(open));
+      document.documentElement.style.overflow = open ? 'hidden' : '';
       if (open) aiq.focus();
     }
-    fab.addEventListener('click', function () { toggle(panel.hidden); });
+    fab.addEventListener('click', function () { toggle(modal.hidden); });
     document.getElementById('ai-x').addEventListener('click', function () { toggle(false); });
+    document.getElementById('ai-back').addEventListener('click', function () { toggle(false); });
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !panel.hidden) toggle(false);
+      if (e.key === 'Escape' && !modal.hidden) toggle(false);
     });
 
-    // On the feed, run the query through the live filter; elsewhere, carry it
-    // to the feed as /?q=…
-    function ask(q) {
-      q = q.trim();
-      if (!q) return;
-      var wire = document.querySelector('[data-filters] #f-q');
-      if (wire) {
-        wire.value = q;
-        wire.dispatchEvent(new Event('input'));
-        toggle(false);
-        wire.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      } else {
-        location.href = '/?q=' + encodeURIComponent(q);
-      }
-    }
-    document.getElementById('ai-form').addEventListener('submit', function (e) {
-      e.preventDefault();
-      ask(aiq.value);
+    aiq.addEventListener('input', function () {
+      aiAsk.disabled = !aiq.value.trim();
     });
-    [].slice.call(document.querySelectorAll('[data-ai-q]')).forEach(function (b) {
-      b.addEventListener('click', function () { ask(b.getAttribute('data-ai-q')); });
+
+    function itemFacts(li) {
+      var a = li.querySelector('a');
+      var t = li.querySelector('time');
+      return {
+        title: a ? a.textContent.trim() : '',
+        source: li.getAttribute('data-src') || '',
+        when: t ? t.textContent.trim() : ''
+      };
+    }
+    function lineFor(f) {
+      return '• ' + f.title + (f.source ? ' (' + f.source +
+        (f.when ? ', ' + f.when : '') + ')' : '');
+    }
+
+    function answer(q) {
+      var words = q.toLowerCase().split(/\s+/).filter(function (w) {
+        return w.length > 2;
+      });
+      var hits = wireItems.map(itemFacts).filter(function (f) {
+        var hay = f.title.toLowerCase();
+        return words.some(function (w) { return hay.indexOf(w) !== -1; });
+      });
+      if (!hits.length) {
+        return 'Nothing on the wire matches that right now. Try a ticker, ' +
+          'country or topic keyword, or use Quick Summary for an overview ' +
+          'of the day.';
+      }
+      var top = hits.slice(0, 12);
+      return top.length + ' of ' + wireItems.length +
+        ' current headlines match "' + q + '":\n\n' +
+        top.map(lineFor).join('\n') +
+        (hits.length > top.length
+          ? '\n\n…and ' + (hits.length - top.length) +
+            ' more in the feed below.'
+          : '');
+    }
+
+    function quickSummary() {
+      var parts = [];
+      var briefText = document.querySelector('.brief-body');
+      if (briefText && briefText.textContent.trim()) {
+        parts.push(briefText.textContent.trim());
+      }
+      var trending = [].slice.call(
+        document.querySelectorAll('[data-trend-group]:not([hidden]) .tcard .thl')
+      ).map(function (el) { return el.textContent.trim(); }).filter(Boolean);
+      if (trending.length) {
+        parts.push('Trending now:\n' + trending.slice(0, 5).map(function (t) {
+          return '• ' + t;
+        }).join('\n'));
+      }
+      if (!parts.length && wireItems.length) {
+        parts.push('Latest headlines:\n' + wireItems.slice(0, 8)
+          .map(itemFacts).map(lineFor).join('\n'));
+      }
+      return parts.length ? parts.join('\n\n') : '';
+    }
+
+    aiAsk.addEventListener('click', function () {
+      var q = aiq.value.trim();
+      if (!q) return;
+      if (!wireItems.length) {
+        // Inner pages have no wire; carry the question to the feed.
+        location.href = '/?q=' + encodeURIComponent(q);
+        return;
+      }
+      aiOut.textContent = answer(q);
+    });
+    document.getElementById('ai-quick').addEventListener('click', function () {
+      var s = quickSummary();
+      if (!s) { location.href = '/'; return; }
+      aiOut.textContent = s;
+    });
+    document.getElementById('ai-clear').addEventListener('click', function () {
+      aiq.value = '';
+      aiAsk.disabled = true;
+      aiOut.textContent = OUT_IDLE;
+      aiq.focus();
     });
   }
 
