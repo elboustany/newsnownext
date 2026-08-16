@@ -38,8 +38,9 @@ python3 dev/gen-feeds.py --check && python3 dev/gen-css.py --check
 cd generator && python3 build.py --config config.test.json
 ```
 
-The self-test must exit 0 with `oil` indexable and `equities` noindex - that
-asserts the thin-content guard still works.
+The self-test must exit 0 with `oil` indexable and `thin-check` noindex -
+that asserts the thin-content guard still works. `thin-check` exists only in
+config.test.json and must never get a notes/ file.
 
 ## Rules that are load-bearing
 

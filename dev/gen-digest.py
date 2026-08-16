@@ -46,7 +46,7 @@ def main():
 
     # Top consensus story from the trending history the site build maintains.
     top_story = None
-    hist_path = GEN / ".cache" / "trending-history.json"
+    hist_path = GEN / ".cache" / "trending-history-site.json"
     cache_path = GEN / ".cache" / "items-site.json"
     if hist_path.exists() and cache_path.exists():
         items = json.loads(cache_path.read_text(encoding="utf-8"))

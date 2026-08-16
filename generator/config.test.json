@@ -7,37 +7,83 @@
   "window_hours": 876000,
   "max_per_source": 12,
   "max_per_topic": 60,
-
   "regions": [
     {
       "id": "us",
       "title": "US News",
       "sources": [
-        { "id": "fixture-a", "label": "Fixture Wire A", "url": "fixtures/good-a.xml" },
-        { "id": "fixture-broken", "label": "Fixture Broken", "url": "fixtures/broken.xml" }
+        {
+          "id": "fixture-a",
+          "label": "Fixture Wire A",
+          "url": "fixtures/good-a.xml"
+        },
+        {
+          "id": "fixture-broken",
+          "label": "Fixture Broken",
+          "url": "fixtures/broken.xml"
+        }
       ]
     },
     {
       "id": "uk",
       "title": "UK News",
       "sources": [
-        { "id": "fixture-b", "label": "Fixture Wire B", "via": "Google News", "url": "fixtures/good-b.xml" }
+        {
+          "id": "fixture-b",
+          "label": "Fixture Wire B",
+          "via": "Google News",
+          "url": "fixtures/good-b.xml"
+        }
       ]
     }
   ],
-
   "topics": [
     {
       "slug": "oil",
       "title": "Oil and energy",
       "description": "Crude, gas and energy market headlines from across the wire, updated through the day.",
-      "keywords": ["oil", "crude", "brent", "wti", "opec", "natural gas", "lng", "refinery", "barrel", "pipeline", "energy prices"]
+      "keywords": [
+        "oil",
+        "crude",
+        "brent",
+        "wti",
+        "opec",
+        "natural gas",
+        "lng",
+        "refinery",
+        "barrel",
+        "pipeline",
+        "energy prices"
+      ]
     },
     {
       "slug": "equities",
       "title": "Equities",
       "description": "Stock market moves, earnings and index headlines across US, European and Asian sessions.",
-      "keywords": ["stocks", "shares", "equities", "s&p", "nasdaq", "dow", "ftse", "dax", "nikkei", "earnings", "ipo", "buyback", "index", "wall street"]
+      "keywords": [
+        "stocks",
+        "shares",
+        "equities",
+        "s&p",
+        "nasdaq",
+        "dow",
+        "ftse",
+        "dax",
+        "nikkei",
+        "earnings",
+        "ipo",
+        "buyback",
+        "index",
+        "wall street"
+      ]
+    },
+    {
+      "slug": "thin-check",
+      "title": "Thin-content check",
+      "description": "Exists only to prove the noindex guard: this topic must never get a notes/ file.",
+      "keywords": [
+        "fixture"
+      ]
     }
   ]
 }

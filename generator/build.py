@@ -256,25 +256,26 @@ def _tokens(title):
             if len(w) > 2 and w not in STOP}
 
 
-TREND_HISTORY = HERE / ".cache" / "trending-history.json"
+def _trend_history_path(cfg):
+    return HERE / ".cache" / f"trending-history-{cfg['output_dir']}.json"
 
 
 def _cluster_key(toks):
     return "-".join(sorted(toks)[:6])
 
 
-def _load_trend_history():
+def _load_trend_history(path):
     try:
-        return json.loads(TREND_HISTORY.read_text(encoding="utf-8"))
+        return json.loads(path.read_text(encoding="utf-8"))
     except Exception:                               # noqa: BLE001 - fresh start
         return {}
 
 
-def _update_trend_history(clusters):
+def _update_trend_history(clusters, path):
     """Persist desk counts across builds so the next build can say a story
     went from one desk to five. Runs on a 30-minute cron in production, so
     the history accumulates on its own."""
-    hist = _load_trend_history()
+    hist = _load_trend_history(path)
     now = datetime.now(timezone.utc).isoformat()
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
     hist = {k: v for k, v in hist.items() if v.get("updated", "") >= cutoff}
@@ -285,11 +286,11 @@ def _update_trend_history(clusters):
         c["prev_desks"] = prev["desks"] if prev else None
         hist[k] = {"first_seen": c["first_seen"], "desks": len(c["sources"]),
                    "updated": now}
-    TREND_HISTORY.parent.mkdir(parents=True, exist_ok=True)
-    TREND_HISTORY.write_text(json.dumps(hist), encoding="utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(hist), encoding="utf-8")
 
 
-def trending_clusters(items, hours=24):
+def trending_clusters(items, hist_path, hours=24):
     """Group near-duplicate stories across desks.
 
     The ranking signal is deliberately simple and explainable: a story that
@@ -313,7 +314,7 @@ def trending_clusters(items, hours=24):
             clusters.append({"toks": toks, "rep": it, "sources": {it["source"]}})
 
     clusters.sort(key=lambda c: (len(c["sources"]), c["rep"]["ts"]), reverse=True)
-    _update_trend_history(clusters)
+    _update_trend_history(clusters, hist_path)
     return clusters
 
 
@@ -323,7 +324,7 @@ TREND_LABELS = [("oil", "Oil"), ("crypto", "Crypto"), ("rates", "Rates"),
 
 
 def trending_section(cfg, items):
-    clusters = trending_clusters(items)
+    clusters = trending_clusters(items, _trend_history_path(cfg))
     if len(clusters) < 5:
         return ""
     by_slug = {t["slug"]: t for t in cfg["topics"]}
@@ -1734,6 +1735,11 @@ self.addEventListener('fetch', function (e) {
               '<a href="/topics/">topics</a>, or the '
               '<a href="/recap/">daily recap</a>.</p></div></div>'),
     ))
+
+    write(out / "_headers",
+          "/events/calendar.ics\n  Content-Type: text/calendar; charset=utf-8\n"
+          "/manifest.webmanifest\n  Content-Type: application/manifest+json\n"
+          "/sw.js\n  Cache-Control: no-cache\n")
 
     write(out / "robots.txt", f"User-agent: *\nAllow: /\nSitemap: {base}/sitemap.xml\n")
 
