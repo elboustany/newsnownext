@@ -1641,7 +1641,9 @@ export default {
     var SPA = ['/stocks', '/login', '/register', '/forgot-password',
                '/reset-password', '/portfolio'];
     var path = url.pathname.replace(/\\/+$/, '') || '/';
-    if (SPA.indexOf(path) !== -1) {
+    // His admin area (Manage Podcasts, messages) rides along too - it is
+    // part of the same app, gated by his admin login.
+    if (SPA.indexOf(path) !== -1 || path === '/admin' || path.startsWith('/admin/')) {
       if (path !== url.pathname) {
         return Response.redirect(url.origin + path + url.search, 301);
       }
