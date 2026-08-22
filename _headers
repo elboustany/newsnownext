@@ -1,0 +1,6 @@
+/events/calendar.ics
+  Content-Type: text/calendar; charset=utf-8
+/manifest.webmanifest
+  Content-Type: application/manifest+json
+/sw.js
+  Cache-Control: no-cache

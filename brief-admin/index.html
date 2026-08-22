@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Morning Brief editor</title>
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<style>
+  body{font-family:Inter,-apple-system,system-ui,sans-serif;background:#f4f5f7;
+       color:#111827;margin:0;padding:24px;display:flex;justify-content:center}
+  .box{width:100%;max-width:680px;background:#fff;border:1px solid #e5e7eb;
+       border-radius:12px;padding:24px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:#6b7280;font-size:13.5px;margin:0 0 18px}
+  label{display:block;font-size:13px;font-weight:600;margin:14px 0 5px}
+  input,textarea{width:100%;font:inherit;font-size:15px;border:1px solid #d1d5db;
+       border-radius:8px;padding:10px 12px;box-sizing:border-box}
+  textarea{min-height:220px;line-height:1.6;resize:vertical}
+  input:focus,textarea:focus{outline:none;border-color:#2463eb;
+       box-shadow:0 0 0 3px rgba(36,99,235,.15)}
+  button{font:inherit;font-size:15px;font-weight:600;color:#fff;background:#2463eb;
+       border:0;border-radius:8px;padding:11px 22px;margin-top:16px;cursor:pointer}
+  button:hover{background:#1d4ed8}
+  button:disabled{opacity:.6}
+  .msg{font-size:14px;margin-top:12px;min-height:1.4em}
+  .ok{color:#059669}.err{color:#dc2626}
+  .count{font-size:12px;color:#9ca3af;text-align:right;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>Morning Brief</h1>
+  <p class="sub">One written paragraph about the trading day. Saving shows it
+  on the home page within a minute and in the daily recap within the hour.</p>
+  <label for="d">Day</label>
+  <input id="d" type="date">
+  <label for="t">The brief</label>
+  <textarea id="t" placeholder="What today is about, in your own words&hellip;"></textarea>
+  <div class="count" id="count"></div>
+  <label for="k">Passphrase</label>
+  <input id="k" type="password" autocomplete="current-password">
+  <button id="save" type="button">Save</button>
+  <p class="msg" id="msg"></p>
+</div>
+<script>
+(function () {
+  var d = document.getElementById('d'), t = document.getElementById('t');
+  var k = document.getElementById('k'), msg = document.getElementById('msg');
+  var save = document.getElementById('save'), count = document.getElementById('count');
+  function ny() {
+    var p = new Intl.DateTimeFormat('en-CA', {timeZone: 'America/New_York',
+      year: 'numeric', month: '2-digit', day: '2-digit'}).format(new Date());
+    return p;
+  }
+  d.value = ny();
+  try { k.value = localStorage.getItem('nnn:briefkey') || ''; } catch (e) {}
+  function load() {
+    msg.textContent = ''; msg.className = 'msg';
+    fetch('/api/brief?date=' + d.value).then(function (r) {
+      return r.ok ? r.json() : null;
+    }).then(function (b) {
+      t.value = (b && b.text) || '';
+      tick();
+    }).catch(function () {});
+  }
+  function tick() { count.textContent = t.value.length ? t.value.length + ' characters' : ''; }
+  t.addEventListener('input', tick);
+  d.addEventListener('change', load);
+  save.addEventListener('click', function () {
+    msg.textContent = 'Saving…'; msg.className = 'msg';
+    save.disabled = true;
+    fetch('/api/brief', {method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({date: d.value, text: t.value, key: k.value})
+    }).then(function (r) { return r.json().then(function (b) { return {s: r.status, b: b}; }); })
+      .then(function (res) {
+        save.disabled = false;
+        if (res.s === 200) {
+          msg.textContent = 'Saved. It is on the home page now and in the recap within the hour.';
+          msg.className = 'msg ok';
+          try { localStorage.setItem('nnn:briefkey', k.value); } catch (e) {}
+        } else {
+          msg.textContent = res.b && res.b.error === 'wrong passphrase'
+            ? 'Wrong passphrase.' : 'Could not save (' + ((res.b && res.b.error) || res.s) + ').';
+          msg.className = 'msg err';
+        }
+      }).catch(function () {
+        save.disabled = false;
+        msg.textContent = 'Network problem - try again.'; msg.className = 'msg err';
+      });
+  });
+  load();
+})();
+</script>
+</body>
+</html>

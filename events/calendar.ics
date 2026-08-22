@@ -1,0 +1,118 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//NewsNowNext//Economic Calendar//EN
+X-WR-CALNAME:US Economic Calendar - NewsNowNext
+X-WR-TIMEZONE:UTC
+BEGIN:VEVENT
+UID:20260827T140000Z-JacksonHoleEconomicSympo@newsnownext.org
+DTSTAMP:20260827T140000Z
+DTSTART:20260827T140000Z
+DTEND:20260827T150000Z
+SUMMARY:Jackson Hole Economic Symposium
+DESCRIPTION:The Fed chair's keynote has repeatedly reset rate expectations for the rest of the year.
+END:VEVENT
+BEGIN:VEVENT
+UID:20260904T123000Z-Augustjobsreportnonfarmp@newsnownext.org
+DTSTAMP:20260904T123000Z
+DTSTART:20260904T123000Z
+DTEND:20260904T133000Z
+SUMMARY:August jobs report (nonfarm payrolls)
+DESCRIPTION:Payrolls\, unemployment and wages in one print - the month's biggest data risk.
+END:VEVENT
+BEGIN:VEVENT
+UID:20260910T123000Z-AugustCPI@newsnownext.org
+DTSTAMP:20260910T123000Z
+DTSTART:20260910T123000Z
+DTEND:20260910T133000Z
+SUMMARY:August CPI
+DESCRIPTION:The inflation print the Fed's next move gets judged against.
+END:VEVENT
+BEGIN:VEVENT
+UID:20260916T180000Z-FOMCratedecisionprojecti@newsnownext.org
+DTSTAMP:20260916T180000Z
+DTSTART:20260916T180000Z
+DTEND:20260916T190000Z
+SUMMARY:FOMC rate decision + projections
+DESCRIPTION:Decision at 2:00\, dot plot alongside\, press conference at 2:30 - three chances to move markets.
+END:VEVENT
+BEGIN:VEVENT
+UID:20260925T123000Z-AugustPCEinflation@newsnownext.org
+DTSTAMP:20260925T123000Z
+DTSTART:20260925T123000Z
+DTEND:20260925T133000Z
+SUMMARY:August PCE inflation
+DESCRIPTION:The Fed's preferred inflation gauge; matters most when it disagrees with CPI.
+END:VEVENT
+BEGIN:VEVENT
+UID:20261002T123000Z-Septemberjobsreportnonfa@newsnownext.org
+DTSTAMP:20261002T123000Z
+DTSTART:20261002T123000Z
+DTEND:20261002T133000Z
+SUMMARY:September jobs report (nonfarm payrolls)
+DESCRIPTION:First payrolls print of Q4 - sets the tone for year-end rate pricing.
+END:VEVENT
+BEGIN:VEVENT
+UID:20261013T123000Z-SeptemberCPI@newsnownext.org
+DTSTAMP:20261013T123000Z
+DTSTART:20261013T123000Z
+DTEND:20261013T133000Z
+SUMMARY:September CPI
+DESCRIPTION:Last CPI before the November FOMC meeting.
+END:VEVENT
+BEGIN:VEVENT
+UID:20261029T123000Z-Q3GDPadvanceestimate@newsnownext.org
+DTSTAMP:20261029T123000Z
+DTSTART:20261029T123000Z
+DTEND:20261029T133000Z
+SUMMARY:Q3 GDP\, advance estimate
+DESCRIPTION:First read on third-quarter growth; big revisions are common\, big surprises move rates.
+END:VEVENT
+BEGIN:VEVENT
+UID:20261104T190000Z-FOMCratedecision@newsnownext.org
+DTSTAMP:20261104T190000Z
+DTSTART:20261104T190000Z
+DTEND:20261104T200000Z
+SUMMARY:FOMC rate decision
+DESCRIPTION:No projections at this one - the statement language and presser carry all the signal.
+END:VEVENT
+BEGIN:VEVENT
+UID:20261106T133000Z-Octoberjobsreportnonfarm@newsnownext.org
+DTSTAMP:20261106T133000Z
+DTSTART:20261106T133000Z
+DTEND:20261106T143000Z
+SUMMARY:October jobs report (nonfarm payrolls)
+DESCRIPTION:Two days after the FOMC - a strong or weak print immediately re-tests the decision.
+END:VEVENT
+BEGIN:VEVENT
+UID:20261110T133000Z-OctoberCPI@newsnownext.org
+DTSTAMP:20261110T133000Z
+DTSTART:20261110T133000Z
+DTEND:20261110T143000Z
+SUMMARY:October CPI
+DESCRIPTION:Shapes whether December brings a move or a hold.
+END:VEVENT
+BEGIN:VEVENT
+UID:20261204T133000Z-Novemberjobsreportnonfar@newsnownext.org
+DTSTAMP:20261204T133000Z
+DTSTART:20261204T133000Z
+DTEND:20261204T143000Z
+SUMMARY:November jobs report (nonfarm payrolls)
+DESCRIPTION:The last payrolls print the December FOMC sees.
+END:VEVENT
+BEGIN:VEVENT
+UID:20261209T190000Z-FOMCratedecisionprojecti@newsnownext.org
+DTSTAMP:20261209T190000Z
+DTSTART:20261209T190000Z
+DTEND:20261209T200000Z
+SUMMARY:FOMC rate decision + projections
+DESCRIPTION:Year-end decision with a fresh dot plot - the market's map for next year.
+END:VEVENT
+BEGIN:VEVENT
+UID:20261210T133000Z-NovemberCPI@newsnownext.org
+DTSTAMP:20261210T133000Z
+DTSTART:20261210T133000Z
+DTEND:20261210T143000Z
+SUMMARY:November CPI
+DESCRIPTION:Lands the morning after the Fed - confirmation or contradiction\, either moves markets.
+END:VEVENT
+END:VCALENDAR
